@@ -117,13 +117,25 @@ Config.Crops = {
 -- FERME (cases de terre, inventaire, engrais)
 --------------------------------------------------------------------------
 Config.Farm = {
-	StartingTiles = 6, -- cases de terre débloquées au départ
-	GridColumns = 6, -- grille max = 6 x 4 = 24 cases (les autres se débloquent en phase 7)
-	GridRows = 4,
+	-- Un CHAMP = un bloc de FieldColumns x FieldRows cases, placé avec le mode construction
+	FieldColumns = 3,
+	FieldRows = 2,
 	TileSize = 6, -- taille d'une case (studs)
 	TileGap = 2, -- espace entre deux cases
-	GridStartZ = 12, -- distance entre l'entrée de la parcelle et la 1re rangée de cases
+	FieldFootprint = Vector2.new(24, 16), -- emprise d'un champ (largeur X, profondeur Z)
 	SoilColor = Color3.fromRGB(105, 70, 40),
+	LockedSoilColor = Color3.fromRGB(80, 75, 70),
+
+	StartingUnlockedTiles = 6, -- le 1er champ offert a toutes ses cases débloquées
+	DefaultFieldPosition = { X = 0, Z = 22 }, -- position du 1er champ (et des anciennes sauvegardes)
+
+	-- Prix du 1er, 2e, 3e... champ (le 1er est offert). Ses cases arrivent verrouillées.
+	FieldPrices = { 0, 400, 1500, 4000, 10000, 25000, 60000, 150000, 350000, 800000 },
+	-- Nombre max de champs selon le niveau de la parcelle (1 à 4)
+	MaxFieldsByLevel = { 4, 6, 8, 10 },
+	-- Prix pour débloquer une case : Base x Growth ^ (cases déjà débloquées - StartingUnlockedTiles)
+	TileUnlockBase = 60,
+	TileUnlockGrowth = 1.12,
 
 	InteractDistance = 10, -- distance max pour planter / récolter
 	ActionCooldown = 0.15, -- secondes entre deux actions planter/récolter (anti-spam)
@@ -306,11 +318,14 @@ Config.Pens = {
 
 	-- Prix du 1er, 2e, 3e... enclos construit
 	Prices = { 300, 1500, 5000, 15000, 40000, 100000, 250000, 600000 },
+	-- Nombre max d'enclos selon le niveau de la parcelle (1 à 4)
+	MaxByLevel = { 2, 4, 6, 8 },
+	-- Emprise d'un enclos placé (largeur X, profondeur Z) : clôture + mangeoire et caisse devant
+	Footprint = Vector2.new(22, 26),
 
-	-- Emplacements sur la parcelle, en coordonnées locales :
-	--   X = gauche/droite depuis le centre, Z = profondeur depuis l'entrée.
-	--   RequiredLevel = niveau de parcelle nécessaire (voir Config.Plots.Expansions)
-	Slots = {
+	-- Anciennes positions fixes (avant le mode construction) : utilisées UNIQUEMENT pour
+	-- convertir les anciennes sauvegardes. X = gauche/droite, Z = profondeur depuis l'entrée.
+	LegacySlots = {
 		{ X = -37, Z = 20, RequiredLevel = 1 },
 		{ X = 37, Z = 20, RequiredLevel = 1 },
 		{ X = -37, Z = 46, RequiredLevel = 2 },
@@ -402,7 +417,8 @@ Config.Products = {
 --   Price          : prix de construction (Coins)
 --   RequiredLevel  : niveau de parcelle nécessaire
 --   Requires       : bâtiment à construire avant (ordre de déblocage)
---   X, Z           : emplacement sur la parcelle (coordonnées locales, Z = profondeur)
+--   X, Z           : position par défaut (anciennes sauvegardes) ; ensuite le joueur
+--                    place librement le bâtiment avec le mode construction
 --   Recipes        : Inputs (le 1er ingrédient donne la variante du produit),
 --                    Output, Time (secondes au niveau 1), RequiredBuildingLevel (optionnel)
 -- Ordre de déblocage : Boulangerie (blé, œufs) -> Filature (laine) -> Laiterie (lait)
@@ -646,6 +662,18 @@ Config.Creatures = {
 	Pyrodrake = creature("Volcano", "Legendary", 5, "Pyrodrake", "Block", 3.4, rgb(170, 30, 30), rgb(255, 150, 30), { "Wings", "Horns", "Tail", "Legs" }),
 	Volcanosaure = creature("Volcano", "Mythic", 6, "Volcanosaure", "Block", 4, rgb(50, 35, 35), rgb(255, 80, 20), { "Spikes", "Horns", "Legs", "Glow" }),
 	CoeurDeLave = creature("Volcano", "Secret", 7, "Cœur-de-Lave", "Ball", 2.6, rgb(255, 60, 20), rgb(255, 240, 120), { "Spikes", "Glow" }),
+}
+
+--------------------------------------------------------------------------
+-- MODE CONSTRUCTION (placer / déplacer / ranger champs, enclos, bâtiments)
+--------------------------------------------------------------------------
+Config.Build = {
+	Grid = 1, -- les positions sont arrondies à ce pas (studs)
+	EntranceDepth = 10, -- bande d'entrée interdite (spawn + boutons), en studs de profondeur
+	EdgeMargin = 1, -- marge avec le bord de la parcelle
+	ActionCooldown = 0.3,
+	-- Marge ajoutée autour de l'emprise d'un bâtiment (largeur, profondeur) : porte + passage
+	BuildingMargin = Vector2.new(2, 4),
 }
 
 --------------------------------------------------------------------------

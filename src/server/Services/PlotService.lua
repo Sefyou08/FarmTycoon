@@ -213,6 +213,8 @@ local function buildPlot(id: number, folder: Folder): Plot
 	model.Name = "Plot_" .. id
 	model:SetAttribute("PlotId", id)
 	model:SetAttribute("OwnerUserId", 0)
+	-- Repère de la parcelle (milieu de l'entrée), utilisé par le mode construction côté client
+	model:SetAttribute("Origin", plotCFrame * CFrame.new(0, PlotConfig.BaseHeight / 2, 0))
 
 	local base = makePart({
 		Name = "Base",
@@ -377,6 +379,7 @@ local function expand(player: Player): boolean
 	end
 	data.PlotLevel = plot.Level + 1
 	applyLevel(plot, data.PlotLevel)
+	SyncService:Set(player, "PlotLevel", data.PlotLevel)
 	runCallbacks(levelCallbacks, player, plot, data.PlotLevel)
 	SyncService:Notify(player, ("Parcelle agrandie : niveau %d ! Nouveaux emplacements débloqués."):format(data.PlotLevel), "Success")
 	return true
@@ -444,6 +447,7 @@ local function tryReady(player: Player)
 	local level = math.clamp(math.floor(tonumber(data.PlotLevel) or 1), 1, MAX_LEVEL)
 	data.PlotLevel = level
 	applyLevel(plot, level)
+	SyncService:Set(player, "PlotLevel", level)
 
 	runCallbacks(readyCallbacks, player, plot, data)
 end

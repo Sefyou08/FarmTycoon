@@ -1,26 +1,33 @@
 --[[
 	FarmService.lua
 	===============
-	Cases de terre, plantation, pousse (3 stades) et récolte.
+	Champs, cases de terre, plantation, pousse (3 stades), engrais et récolte.
 
 	Fonctionnement :
-	  • Au démarrage, chaque parcelle reçoit une grille de cases (Config.Farm).
-	    Seules les StartingTiles premières sont visibles ; les autres seront
-	    débloquées en phase 4.
+	  • Un CHAMP = un bloc de Config.Farm.FieldColumns x FieldRows cases, placé
+	    librement avec le mode construction (PlacementService). Données :
+	      data.Fields[fieldId] = { X, Z, Rot, Placed, Unlocked }
+	    Unlocked = nombre de cases débloquées (elles se débloquent dans l'ordre).
+	  • Le 1er champ est offert avec toutes ses cases. Les champs suivants
+	    s'achètent dans le menu de construction ; leurs cases se débloquent une
+	    par une (E sur la case), prix croissant (GetTileUnlockPrice).
 	  • Chaque case a un ProximityPrompt géré PAR LE SERVEUR :
-	      vide  -> "Planter : <graine choisie>"
-	      pousse -> "Mettre de l'engrais" si le joueur a du fumier (cheval), sinon masqué
-	                (un minuteur s'affiche au-dessus de la plante)
-	      mûre  -> "Récolter"
-	  • Les plantes sont sauvegardées dans data.Plants avec des horodatages
-	    os.time() : elles continuent de pousser quand le joueur est hors ligne
-	    (comme dans Grow a Garden).
-	  • Toute la validation (propriétaire, distance, cooldown, graine possédée,
-	    plante mûre, inventaire plein) est faite ici, côté serveur.
+	      verrouillée -> "Débloquer : X Coins" (seulement la prochaine case du champ)
+	      vide        -> "Planter : <graine choisie>"
+	      pousse      -> "Mettre de l'engrais" si le joueur a du fumier, sinon masqué
+	      mûre        -> "Récolter"
+	  • Plantes : data.Plants["<fieldId>:<case>"] = { CropId, PlantedAt, ReadyAt, Fertilized }
+	    (os.time) : elles continuent de pousser hors ligne, ou quand le champ est
+	    rangé / déplacé (seuls les visuels sont reconstruits).
+	  • Toute la validation est faite ici, côté serveur.
 
 	API :
-	  FarmService:GetGrowTime(player, cropId) -> secondes (multiplicateurs en phase 4/5)
-	  FarmService:GetUnlockedTileCount(player) -> number
+	  FarmService:GetGrowTime(player, cropId) -> secondes (multiplicateurs en phase 7/9)
+	  FarmService:GetTileUnlockPrice(data) -> Coins
+	  FarmService:CanBuyField(player) -> (prix | nil, raison)
+	  FarmService:CreateField(player, x, z, rot) -> fieldId   (appelé par PlacementService après paiement)
+	  FarmService:RefreshField(player, fieldId)               (reconstruit / retire le visuel)
+	  FarmService:RefreshSeedSelection(player)
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -31,14 +38,16 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local CropUtil = require(ReplicatedStorage.Shared.CropUtil)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local Format = require(ReplicatedStorage.Shared.Format)
+local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
-local DataService = require(script.Parent.DataService)
+local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
 
 local FarmConfig = Config.Farm
+local TILES_PER_FIELD = FarmConfig.FieldColumns * FarmConfig.FieldRows
 
 local FarmService = {}
 
@@ -47,21 +56,27 @@ local GROWING_TAG = "GrowingPlant"
 local STAGE_SCALE = { 0.35, 0.65, 1 } -- taille de la plante par stade (petite, moyenne, mûre)
 
 type Tile = {
+	FieldId: string,
 	Index: number,
-	Key: string, -- index en chaîne (clé de data.Plants)
+	Key: string, -- clé de data.Plants : "<fieldId>:<index>"
 	Part: Part,
 	Prompt: ProximityPrompt,
 	Model: Model?, -- visuel de la plante actuelle
 	Stage: number, -- 0 = vide, 1..3 = stade affiché
 }
 
+type FieldVisual = {
+	Model: Model,
+	Tiles: { Tile },
+}
+
 type Farm = {
 	Player: Player,
 	Plot: any,
 	Data: { [string]: any },
+	Fields: { [string]: FieldVisual },
 }
 
-local tilesByPlotId: { [number]: { Tile } } = {}
 local farms: { [Player]: Farm } = {}
 local selectedSeed: { [Player]: string } = {}
 
@@ -98,18 +113,35 @@ local function getStage(plant: { [string]: any }, now: number): number
 	return if progress < 0.5 then 1 else 2
 end
 
+local function plantKey(fieldId: string, index: number): string
+	return fieldId .. ":" .. index
+end
+
 function FarmService:GetGrowTime(_player: Player, cropId: string): number
 	local crop = Config.Crops[cropId]
-	-- Phase 4 (arroseur) et phase 5 (familiers) appliqueront un multiplicateur ici
+	-- Phase 7 (boosts) / phase 9 (game pass) appliqueront un multiplicateur ici
 	return crop.GrowTime
 end
 
-function FarmService:GetUnlockedTileCount(player: Player): number
-	local data = DataService:GetData(player)
-	local maxTiles = FarmConfig.GridColumns * FarmConfig.GridRows
-	-- Phase 4 : + les cases achetées avec les boutons tycoon
-	local extra = if data then (data.Upgrades.ExtraTiles or 0) else 0
-	return math.min(FarmConfig.StartingTiles + extra, maxTiles)
+local function totalUnlockedTiles(data: { [string]: any }): number
+	local total = 0
+	for _, field in data.Fields do
+		total += field.Unlocked or 0
+	end
+	return total
+end
+
+function FarmService:GetTileUnlockPrice(data: { [string]: any }): number
+	local extra = math.max(0, totalUnlockedTiles(data) - FarmConfig.StartingUnlockedTiles)
+	return math.floor(FarmConfig.TileUnlockBase * FarmConfig.TileUnlockGrowth ^ extra)
+end
+
+local function countFields(data: { [string]: any }): number
+	local count = 0
+	for _ in data.Fields do
+		count += 1
+	end
+	return count
 end
 
 --------------------------------------------------------------------------
@@ -210,19 +242,34 @@ local function clearTileVisual(tile: Tile)
 	tile.Stage = 0
 end
 
-local function setTileUnlocked(tile: Tile, unlocked: boolean)
-	tile.Part.Transparency = if unlocked then 0 else 1
-	tile.Part.CanCollide = unlocked
-	tile.Part.CanQuery = unlocked
-	if not unlocked then
-		tile.Prompt.Enabled = false
-	end
-end
-
 -- Met à jour visuel + prompt d'une case selon les données du joueur.
 local function renderTile(farm: Farm, tile: Tile, now: number)
-	local plant = farm.Data.Plants[tile.Key]
+	local field = farm.Data.Fields[tile.FieldId]
+	if not field then
+		return
+	end
 
+	-- Case verrouillée : seule la prochaine case du champ propose le déblocage
+	if tile.Index > field.Unlocked then
+		clearTileVisual(tile)
+		tile.Part.Color = FarmConfig.LockedSoilColor
+		tile.Part.Transparency = 0.35
+		if tile.Index == field.Unlocked + 1 then
+			tile.Prompt.ActionText = ("Débloquer : %s Coins"):format(Format.Number(FarmService:GetTileUnlockPrice(farm.Data)))
+			tile.Prompt.ObjectText = "Case verrouillée"
+			tile.Prompt.HoldDuration = 0.3
+			tile.Prompt.Enabled = true
+		else
+			tile.Prompt.Enabled = false
+		end
+		return
+	end
+
+	tile.Part.Color = FarmConfig.SoilColor
+	tile.Part.Transparency = 0
+	tile.Prompt.HoldDuration = 0
+
+	local plant = farm.Data.Plants[tile.Key]
 	if not plant then
 		clearTileVisual(tile)
 		local seedId = selectedSeed[farm.Player]
@@ -258,9 +305,8 @@ end
 
 local function renderFarm(farm: Farm)
 	local now = os.time()
-	local unlocked = FarmService:GetUnlockedTileCount(farm.Player)
-	for _, tile in tilesByPlotId[farm.Plot.Id] do
-		if tile.Index <= unlocked then
+	for _, visual in farm.Fields do
+		for _, tile in visual.Tiles do
 			renderTile(farm, tile, now)
 		end
 	end
@@ -298,8 +344,25 @@ function FarmService:RefreshSeedSelection(player: Player)
 end
 
 --------------------------------------------------------------------------
--- Planter / récolter
+-- Actions sur une case
 --------------------------------------------------------------------------
+
+local function unlockTile(farm: Farm, tile: Tile)
+	local player = farm.Player
+	local field = farm.Data.Fields[tile.FieldId]
+	if not field or tile.Index ~= field.Unlocked + 1 then
+		return
+	end
+	local price = FarmService:GetTileUnlockPrice(farm.Data)
+	if not CurrencyService:SpendCoins(player, price, "UnlockTile") then
+		SyncService:Notify(player, ("Il te faut %s Coins pour débloquer cette case."):format(Format.Number(price)), "Error")
+		return
+	end
+	field.Unlocked += 1
+	renderFarm(farm) -- le prix de la case suivante change partout
+	SyncService:Set(player, "Fields", farm.Data.Fields)
+	SyncService:Notify(player, "Case débloquée ! 🌱", "Success")
+end
 
 local function plantSeed(farm: Farm, tile: Tile)
 	local player = farm.Player
@@ -373,13 +436,13 @@ local function fertilizeTile(farm: Farm, tile: Tile)
 	SyncService:Notify(player, ("Engrais ! -%s de pousse"):format(Format.Time(remaining - (plant.ReadyAt - now))), "Success")
 end
 
-local function onTileTriggered(plot: any, tile: Tile, player: Player)
-	local farm = farms[player]
-	if not farm or farm.Plot ~= plot then
+local function onTileTriggered(farm: Farm, tile: Tile, player: Player)
+	if farms[player] ~= farm then
 		SyncService:Notify(player, "Ce n'est pas ta parcelle !", "Error")
 		return
 	end
-	if tile.Index > FarmService:GetUnlockedTileCount(player) then
+	local field = farm.Data.Fields[tile.FieldId]
+	if not field or not field.Placed then
 		return
 	end
 	if not RemoteGuard.IsNear(player, tile.Part.Position, FarmConfig.InteractDistance + 4) then
@@ -389,6 +452,10 @@ local function onTileTriggered(plot: any, tile: Tile, player: Player)
 		return
 	end
 
+	if tile.Index > field.Unlocked then
+		unlockTile(farm, tile)
+		return
+	end
 	local plant = farm.Data.Plants[tile.Key]
 	if not plant then
 		plantSeed(farm, tile)
@@ -400,43 +467,215 @@ local function onTileTriggered(plot: any, tile: Tile, player: Player)
 end
 
 --------------------------------------------------------------------------
+-- Visuel d'un champ
+--------------------------------------------------------------------------
+
+local function destroyFieldVisual(farm: Farm, fieldId: string)
+	local visual = farm.Fields[fieldId]
+	if visual then
+		visual.Model:Destroy()
+		farm.Fields[fieldId] = nil
+	end
+end
+
+local function buildFieldVisual(farm: Farm, fieldId: string)
+	local field = farm.Data.Fields[fieldId]
+	destroyFieldVisual(farm, fieldId)
+	if not field or not field.Placed then
+		return
+	end
+
+	local origin = PlotService:ToWorld(farm.Plot, 0, 0) * PlacementUtil.LocalCFrame(field.X, field.Z, field.Rot or 0)
+	local model = Instance.new("Model")
+	model.Name = "Field_" .. fieldId
+	model:SetAttribute("PlaceType", "Field")
+	model:SetAttribute("PlaceId", fieldId)
+
+	-- Bordure de terre retournée sous le champ (repère visuel de l'emprise)
+	local footprint = FarmConfig.FieldFootprint
+	makePart({
+		Name = "Border",
+		Size = Vector3.new(footprint.X - 0.5, 0.2, footprint.Y - 0.5),
+		CFrame = origin * CFrame.new(0, 0.1, 0),
+		Color = Color3.fromRGB(85, 60, 35),
+		Material = Enum.Material.Ground,
+		Parent = model,
+	})
+
+	local columns, rows = FarmConfig.FieldColumns, FarmConfig.FieldRows
+	local step = FarmConfig.TileSize + FarmConfig.TileGap
+	local tiles: { Tile } = {}
+	for index = 1, TILES_PER_FIELD do
+		local column = (index - 1) % columns
+		local row = (index - 1) // columns -- rangée 0 = côté entrée de la parcelle (à rotation 0)
+		local localX = (column - (columns - 1) / 2) * step
+		local localZ = (row - (rows - 1) / 2) * step
+
+		local part = makePart({
+			Name = "Tile_" .. index,
+			Size = Vector3.new(FarmConfig.TileSize, 0.4, FarmConfig.TileSize),
+			CFrame = origin * CFrame.new(localX, 0.4, localZ),
+			Color = FarmConfig.SoilColor,
+			Material = Enum.Material.Ground,
+			Parent = model,
+		})
+
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.ActionText = "Planter"
+		prompt.ObjectText = "Terre"
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = FarmConfig.InteractDistance
+		prompt.RequiresLineOfSight = false
+		prompt.Enabled = false
+		prompt:SetAttribute("OwnerOnly", true) -- masqué par le client sur les parcelles des autres
+		prompt.Parent = part
+
+		local tile: Tile = {
+			FieldId = fieldId,
+			Index = index,
+			Key = plantKey(fieldId, index),
+			Part = part,
+			Prompt = prompt,
+			Model = nil,
+			Stage = 0,
+		}
+		prompt.Triggered:Connect(function(player: Player)
+			onTileTriggered(farm, tile, player)
+		end)
+		tiles[index] = tile
+	end
+
+	model.Parent = farm.Plot.Model
+	farm.Fields[fieldId] = { Model = model, Tiles = tiles }
+
+	local now = os.time()
+	for _, tile in tiles do
+		renderTile(farm, tile, now)
+	end
+end
+
+--------------------------------------------------------------------------
+-- API pour le mode construction (PlacementService)
+--------------------------------------------------------------------------
+
+function FarmService:CanBuyField(player: Player): (number?, string?)
+	local farm = farms[player]
+	if not farm then
+		return nil, "Ta ferme n'est pas encore prête."
+	end
+	local owned = countFields(farm.Data)
+	local level = PlotService:GetLevel(player)
+	if owned >= FarmConfig.MaxFieldsByLevel[level] then
+		return nil, "Agrandis ta parcelle pour acheter plus de champs."
+	end
+	local price = FarmConfig.FieldPrices[owned + 1]
+	if not price then
+		return nil, "Nombre maximum de champs atteint."
+	end
+	return price, nil
+end
+
+function FarmService:CreateField(player: Player, x: number, z: number, rot: number, unlocked: number?): string?
+	local farm = farms[player]
+	if not farm then
+		return nil
+	end
+	local n = 1
+	while farm.Data.Fields["F" .. n] do
+		n += 1
+	end
+	local fieldId = "F" .. n
+	farm.Data.Fields[fieldId] = { X = x, Z = z, Rot = rot, Placed = true, Unlocked = unlocked or 0 }
+	buildFieldVisual(farm, fieldId)
+	SyncService:Set(player, "Fields", farm.Data.Fields)
+	return fieldId
+end
+
+function FarmService:RefreshField(player: Player, fieldId: string)
+	local farm = farms[player]
+	if farm then
+		buildFieldVisual(farm, fieldId)
+		SyncService:Set(player, "Fields", farm.Data.Fields)
+	end
+end
+
+--------------------------------------------------------------------------
 -- Activation / désactivation d'une ferme
 --------------------------------------------------------------------------
+
+-- Convertit les anciennes sauvegardes (cases "1".."6" de la grille fixe) en 1er champ,
+-- et nettoie les données invalides.
+local function migrate(data: { [string]: any })
+	if type(data.Fields) ~= "table" then
+		data.Fields = {}
+	end
+	if next(data.Fields) == nil then
+		local default = FarmConfig.DefaultFieldPosition
+		data.Fields.F1 = { X = default.X, Z = default.Z, Rot = 0, Placed = true, Unlocked = FarmConfig.StartingUnlockedTiles }
+		-- On collecte d'abord (ajouter des clés pendant un parcours n'est pas sûr en Lua)
+		local legacy = {}
+		for key, plant in data.Plants do
+			local index = tonumber(key)
+			if index then
+				legacy[index] = plant
+			end
+		end
+		for index, plant in legacy do
+			data.Plants[tostring(index)] = nil
+			if index >= 1 and index <= TILES_PER_FIELD then
+				data.Plants[plantKey("F1", index)] = plant
+			end
+		end
+	end
+
+	for fieldId, field in data.Fields do
+		if type(field) ~= "table" then
+			data.Fields[fieldId] = nil
+			continue
+		end
+		field.Unlocked = math.clamp(math.floor(tonumber(field.Unlocked) or 0), 0, TILES_PER_FIELD)
+		field.Rot = math.clamp(math.floor(tonumber(field.Rot) or 0), 0, 3)
+		field.X = tonumber(field.X) or 0
+		field.Z = tonumber(field.Z) or FarmConfig.DefaultFieldPosition.Z
+		field.Placed = field.Placed ~= false
+	end
+
+	for key, plant in data.Plants do
+		local fieldId, indexText = string.match(key, "^(.+):(%d+)$")
+		local index = tonumber(indexText)
+		local field = fieldId and data.Fields[fieldId]
+		if type(plant) ~= "table" or not CropUtil.Get(plant.CropId) or not field or not index or index > field.Unlocked then
+			data.Plants[key] = nil
+		end
+	end
+end
 
 -- Appelé par PlotService quand le joueur a À LA FOIS sa parcelle et ses données.
 local function activate(player: Player, plot: any, data: { [string]: any })
 	if farms[player] then
 		return
 	end
+	migrate(data)
 
-	local farm: Farm = { Player = player, Plot = plot, Data = data }
+	local farm: Farm = { Player = player, Plot = plot, Data = data, Fields = {} }
 	farms[player] = farm
 
-	-- Nettoie les plantes sauvegardées invalides (culture supprimée de la config, case verrouillée...)
-	local unlocked = FarmService:GetUnlockedTileCount(player)
-	for key, plant in data.Plants do
-		local index = tonumber(key)
-		if type(plant) ~= "table" or not CropUtil.Get(plant.CropId) or not index or index > unlocked then
-			data.Plants[key] = nil
-		end
+	for fieldId in data.Fields do
+		buildFieldVisual(farm, fieldId)
 	end
-
-	for _, tile in tilesByPlotId[plot.Id] do
-		setTileUnlocked(tile, tile.Index <= unlocked)
-	end
-
+	SyncService:Set(player, "Fields", data.Fields) -- le mode construction du client en a besoin
 	resolveSeed(player)
 	renderFarm(farm)
 end
 
-local function deactivate(player: Player, plot: any)
+local function deactivate(player: Player, _plot: any)
+	local farm = farms[player]
 	farms[player] = nil
 	selectedSeed[player] = nil
-	for _, tile in tilesByPlotId[plot.Id] do
-		clearTileVisual(tile)
-		setTileUnlocked(tile, tile.Index <= FarmConfig.StartingTiles)
-		tile.Prompt.Enabled = false
-		tile.Prompt.ActionText = "Planter"
+	if farm then
+		for fieldId in farm.Fields do
+			destroyFieldVisual(farm, fieldId)
+		end
 	end
 end
 
@@ -446,11 +685,12 @@ local function growthLoop()
 		task.wait(1)
 		local now = os.time()
 		for _, farm in farms do
-			local unlocked = FarmService:GetUnlockedTileCount(farm.Player)
-			for _, tile in tilesByPlotId[farm.Plot.Id] do
-				local plant = farm.Data.Plants[tile.Key]
-				if plant and tile.Index <= unlocked and getStage(plant, now) ~= tile.Stage then
-					renderTile(farm, tile, now)
+			for _, visual in farm.Fields do
+				for _, tile in visual.Tiles do
+					local plant = farm.Data.Plants[tile.Key]
+					if plant and getStage(plant, now) ~= tile.Stage then
+						renderTile(farm, tile, now)
+					end
 				end
 			end
 		end
@@ -458,72 +698,10 @@ local function growthLoop()
 end
 
 --------------------------------------------------------------------------
--- Construction des cases
---------------------------------------------------------------------------
-
-local function buildTiles(plot: any)
-	local folder = Instance.new("Folder")
-	folder.Name = "Tiles"
-	folder.Parent = plot.Model
-
-	local columns, rows = FarmConfig.GridColumns, FarmConfig.GridRows
-	local step = FarmConfig.TileSize + FarmConfig.TileGap
-	local groundY = Config.Plots.BaseHeight / 2
-
-	local tiles: { Tile } = {}
-	for index = 1, columns * rows do
-		local column = (index - 1) % columns
-		local row = (index - 1) // columns -- rangée 0 = la plus proche de l'entrée
-		local localX = (column - (columns - 1) / 2) * step
-		local localZ = FarmConfig.GridStartZ + row * step -- +Z = vers le fond de la parcelle
-
-		local part = makePart({
-			Name = "Tile_" .. index,
-			Size = Vector3.new(FarmConfig.TileSize, 0.4, FarmConfig.TileSize),
-			CFrame = plot.CFrame * CFrame.new(localX, groundY + 0.2, localZ),
-			Color = FarmConfig.SoilColor,
-			Material = Enum.Material.Ground,
-			Parent = folder,
-		})
-		part:SetAttribute("TileIndex", index)
-
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.ActionText = "Planter"
-		prompt.ObjectText = "Terre"
-		prompt.HoldDuration = 0
-		prompt.MaxActivationDistance = FarmConfig.InteractDistance
-		prompt.RequiresLineOfSight = false
-		prompt.Enabled = false
-		prompt:SetAttribute("OwnerOnly", true)
-		prompt.Parent = part
-
-		local tile: Tile = {
-			Index = index,
-			Key = tostring(index),
-			Part = part,
-			Prompt = prompt,
-			Model = nil,
-			Stage = 0,
-		}
-		prompt.Triggered:Connect(function(player: Player)
-			onTileTriggered(plot, tile, player)
-		end)
-
-		setTileUnlocked(tile, index <= FarmConfig.StartingTiles)
-		tiles[index] = tile
-	end
-	tilesByPlotId[plot.Id] = tiles
-end
-
---------------------------------------------------------------------------
 -- Cycle de vie
 --------------------------------------------------------------------------
 
 function FarmService:Init()
-	for _, plot in PlotService:GetAllPlots() do
-		buildTiles(plot)
-	end
-
 	PlotService:OnPlotReady(activate)
 	PlotService:OnPlotReleased(deactivate)
 
@@ -534,6 +712,7 @@ function FarmService:Init()
 			renderFarm(farm)
 		end
 	end)
+	-- Les Coins changent : rien à faire (le prix d'une case dépend du nombre de cases, pas des Coins)
 end
 
 function FarmService:Start()

@@ -27,22 +27,27 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - [x] Phase 2 : planter, pousse (3 stades), récolte, vente
 - [x] Phase 3 : animaux de ferme, enclos, variantes, agrandissement de parcelle
 - [x] Phase 4 : bâtiments de transformation, vitesse de marche et sprint
-- [ ] Phase 5 : expéditions (à tester)
+- [x] Phase 5 : expéditions, créatures, capture
+- [ ] Phase 5b : mode construction + champs (à tester)
 - [ ] Phase 6 : collection et exposition
-- [ ] Phase 7 : progression (boutique tournante, rebirth...)
-- [ ] Phase 8 : monétisation et UI
-- [ ] Phase 9 : décor
+- [ ] Phase 7 : progression, ressources rares, consommables, aides PNJ
+- [ ] Phase 8 : donjon
+- [ ] Phase 9 : monétisation
+- [ ] Phase 10 : direction artistique
 
 ## Boucle de jeu actuelle
 1. Stand **🌱 GRAINES** (à gauche du spawn) : acheter des graines.
-2. Barre du bas : choisir la graine, puis **E** sur une case de terre de ta parcelle.
+2. Barre du bas : choisir la graine, puis **E** sur une case de terre d'un champ.
 3. La plante passe par 3 stades puis affiche « Prêt ! » : **E** pour récolter.
-4. Bouton vert **🏗️ Enclos** sur ta parcelle : construire un enclos.
-5. Stand **🐄 ANIMAUX** (devant le spawn) : acheter un animal (chance de variante rare).
-6. **E** sur la mangeoire pour la remplir avec tes récoltes, **E** sur la caisse pour ramasser la production.
-7. Le **fumier** du cheval sert d'engrais : **E** sur une plante qui pousse.
-8. Stand **💰 VENTE** (à droite du spawn) : tout vendre.
-9. Bouton bleu à l'entrée de ta parcelle : **agrandir** la parcelle.
-10. Boutons orange au fond de ta parcelle : construire les **bâtiments** (boulangerie, filature...). **E** sur la porte pour lancer des recettes, récupérer les produits et améliorer le bâtiment.
-11. **Maj** pour courir.
-12. **Portail violet** derrière le spawn : partir en expédition (Forêt gratuite, autres zones à débloquer). **E** sur une créature, puis **Espace** (ou le bouton) quand le curseur est dans la zone verte. Bouton **📖 Créatures** pour voir ou vendre ta collection.
+4. Bouton **🔨 Construire** : acheter et placer des champs, des enclos et des bâtiments
+   (aperçu vert / rouge, **R** pour tourner, clic pour valider). Cliquer sur un élément posé
+   permet de le déplacer ou de le ranger.
+5. **E** sur une case grise d'un champ pour la débloquer.
+6. Stand **🐄 ANIMAUX** (devant le spawn) : acheter un animal (chance de variante rare).
+7. **E** sur la mangeoire pour la remplir avec tes récoltes, **E** sur la caisse pour ramasser la production.
+8. Le **fumier** du cheval sert d'engrais : **E** sur une plante qui pousse.
+9. **E** sur la porte d'un bâtiment : lancer des recettes, récupérer, améliorer.
+10. Stand **💰 VENTE** (à droite du spawn) : tout vendre.
+11. Bouton bleu à l'entrée de ta parcelle : **agrandir** la parcelle.
+12. **Maj** pour courir.
+13. **Portail violet** derrière le spawn : expéditions et capture de créatures (bouton **📖 Créatures**).

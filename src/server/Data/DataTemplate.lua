@@ -25,7 +25,11 @@ return {
 
 	Inventory = {}, -- produits récoltés : { [cropId] = { [variante] = quantité } } (variante "Normal" ou mutation en phase 3)
 	Seeds = {}, -- graines possédées : { [cropId] = quantité }
-	Plants = {}, -- plantes en terre : { ["indexCase"] = { CropId, PlantedAt, ReadyAt } } (os.time, continue de pousser hors ligne)
+	-- Champs placés avec le mode construction : { [fieldId] = { X, Z, Rot, Placed, Unlocked } }
+	Fields = {},
+	-- Plantes en terre : { ["<fieldId>:<case>"] = { CropId, PlantedAt, ReadyAt, Fertilized } }
+	-- (os.time : elles continuent de pousser hors ligne)
+	Plants = {},
 	StarterPackGiven = false, -- pack de graines de départ déjà donné ?
 
 	PlotLevel = 1, -- niveau d'agrandissement de la parcelle (Config.Plots.Expansions)
@@ -34,13 +38,15 @@ return {
 	--     Animals = { { Id, Variant, Progress } },  -- Progress = secondes accumulées vers la prochaine ressource
 	--     Feed = rations dans la mangeoire,
 	--     Storage = { [variante] = quantité } dans la caisse,
-	--     LastUpdate = os.time() de la dernière simulation (production hors ligne) } }
+	--     LastUpdate = os.time() de la dernière simulation (production hors ligne),
+	--     X, Z, Rot, Placed = position sur la parcelle (mode construction) } }
 	Pens = {},
 	-- Bâtiments construits : { [buildingId] = {
 	--     Level = 1,
 	--     Queue = { { Recipe = "Bread", Variant = "Normal", Remaining = secondes de travail } },
 	--     Output = { [itemId] = { [variante] = quantité } }  -- produits finis à récupérer
-	--     LastUpdate = os.time() } }
+	--     LastUpdate = os.time(),
+	--     X, Z, Rot, Placed = position sur la parcelle (mode construction) } }
 	Buildings = {},
 	Upgrades = {}, -- (phase 7) améliorations : { [upgradeId] = niveau } (ex. ExtraTiles, collecteurs)
 	-- Créatures capturées : { { Id, Creature = "Mousselin", Mutation = "Normal", CaughtAt = os.time() } }

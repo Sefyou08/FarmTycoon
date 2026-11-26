@@ -82,7 +82,7 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | ✅ fait |
 | 4 | Bâtiments de transformation + vitesse de marche et sprint | ✅ fait |
 | 5 | Expéditions (portail, zones, créatures sauvages, capture) | ✅ fait |
-| 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | ⏳ en cours |
+| 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | 🧪 codée, à tester |
 | 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) | à faire |
 | 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | à faire |
 | 8 | Donjon (ennemis, boss, combat simple, récompenses rares) | à faire |

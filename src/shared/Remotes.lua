@@ -37,6 +37,7 @@ Remotes.FunctionNames = {
 	"ExpeditionAction", -- Client -> Serveur : ("Travel" | "Unlock", zoneId) -> (ok, message)
 	"CaptureAction", -- Client -> Serveur : ("Hit", sessionId, tempsServeur) | ("Cancel", sessionId) -> résultat
 	"SellCreature", -- Client -> Serveur : (idCréature) -> (ok, message)
+	"BuildAction", -- Client -> Serveur : ("Buy" | "Place" | "Store", { Type, Id/Kind, X, Z, Rot }) -> (ok, message)
 }
 
 local folder: Folder? = nil

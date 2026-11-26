@@ -3,9 +3,10 @@
 	=================
 	Enclos et animaux de ferme.
 
-	  • Emplacements d'enclos : Config.Pens.Slots (coordonnées locales de parcelle).
-	    Un bouton tycoon "Construire un enclos" apparaît sur chaque emplacement
-	    débloqué par le niveau de la parcelle. Prix croissant (Config.Pens.Prices).
+	  • Les enclos s'achètent et se placent avec le mode construction (PlacementService).
+	    Prix croissant (Config.Pens.Prices), nombre max selon le niveau de parcelle
+	    (Config.Pens.MaxByLevel). Position dans data.Pens[key] : X, Z, Rot, Placed.
+	    Déplacer / ranger un enclos ne fait rien perdre (animaux, rations, caisse).
 	  • Un enclos = UNE espèce, jusqu'à Config.Pens.Capacity animaux.
 	  • Mangeoire : on y met des récoltes acceptées par l'espèce (Config.Animals.Diet),
 	    qui donnent des rations (Config.Crops.FeedValue).
@@ -17,8 +18,11 @@
 	  • Hors ligne : à la connexion, on simule le temps écoulé (plafonné).
 	  • Toute la validation est faite ici (propriétaire, distance, cooldown, Coins).
 
-	API (utilisée par AnimalShopService) :
+	API (utilisée par AnimalShopService et PlacementService) :
 	  AnimalService:FindPenFor(player, speciesId) -> penKey | nil, raisonSiNil
+	  AnimalService:CanBuyPen(player) -> (prix | nil, raison)
+	  AnimalService:CreatePen(player, x, z, rot) -> penKey
+	  AnimalService:RefreshPen(player, penKey)  (reconstruit / retire le visuel)
 	  AnimalService:RollVariant() -> variantId
 	  AnimalService:AddAnimal(player, penKey, speciesId, variantId) -> boolean
 	  AnimalService:GetProductionMultiplier(player) -> number (phase 7/8)
@@ -29,10 +33,9 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local Format = require(ReplicatedStorage.Shared.Format)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
+local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
-local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -44,17 +47,8 @@ local AnimalService = {}
 local ANIMAL_TAG = "FarmAnimal" -- le client fait se promener ces modèles
 local RAINBOW_TAG = "RainbowPart" -- le client anime la couleur de ces parts
 
-type Slot = {
-	Index: number,
-	Key: string,
-	Def: { X: number, Z: number, RequiredLevel: number },
-	Pad: Part,
-	PadPrompt: ProximityPrompt,
-	PadGui: BillboardGui,
-}
-
 type PenVisual = {
-	Folder: Folder,
+	Folder: Model,
 	Center: CFrame,
 	TroughPrompt: ProximityPrompt,
 	CratePrompt: ProximityPrompt,
@@ -69,7 +63,6 @@ type State = {
 	Visuals: { [string]: PenVisual },
 }
 
-local slotsByPlotId: { [number]: { Slot } } = {}
 local states: { [Player]: State } = {}
 
 --------------------------------------------------------------------------
@@ -142,8 +135,19 @@ local function countBuiltPens(data: { [string]: any }): number
 	return count
 end
 
-local function nextPenPrice(data: { [string]: any }): number?
-	return PenConfig.Prices[countBuiltPens(data) + 1]
+local function sortedPenKeys(data: { [string]: any }): { string }
+	local keys = {}
+	for key in data.Pens do
+		table.insert(keys, key)
+	end
+	table.sort(keys, function(a, b)
+		return (tonumber(a) or 0) < (tonumber(b) or 0)
+	end)
+	return keys
+end
+
+local function syncPens(state: { [string]: any })
+	SyncService:Set(state.Player, "Pens", state.Data.Pens)
 end
 
 function AnimalService:GetProductionMultiplier(_player: Player): number
@@ -308,10 +312,6 @@ end
 -- Visuels des enclos
 --------------------------------------------------------------------------
 
-local function slotCFrame(plot: any, slot: Slot): CFrame
-	return PlotService:ToWorld(plot, slot.Def.X, slot.Def.Z)
-end
-
 local function spawnAnimalVisual(state: State, key: string, animal: { [string]: any })
 	local visual = state.Visuals[key]
 	local pen = state.Data.Pens[key]
@@ -385,14 +385,31 @@ end
 local onTroughTriggered: (State, string, Player) -> ()
 local onCrateTriggered: (State, string, Player) -> ()
 
-local function buildPenVisual(state: State, slot: Slot)
-	local key = slot.Key
-	local size = PenConfig.Size
-	local center = slotCFrame(state.Plot, slot)
+local function destroyPenVisual(state: State, key: string)
+	local visual = state.Visuals[key]
+	if visual then
+		visual.Folder:Destroy()
+		state.Visuals[key] = nil
+	end
+end
 
-	local folder = Instance.new("Folder")
+-- (Re)construit le visuel d'un enclos à sa position sauvegardée (rien si rangé).
+local function buildPenVisual(state: State, key: string)
+	destroyPenVisual(state, key)
+	local pen = state.Data.Pens[key]
+	if not pen or not pen.Placed then
+		return
+	end
+
+	local size = PenConfig.Size
+	-- Repère de l'emprise ; la clôture est au fond, la mangeoire et la caisse devant (-Z)
+	local origin = PlotService:ToWorld(state.Plot, 0, 0) * PlacementUtil.LocalCFrame(pen.X, pen.Z, pen.Rot or 0)
+	local center = origin * CFrame.new(0, 0, 2)
+
+	local folder = Instance.new("Model")
 	folder.Name = "Pen_" .. key
-	folder.Parent = state.Plot.Model
+	folder:SetAttribute("PlaceType", "Pen")
+	folder:SetAttribute("PlaceId", key)
 
 	-- Sol en paille
 	makePart({
@@ -439,21 +456,18 @@ local function buildPenVisual(state: State, slot: Slot)
 		end
 	end
 
-	-- Mangeoire et caisse : à l'extérieur, côté allée intérieure de la parcelle (vers x = 0)
-	local inward = if slot.Def.X < 0 then 1 else -1
-	local outsideX = inward * (half + 1.5)
-
+	-- Mangeoire et caisse devant l'enclos
 	local trough = makePart({
 		Name = "Trough",
-		Size = Vector3.new(1.6, 1, 5),
-		CFrame = center * CFrame.new(outsideX, 0.5, -4),
+		Size = Vector3.new(5, 1, 1.6),
+		CFrame = origin * CFrame.new(-4, 0.5, -10.5),
 		Color = Color3.fromRGB(120, 80, 45),
 		Material = Enum.Material.WoodPlanks,
 		Parent = folder,
 	})
 	decoPart({
 		Name = "Hay",
-		Size = Vector3.new(1.2, 0.1, 4.6),
+		Size = Vector3.new(4.6, 0.1, 1.2),
 		CFrame = trough.CFrame * CFrame.new(0, 0.5, 0),
 		Color = Color3.fromRGB(230, 200, 90),
 		Material = Enum.Material.Grass,
@@ -462,7 +476,7 @@ local function buildPenVisual(state: State, slot: Slot)
 	local crate = makePart({
 		Name = "Crate",
 		Size = Vector3.new(2.2, 2.2, 2.2),
-		CFrame = center * CFrame.new(outsideX, 1.1, 4),
+		CFrame = origin * CFrame.new(4, 1.1, -10.5),
 		Color = Color3.fromRGB(170, 120, 70),
 		Material = Enum.Material.WoodPlanks,
 		Parent = folder,
@@ -494,34 +508,12 @@ local function buildPenVisual(state: State, slot: Slot)
 	end)
 
 	state.Visuals[key] = visual
+	folder.Parent = state.Plot.Model
 
-	local pen = state.Data.Pens[key]
 	for _, animal in pen.Animals do
 		spawnAnimalVisual(state, key, animal)
 	end
 	updatePenInfo(state, key)
-end
-
-local function refreshPads(state: State)
-	local level = PlotService:GetLevel(state.Player)
-	local price = nextPenPrice(state.Data)
-	for _, slot in slotsByPlotId[state.Plot.Id] do
-		local available = state.Data.Pens[slot.Key] == nil and level >= slot.Def.RequiredLevel and price ~= nil
-		slot.Pad.Transparency = if available then 0.4 else 1
-		slot.PadGui.Enabled = available
-		slot.PadPrompt.Enabled = available
-		if available then
-			slot.PadPrompt.ActionText = ("Construire : %s Coins"):format(Format.Number(price :: number))
-		end
-	end
-end
-
-local function hidePads(plot: any)
-	for _, slot in slotsByPlotId[plot.Id] do
-		slot.Pad.Transparency = 1
-		slot.PadGui.Enabled = false
-		slot.PadPrompt.Enabled = false
-	end
 end
 
 --------------------------------------------------------------------------
@@ -538,30 +530,6 @@ local function validate(state: State, player: Player, part: BasePart, action: st
 		return false
 	end
 	return RemoteGuard.CheckCooldown(player, action, 0.3)
-end
-
-local function onPadTriggered(plot: any, slot: Slot, player: Player)
-	local state = states[player]
-	if not state or state.Plot ~= plot or not validate(state, player, slot.Pad, "BuildPen") then
-		return
-	end
-	local data = state.Data
-	if data.Pens[slot.Key] or PlotService:GetLevel(player) < slot.Def.RequiredLevel then
-		return
-	end
-	local price = nextPenPrice(data)
-	if not price then
-		return
-	end
-	if not CurrencyService:SpendCoins(player, price, "BuildPen") then
-		SyncService:Notify(player, ("Il te faut %s Coins pour construire un enclos."):format(Format.Number(price)), "Error")
-		return
-	end
-
-	data.Pens[slot.Key] = { Species = nil, Animals = {}, Feed = 0, Storage = {}, LastUpdate = os.time() }
-	buildPenVisual(state, slot)
-	refreshPads(state)
-	SyncService:Notify(player, "Enclos construit ! Achète un animal au stand 🐄 ANIMAUX.", "Success")
 end
 
 onTroughTriggered = function(state: State, key: string, player: Player)
@@ -669,13 +637,13 @@ function AnimalService:FindPenFor(player: Player, speciesId: string): (string?, 
 		return nil, "Ta ferme n'est pas encore prête."
 	end
 	local emptyKey = nil
-	for _, slot in slotsByPlotId[state.Plot.Id] do
-		local pen = state.Data.Pens[slot.Key]
-		if pen then
+	for _, key in sortedPenKeys(state.Data) do
+		local pen = state.Data.Pens[key]
+		if pen.Placed then
 			if pen.Species == speciesId and #pen.Animals < PenConfig.Capacity then
-				return slot.Key, nil
+				return key, nil
 			elseif pen.Species == nil and not emptyKey then
-				emptyKey = slot.Key
+				emptyKey = key
 			end
 		end
 	end
@@ -683,9 +651,62 @@ function AnimalService:FindPenFor(player: Player, speciesId: string): (string?, 
 		return emptyKey, nil
 	end
 	if countBuiltPens(state.Data) == 0 then
-		return nil, "Construis d'abord un enclos sur ta parcelle (bouton vert) !"
+		return nil, "Construis d'abord un enclos : bouton 🔨 Construire !"
 	end
-	return nil, "Pas de place : construis un nouvel enclos pour cette espèce."
+	return nil, "Pas de place : construis (ou place) un enclos pour cette espèce."
+end
+
+-- Prix du prochain enclos, ou nil + raison
+function AnimalService:CanBuyPen(player: Player): (number?, string?)
+	local state = states[player]
+	if not state then
+		return nil, "Ta ferme n'est pas encore prête."
+	end
+	local owned = countBuiltPens(state.Data)
+	if owned >= PenConfig.MaxByLevel[PlotService:GetLevel(player)] then
+		return nil, "Agrandis ta parcelle pour construire plus d'enclos."
+	end
+	local price = PenConfig.Prices[owned + 1]
+	if not price then
+		return nil, "Nombre maximum d'enclos atteint."
+	end
+	return price, nil
+end
+
+-- Crée un enclos vide à cette position (appelé par PlacementService APRÈS paiement)
+function AnimalService:CreatePen(player: Player, x: number, z: number, rot: number): string?
+	local state = states[player]
+	if not state then
+		return nil
+	end
+	local n = 1
+	while state.Data.Pens[tostring(n)] do
+		n += 1
+	end
+	local key = tostring(n)
+	state.Data.Pens[key] = {
+		Species = nil,
+		Animals = {},
+		Feed = 0,
+		Storage = {},
+		LastUpdate = os.time(),
+		X = x,
+		Z = z,
+		Rot = rot,
+		Placed = true,
+	}
+	buildPenVisual(state, key)
+	syncPens(state)
+	SyncService:Notify(player, "Enclos construit ! Achète un animal au stand 🐄 ANIMAUX.", "Success")
+	return key
+end
+
+function AnimalService:RefreshPen(player: Player, key: string)
+	local state = states[player]
+	if state then
+		buildPenVisual(state, key)
+		syncPens(state)
+	end
 end
 
 -- Tire une variante au hasard selon Config.Variants[x].Chance (de la plus rare à la plus commune).
@@ -723,6 +744,7 @@ function AnimalService:AddAnimal(player: Player, penKey: string, speciesId: stri
 
 	spawnAnimalVisual(state :: State, penKey, animal)
 	updatePenInfo(state :: State, penKey)
+	syncPens(state :: State)
 	return true
 end
 
@@ -732,13 +754,24 @@ end
 
 -- Nettoie les données d'enclos (config modifiée, données corrompues...).
 local function sanitizePens(data: { [string]: any })
-	local maxSlot = #PenConfig.Slots
 	for key, pen in data.Pens do
 		local index = tonumber(key)
-		if type(pen) ~= "table" or not index or index < 1 or index > maxSlot then
+		if type(pen) ~= "table" or not index then
 			data.Pens[key] = nil
 			continue
 		end
+		-- Anciennes sauvegardes (emplacements fixes) : on reprend l'ancienne position,
+		-- décalée pour respecter la bande d'entrée du mode construction
+		if type(pen.X) ~= "number" or type(pen.Z) ~= "number" then
+			local legacy = PenConfig.LegacySlots[index]
+			if legacy then
+				pen.X, pen.Z, pen.Rot, pen.Placed = legacy.X, legacy.Z + 3, 0, true
+			else
+				pen.X, pen.Z, pen.Rot, pen.Placed = 0, 40, 0, false -- rangé : le joueur le replacera
+			end
+		end
+		pen.Rot = math.clamp(math.floor(tonumber(pen.Rot) or 0), 0, 3)
+		pen.Placed = pen.Placed ~= false
 		if pen.Species ~= nil and not Config.Animals[pen.Species] then
 			pen.Species = nil
 			pen.Animals = {}
@@ -780,15 +813,13 @@ local function activate(player: Player, plot: any, data: { [string]: any })
 		SyncService:Notify(player, ("Pendant ton absence, tes animaux ont produit %d ressources !"):format(offline), "Success")
 	end
 
-	for _, slot in slotsByPlotId[plot.Id] do
-		if data.Pens[slot.Key] then
-			buildPenVisual(state, slot)
-		end
+	for key in data.Pens do
+		buildPenVisual(state, key)
 	end
-	refreshPads(state)
+	syncPens(state)
 end
 
-local function deactivate(player: Player, plot: any)
+local function deactivate(player: Player, _plot: any)
 	local state = states[player]
 	states[player] = nil
 	if state then
@@ -796,7 +827,6 @@ local function deactivate(player: Player, plot: any)
 			visual.Folder:Destroy()
 		end
 	end
-	hidePads(plot)
 end
 
 local function productionLoop()
@@ -817,68 +847,12 @@ local function productionLoop()
 end
 
 --------------------------------------------------------------------------
--- Construction des emplacements (boutons tycoon)
---------------------------------------------------------------------------
-
-local function buildSlots(plot: any)
-	local slots: { Slot } = {}
-	for index, def in PenConfig.Slots do
-		local pad = makePart({
-			Name = "PenPad_" .. index,
-			Size = Vector3.new(8, 0.3, 8),
-			CFrame = PlotService:ToWorld(plot, def.X, def.Z, 0.15),
-			Color = Color3.fromRGB(90, 220, 110),
-			Material = Enum.Material.Neon,
-			Transparency = 1,
-			CanCollide = false,
-			Parent = plot.Model,
-		})
-		local gui, label = makeBillboard(pad, Vector2.new(8, 1.6), Vector3.new(0, 3, 0), 80)
-		gui.Enabled = false
-		label.Text = "🏗️ Enclos"
-
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.ActionText = "Construire"
-		prompt.ObjectText = "Enclos"
-		prompt.HoldDuration = 0.4 -- petit appui long : évite les achats par erreur
-		prompt.MaxActivationDistance = PenConfig.InteractDistance
-		prompt.RequiresLineOfSight = false
-		prompt.Enabled = false
-		prompt:SetAttribute("OwnerOnly", true)
-		prompt.Parent = pad
-
-		local slot: Slot = {
-			Index = index,
-			Key = tostring(index),
-			Def = def,
-			Pad = pad,
-			PadPrompt = prompt,
-			PadGui = gui,
-		}
-		prompt.Triggered:Connect(function(player)
-			onPadTriggered(plot, slot, player)
-		end)
-		slots[index] = slot
-	end
-	slotsByPlotId[plot.Id] = slots
-end
-
---------------------------------------------------------------------------
 -- Cycle de vie
 --------------------------------------------------------------------------
 
 function AnimalService:Init()
-	for _, plot in PlotService:GetAllPlots() do
-		buildSlots(plot)
-	end
 	PlotService:OnPlotReady(activate)
 	PlotService:OnPlotReleased(deactivate)
-	PlotService:OnPlotLevelChanged(function(player)
-		local state = states[player]
-		if state then
-			refreshPads(state)
-		end
-	end)
 end
 
 function AnimalService:Start()

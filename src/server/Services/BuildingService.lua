@@ -4,9 +4,10 @@
 	Bâtiments de transformation (boulangerie, filature, laiterie, fromagerie,
 	atelier de couture) construits sur la parcelle.
 
-	  • Chaque bâtiment a un emplacement fixe (Config.Buildings[x].X / Z) et un
-	    bouton tycoon "Construire". Déblocage dans l'ordre (champ Requires) et
-	    selon le niveau de parcelle (RequiredLevel).
+	  • Les bâtiments s'achètent et se placent avec le mode construction
+	    (PlacementService). Déblocage dans l'ordre (champ Requires) et selon le
+	    niveau de parcelle (RequiredLevel). Position dans data.Buildings[id] :
+	    X, Z, Rot, Placed. Déplacer / ranger ne fait rien perdre (file, stock).
 	  • Recettes : ingrédients -> produit, avec un temps de fabrication.
 	    La VARIANTE du 1er ingrédient est transmise au produit (Lait Doré -> Beurre Doré).
 	  • File d'attente : on commande plusieurs produits ; `Slots` commandes sont
@@ -20,6 +21,11 @@
 	et envoie ses demandes par la RemoteFunction "BuildingAction" :
 	  ("Queue", buildingId, recipeId, quantité) | ("Collect", buildingId) | ("Upgrade", buildingId)
 	Tout est validé ici : propriétaire, distance, cooldown, ingrédients, place, Coins.
+
+	API (PlacementService) :
+	  BuildingService:CanBuy(player, buildingId) -> (prix | nil, raison)
+	  BuildingService:Create(player, buildingId, x, z, rot)
+	  BuildingService:Refresh(player, buildingId)  (reconstruit / retire le visuel)
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,6 +33,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
+local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local CurrencyService = require(script.Parent.CurrencyService)
@@ -38,13 +45,6 @@ local Settings = Config.BuildingSettings
 local LEVELS = Config.BuildingLevels
 
 local BuildingService = {}
-
-type Pad = {
-	Part: Part,
-	Prompt: ProximityPrompt,
-	Gui: BillboardGui,
-	Label: TextLabel,
-}
 
 type Visual = {
 	Model: Model,
@@ -60,7 +60,6 @@ type State = {
 	Visuals: { [string]: Visual },
 }
 
-local padsByPlotId: { [number]: { [string]: Pad } } = {}
 local states: { [Player]: State } = {}
 
 --------------------------------------------------------------------------
@@ -228,13 +227,31 @@ local function updateVisual(state: State, buildingId: string)
 	visual.Smoke.Enabled = #building.Queue > 0
 end
 
+local function destroyVisual(state: State, buildingId: string)
+	local visual = state.Visuals[buildingId]
+	if visual then
+		visual.Model:Destroy()
+		state.Visuals[buildingId] = nil
+	end
+end
+
+-- (Re)construit le visuel d'un bâtiment à sa position sauvegardée (rien si rangé).
 local function buildVisual(state: State, buildingId: string)
+	destroyVisual(state, buildingId)
 	local def = Config.Buildings[buildingId]
-	local origin = PlotService:ToWorld(state.Plot, def.X, def.Z)
+	local building = state.Data.Buildings[buildingId]
+	if not building or not building.Placed then
+		return
+	end
+	-- Repère de l'emprise ; le bâtiment est reculé de 1 stud pour laisser la place devant la porte
+	local base = PlotService:ToWorld(state.Plot, 0, 0) * PlacementUtil.LocalCFrame(building.X, building.Z, building.Rot or 0)
+	local origin = base * CFrame.new(0, 0, 1)
 
 	local model = Instance.new("Model")
 	model.Name = "Building_" .. buildingId
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	model:SetAttribute("PlaceType", "Building")
+	model:SetAttribute("PlaceId", buildingId)
 
 	local wallHeight = 7
 	local walls = makePart({
@@ -309,77 +326,55 @@ local function buildVisual(state: State, buildingId: string)
 	updateVisual(state, buildingId)
 end
 
-local function refreshPads(state: State)
-	local level = PlotService:GetLevel(state.Player)
-	for buildingId, pad in padsByPlotId[state.Plot.Id] do
-		local def = Config.Buildings[buildingId]
-		local built = state.Data.Buildings[buildingId] ~= nil
-		local visible = not built and level >= def.RequiredLevel
-		pad.Part.Transparency = if visible then 0.4 else 1
-		pad.Gui.Enabled = visible
-		pad.Prompt.Enabled = visible
-		if visible then
-			local reason = lockReason(state.Data, buildingId, level)
-			if reason then
-				pad.Prompt.ActionText = "Verrouillé"
-				pad.Prompt.ObjectText = reason
-				pad.Label.Text = ("🔒 %s %s"):format(def.Icon, def.DisplayName)
-				pad.Part.Color = Color3.fromRGB(150, 150, 150)
-			else
-				pad.Prompt.ActionText = ("Construire : %s Coins"):format(Format.Number(def.Price))
-				pad.Prompt.ObjectText = def.DisplayName
-				pad.Label.Text = ("🏗️ %s %s"):format(def.Icon, def.DisplayName)
-				pad.Part.Color = Color3.fromRGB(255, 170, 60)
-			end
-		end
-	end
-end
-
-local function hidePads(plot: any)
-	for _, pad in padsByPlotId[plot.Id] do
-		pad.Part.Transparency = 1
-		pad.Gui.Enabled = false
-		pad.Prompt.Enabled = false
-	end
-end
-
 --------------------------------------------------------------------------
 -- Actions des joueurs (toutes validées ici)
 --------------------------------------------------------------------------
 
-local function onPadTriggered(plot: any, buildingId: string, player: Player)
+-- Prix de construction, ou nil + raison (verrouillé, déjà construit...)
+function BuildingService:CanBuy(player: Player, buildingId: string): (number?, string?)
 	local state = states[player]
-	local pad = padsByPlotId[plot.Id][buildingId]
-	if not state or state.Plot ~= plot then
-		SyncService:Notify(player, "Ce n'est pas ta ferme !", "Error")
-		return
-	end
-	if not RemoteGuard.IsNear(player, pad.Part.Position, Settings.InteractDistance + 4) then
-		return
-	end
-	if not RemoteGuard.CheckCooldown(player, "BuildBuilding", 0.5) then
-		return
-	end
-	local data = state.Data
-	if data.Buildings[buildingId] then
-		return
-	end
-	local reason = lockReason(data, buildingId, PlotService:GetLevel(player))
-	if reason then
-		SyncService:Notify(player, "🔒 " .. reason, "Error")
-		return
-	end
 	local def = Config.Buildings[buildingId]
-	if not CurrencyService:SpendCoins(player, def.Price, "BuildBuilding:" .. buildingId) then
-		SyncService:Notify(player, ("Il te faut %s Coins pour construire : %s."):format(Format.Number(def.Price), def.DisplayName), "Error")
+	if not state or not def then
+		return nil, "Bâtiment inconnu."
+	end
+	if state.Data.Buildings[buildingId] then
+		return nil, "Tu as déjà ce bâtiment (il est peut-être rangé)."
+	end
+	local reason = lockReason(state.Data, buildingId, PlotService:GetLevel(player))
+	if reason then
+		return nil, "🔒 " .. reason
+	end
+	return def.Price, nil
+end
+
+-- Crée le bâtiment à cette position (appelé par PlacementService APRÈS paiement)
+function BuildingService:Create(player: Player, buildingId: string, x: number, z: number, rot: number)
+	local state = states[player]
+	local def = Config.Buildings[buildingId]
+	if not state or not def then
 		return
 	end
-
-	data.Buildings[buildingId] = { Level = 1, Queue = {}, Output = {}, LastUpdate = os.time() }
+	state.Data.Buildings[buildingId] = {
+		Level = 1,
+		Queue = {},
+		Output = {},
+		LastUpdate = os.time(),
+		X = x,
+		Z = z,
+		Rot = rot,
+		Placed = true,
+	}
 	buildVisual(state, buildingId)
-	refreshPads(state) -- le bâtiment suivant se déverrouille
 	sync(state)
-	SyncService:Notify(player, ("%s %s construite ! Approche-toi de la porte pour l'utiliser."):format(def.Icon, def.DisplayName), "Success")
+	SyncService:Notify(player, ("%s %s %s ! Approche-toi de la porte pour l'utiliser."):format(def.Icon, def.DisplayName, if def.Feminine then "construite" else "construit"), "Success")
+end
+
+function BuildingService:Refresh(player: Player, buildingId: string)
+	local state = states[player]
+	if state then
+		buildVisual(state, buildingId)
+		sync(state)
+	end
 end
 
 -- Choisit la variante de l'ingrédient principal : la plus rare dont on a assez.
@@ -519,8 +514,11 @@ local function onBuildingAction(player: Player, action: any, buildingId: any, ar
 	-- 3. Propriétaire + bâtiment construit + distance
 	local state = states[player]
 	local visual = state and state.Visuals[buildingId]
-	if not state or not state.Data.Buildings[buildingId] or not visual then
+	if not state or not state.Data.Buildings[buildingId] then
 		return false, "Tu n'as pas ce bâtiment."
+	end
+	if not visual then
+		return false, "Ce bâtiment est rangé : place-le avec 🔨 Construire."
 	end
 	local door = visual.Prompt.Parent :: BasePart
 	if not RemoteGuard.IsNear(player, door.Position, Settings.InteractDistance + 8) then
@@ -549,6 +547,12 @@ local function sanitize(data: { [string]: any })
 			continue
 		end
 		building.Level = math.clamp(math.floor(tonumber(building.Level) or 1), 1, #LEVELS)
+		-- Anciennes sauvegardes (emplacement fixe) : on reprend la position par défaut
+		if type(building.X) ~= "number" or type(building.Z) ~= "number" then
+			building.X, building.Z, building.Rot, building.Placed = def.X, def.Z, 0, true
+		end
+		building.Rot = math.clamp(math.floor(tonumber(building.Rot) or 0), 0, 3)
+		building.Placed = building.Placed ~= false
 		building.Queue = if type(building.Queue) == "table" then building.Queue else {}
 		building.Output = if type(building.Output) == "table" then building.Output else {}
 		for i = #building.Queue, 1, -1 do
@@ -580,11 +584,10 @@ local function activate(player: Player, plot: any, data: { [string]: any })
 	if offline > 0 then
 		SyncService:Notify(player, ("Pendant ton absence, tes bâtiments ont fabriqué %d produits !"):format(offline), "Success")
 	end
-	refreshPads(state)
 	sync(state)
 end
 
-local function deactivate(player: Player, plot: any)
+local function deactivate(player: Player, _plot: any)
 	local state = states[player]
 	states[player] = nil
 	if state then
@@ -592,7 +595,6 @@ local function deactivate(player: Player, plot: any)
 			visual.Model:Destroy()
 		end
 	end
-	hidePads(plot)
 end
 
 local function productionLoop()
@@ -616,57 +618,12 @@ local function productionLoop()
 end
 
 --------------------------------------------------------------------------
--- Construction des emplacements (boutons tycoon)
---------------------------------------------------------------------------
-
-local function buildPads(plot: any)
-	local pads: { [string]: Pad } = {}
-	for buildingId, def in Config.Buildings do
-		local part = makePart({
-			Name = "BuildingPad_" .. buildingId,
-			Size = Vector3.new(8, 0.3, 8),
-			CFrame = PlotService:ToWorld(plot, def.X, def.Z, 0.15),
-			Color = Color3.fromRGB(255, 170, 60),
-			Material = Enum.Material.Neon,
-			Transparency = 1,
-			CanCollide = false,
-			Parent = plot.Model,
-		})
-		local gui, label = makeBillboard(part, Vector2.new(10, 1.8), Vector3.new(0, 3, 0), 90)
-		gui.Enabled = false
-
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.HoldDuration = 0.4 -- petit appui long : évite les achats par erreur
-		prompt.MaxActivationDistance = Settings.InteractDistance
-		prompt.RequiresLineOfSight = false
-		prompt.Enabled = false
-		prompt:SetAttribute("OwnerOnly", true)
-		prompt.Parent = part
-		prompt.Triggered:Connect(function(player)
-			onPadTriggered(plot, buildingId, player)
-		end)
-
-		pads[buildingId] = { Part = part, Prompt = prompt, Gui = gui, Label = label }
-	end
-	padsByPlotId[plot.Id] = pads
-end
-
---------------------------------------------------------------------------
 -- Cycle de vie
 --------------------------------------------------------------------------
 
 function BuildingService:Init()
-	for _, plot in PlotService:GetAllPlots() do
-		buildPads(plot)
-	end
 	PlotService:OnPlotReady(activate)
 	PlotService:OnPlotReleased(deactivate)
-	PlotService:OnPlotLevelChanged(function(player)
-		local state = states[player]
-		if state then
-			refreshPads(state)
-		end
-	end)
 end
 
 function BuildingService:Start()
