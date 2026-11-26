@@ -82,11 +82,11 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | ✅ fait |
 | 4 | Bâtiments de transformation + vitesse de marche et sprint | ✅ fait |
 | 5 | Expéditions (portail, zones, créatures sauvages, capture) | ✅ fait |
-| 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | 🧪 codée, à tester |
-| 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) | à faire |
+| 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | ✅ fait |
+| 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) + vitrine de prestige + rareté Divine | ⏳ en cours |
 | 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | à faire |
 | 8 | Donjon (ennemis, boss, combat simple, récompenses rares) | à faire |
-| 9 | Monétisation (Game Passes, Developer Products, IDs factices) | à faire |
+| 9 | Monétisation (Game Passes, Developer Products, IDs factices) + personnalisation cosmétique | à faire |
 | 10 | Direction artistique complète (créatures, animaux, zones, ferme, bâtiments) | à faire |
 
 ### Phase 3 : Animaux de ferme
@@ -162,6 +162,18 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 - **Index / Collection** : créatures découvertes et manquantes, avec une récompense pour chaque
   zone complétée.
 - **Classement** des collections les plus rares.
+- **Vitrine de prestige** :
+  - devant l'entrée de chaque parcelle, une vitrine automatique affiche les **3 à 5 créatures et
+    animaux les plus rares** du joueur, sur des socles éclairés, avec leur nom, leur rareté et leur
+    effet visuel ;
+  - choix **automatique** (par rareté puis mutation), ou **épinglé** par le joueur depuis sa
+    collection ;
+  - le **panneau de la parcelle** affiche le nom du joueur et sa **meilleure prise**
+    (ex. « 🌟 Pharaonix Spectral – Secrète »).
+- **Rareté Divine**, au-dessus de Secrète : chance d'environ **0,001 %**, effet visuel unique
+  (auréole dorée, lumière intense, particules), et **annonce sur TOUS les serveurs**
+  (MessagingService) quand quelqu'un en capture une. Une créature Divine par zone ; elles sont un
+  **bonus de l'Index** (pas nécessaires pour compléter une zone).
 
 ### Phase 7 : Progression, ressources rares, consommables et aides
 - **Progression** : boutique de graines **tournante** (stock rare renouvelé toutes les 5 min,
@@ -196,6 +208,17 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 - Exemples : version **premium des aides automatiques**, **agrandissement de parcelle** accéléré
   (emplacement déjà prévu : `PlotService:GrantExpansion`), **boosts**, **emplacements en plus**,
   packs de Coins, x2 Coins.
+- **Personnalisation cosmétique** :
+  - **uniquement cosmétique**, aucun avantage de gameplay (pas de pay-to-win) ;
+  - skins d'enclos (clôtures en bois, pierre, bonbon, or, néon…), sols de parcelle, couleurs et
+    motifs des bâtiments, panneau de parcelle personnalisé, effets autour de la vitrine
+    (particules, lumières), traces de pas, titres affichés au-dessus du joueur ;
+  - petits prix en Robux (environ **25 à 150 Robux**), et certains cosmétiques **débloquables en
+    jouant** (succès, Index complété, niveaux) pour que les joueurs gratuits puissent aussi se
+    distinguer ;
+  - un menu **« 🎨 Personnaliser »** avec un **aperçu avant l'achat** ;
+  - si un achat payant donne un résultat aléatoire, **afficher clairement les chances** (règle
+    Roblox).
 
 ### Phase 10 : Direction artistique complète
 Le gameplay est là ; il faut maintenant une vraie identité visuelle.
@@ -306,14 +329,14 @@ Améliorations (communes à tous les bâtiments, prix = prix du bâtiment × mul
 Stock de produits finis : 40 par bâtiment. Production hors ligne : 8 h max.
 
 ### 5.5 Créatures (phase 5)
-4 zones, 7 créatures originales par zone (28 au total) :
+4 zones, 8 créatures originales par zone (32 au total, dont 4 Divines marquées ✨) :
 
 | Zone | Prix d'accès | Valeur x | Créatures (de Commune à Secrète) |
 |---|---|---|---|
-| 🌲 Forêt | gratuit | x1 | Mousselin, Glandinet, Champiloup, Lucifeuille, Cerfeuillu, Racinor, Murmure-des-Bois |
-| ⛰️ Montagne | 25 000 | x4 | Caillouteux, Flocon, Bouquetonnerre, Givrelle, Grizzlune, Aquilorage, Yétinou |
-| 🏜️ Désert | 100 000 | x15 | Dunelle, Scorpinou, Cactouille, Mirageon, Sphinxou, Pharaonix, Oasien |
-| 🌋 Volcan | 400 000 | x50 | Braisou, Cendrou, Magmoche, Salamandrix, Pyrodrake, Volcanosaure, Cœur-de-Lave |
+| 🌲 Forêt | gratuit | x1 | Mousselin, Glandinet, Champiloup, Lucifeuille, Cerfeuillu, Racinor, Murmure-des-Bois, ✨ Sylvanthe |
+| ⛰️ Montagne | 25 000 | x4 | Caillouteux, Flocon, Bouquetonnerre, Givrelle, Grizzlune, Aquilorage, Yétinou, ✨ Auroréal |
+| 🏜️ Désert | 100 000 | x15 | Dunelle, Scorpinou, Cactouille, Mirageon, Sphinxou, Pharaonix, Oasien, ✨ Solarion |
+| 🌋 Volcan | 400 000 | x50 | Braisou, Cendrou, Magmoche, Salamandrix, Pyrodrake, Volcanosaure, Cœur-de-Lave, ✨ Ignaros |
 
 | Rareté | Apparition | Valeur de base | Clics réussis | Largeur zone verte | Vitesse | Chance finale | Annonce |
 |---|---|---|---|---|---|---|---|
@@ -323,6 +346,7 @@ Stock de produits finis : 40 par bâtiment. Production hors ligne : 8 h max.
 | Légendaire | 4 % | 6 000 | 3 | 15 % | | 55 % | — |
 | Mythique | 0,9 % | 25 000 | 3 | 12 % | | 40 % | bannière serveur |
 | Secrète | 0,1 % | 120 000 | 4 | 10 % | très rapide | 30 % | chat + bannière |
+| Divine | 0,001 % | 1 500 000 | 5 | 8 % | extrême | 25 % | tous les serveurs |
 
 Valeur d'une créature = valeur de base × multiplicateur de zone × mutation. 2 ratés autorisés
 par capture. En cas d'échec, la créature s'enfuit.
