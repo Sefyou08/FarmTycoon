@@ -13,7 +13,7 @@
 	        ├ Animals   (Folder) : Model nommé comme l'espèce (ex. "Cow", "Chicken", "Horse")
 	        ├ Buildings (Folder) : Model nommé comme le bâtiment (ex. "Bakery", "Dairy")
 	        ├ Stands    (Folder) : "SeedShop", "SellStand", "AnimalShop"
-	        ├ Enemies   (Folder) : Model nommé comme l'ennemi ou le boss (ex. "Slime")
+	        ├ Enemies   (Folder) : Model nommé comme l'ennemi ou le boss (ex. "Ronceux") — dossier ReplicatedStorage.CustomModels.Enemies
 	        └ Mascot    (Folder) : "Biscotte"
 	  Règles : le modèle regarde vers -Z (son avant), ses pieds sont au niveau de son
 	  pivot (WorldPivot), et il a la bonne taille (≈ celle du modèle généré). Le jeu le

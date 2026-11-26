@@ -78,7 +78,7 @@ Chaque modèle généré peut être remplacé, un par un, sans toucher au gamepl
    `Creatures`, `Animals`, `Buildings`, `Stands`, `Mascot`.
    Pour les ennemis de donjon (dessinés par le client) : `ReplicatedStorage > CustomModels > Enemies`.
 2. Mets-y ton Model, renommé EXACTEMENT comme l'id : `Cow`, `Chicken`, `Horse`, `Pharaonix`, `Bakery`,
-   `SeedShop`, `SellStand`, `AnimalShop`, `Biscotte`, `Slime`... (ids dans `Config.lua`).
+   `SeedShop`, `SellStand`, `AnimalShop`, `Biscotte`, `Ronceux`... (ids dans `Config.lua`).
 3. Le modèle doit regarder vers -Z (bouton « Front » de Studio), avoir ses pieds au niveau de
    son pivot, et à peu près la taille du modèle généré.
 Le jeu ajoute tout seul ce qu'il faut (zone cliquable, panneau, effets de rareté / variante).
