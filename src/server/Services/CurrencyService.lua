@@ -1,0 +1,130 @@
+--[[
+	CurrencyService.lua
+	===================
+	SEUL endroit autorisé à modifier les Coins d'un joueur.
+	Gère aussi les leaderstats (Coins, Rebirths) affichés dans le classement.
+
+	  CurrencyService:AddCoins(player, amount, reason) -> (ok, montantAjouté)
+	  CurrencyService:SpendCoins(player, amount, reason) -> ok
+	  CurrencyService:GetCoins(player) -> number
+	  CurrencyService:CanAfford(player, amount) -> boolean
+
+	(Phase 4 : AddCoins appliquera les multiplicateurs de rebirth / game pass.)
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
+local DataService = require(script.Parent.DataService)
+local SyncService = require(script.Parent.SyncService)
+
+local CurrencyService = {}
+
+local function isValidAmount(amount: any): boolean
+	return typeof(amount) == "number" and amount == amount and amount > 0 and amount < math.huge
+end
+
+-- Met à jour leaderstats + HUD client à partir des données serveur.
+function CurrencyService:Refresh(player: Player)
+	local data = DataService:GetData(player)
+	if not data then
+		return
+	end
+
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if leaderstats then
+		local coins = leaderstats:FindFirstChild(Config.Currency.Name)
+		local rebirths = leaderstats:FindFirstChild("Rebirths")
+		if coins then
+			coins.Value = data.Coins
+		end
+		if rebirths then
+			rebirths.Value = data.Rebirths
+		end
+	end
+
+	SyncService:Set(player, "Coins", data.Coins)
+	SyncService:Set(player, "Rebirths", data.Rebirths)
+end
+
+function CurrencyService:GetCoins(player: Player): number
+	local data = DataService:GetData(player)
+	return if data then data.Coins else 0
+end
+
+function CurrencyService:CanAfford(player: Player, amount: number): boolean
+	return isValidAmount(amount) and self:GetCoins(player) >= amount
+end
+
+function CurrencyService:AddCoins(player: Player, amount: number, reason: string?): (boolean, number)
+	if not isValidAmount(amount) then
+		warn(("[CurrencyService] AddCoins refusé : montant invalide (%s) pour %s"):format(tostring(amount), player.Name))
+		return false, 0
+	end
+	local data = DataService:GetData(player)
+	if not data then
+		return false, 0
+	end
+
+	local finalAmount = math.floor(amount)
+	if finalAmount <= 0 then
+		return false, 0
+	end
+
+	data.Coins += finalAmount
+	data.Stats.TotalEarned += finalAmount
+	self:Refresh(player)
+
+	if Config.Debug.Enabled then
+		print(("[CurrencyService] +%d coins pour %s (%s) -> total %d"):format(finalAmount, player.Name, reason or "?", data.Coins))
+	end
+	return true, finalAmount
+end
+
+function CurrencyService:SpendCoins(player: Player, amount: number, reason: string?): boolean
+	if not isValidAmount(amount) then
+		return false
+	end
+	local data = DataService:GetData(player)
+	if not data then
+		return false
+	end
+
+	local cost = math.ceil(amount)
+	if data.Coins < cost then
+		return false
+	end
+
+	data.Coins -= cost
+	self:Refresh(player)
+
+	if Config.Debug.Enabled then
+		print(("[CurrencyService] -%d coins pour %s (%s) -> total %d"):format(cost, player.Name, reason or "?", data.Coins))
+	end
+	return true
+end
+
+function CurrencyService:Init()
+	-- Création des leaderstats dès que les données sont chargées
+	DataService:OnProfileLoaded(function(player, data)
+		local leaderstats = Instance.new("Folder")
+		leaderstats.Name = "leaderstats"
+
+		local coins = Instance.new("IntValue")
+		coins.Name = Config.Currency.Name
+		coins.Value = data.Coins
+		coins.Parent = leaderstats
+
+		local rebirths = Instance.new("IntValue")
+		rebirths.Name = "Rebirths"
+		rebirths.Value = data.Rebirths
+		rebirths.Parent = leaderstats
+
+		leaderstats.Parent = player
+		self:Refresh(player)
+	end)
+end
+
+function CurrencyService:Start() end
+
+return CurrencyService
