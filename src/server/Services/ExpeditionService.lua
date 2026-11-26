@@ -371,8 +371,9 @@ end
 
 local startCapture: (Player, Wild) -> ()
 
-local function spawnWild(info: ZoneInfo)
-	local creatureId = pickCreature(info.Id)
+-- multipliers (facultatif) : favorise certaines raretés (ex. { Common = 2 } = plus de communes)
+local function spawnWild(info: ZoneInfo, multipliers: { [string]: number }?)
+	local creatureId = pickCreature(info.Id, multipliers)
 	if not creatureId then
 		return
 	end
@@ -500,7 +501,8 @@ local function spawnLoop()
 				count += 1
 			end
 			if hasPlayers and count < Exp.MaxWildPerZone then
-				spawnWild(info)
+				-- Apparitions plus rapides, surtout des communes (les rares gardent le même rythme)
+				spawnWild(info, Exp.SpawnRarityBoost)
 			end
 		end
 	end
@@ -895,6 +897,15 @@ local function onExpeditionAction(player: Player, action: any, zoneId: any): (bo
 		teleportTo(player, zones[zoneId].ArrivalCFrame)
 		playerZone[player] = zoneId
 		GameEvents.Fire(player, "Travel", zoneId)
+		-- À l'arrivée : quelques créatures (surtout communes) apparaissent tout de suite
+		local info = zones[zoneId]
+		local count = 0
+		for _ in info.Wilds do
+			count += 1
+		end
+		for _ = 1, math.min(Exp.EntrySpawn, Exp.MaxWildPerZone - count) do
+			spawnWild(info, Exp.EntryRarityBoost)
+		end
 		return true, ("Bienvenue : %s %s ! Approche-toi d'une créature pour la capturer."):format(def.Icon, def.DisplayName)
 	end
 	return false, "Action inconnue."

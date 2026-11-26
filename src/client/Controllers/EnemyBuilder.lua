@@ -429,8 +429,16 @@ function EnemyBuilder.Build(enemyId: string, cframe: CFrame): (Model, BasePart, 
 	end
 	model.Name = def.DisplayName
 
-	-- Boîte englobante invisible : pivot + barre de vie
+	-- Pieds bien SUR le sol : la pièce la plus basse touche le sol de l'arène
 	model.WorldPivot = cframe
+	local boxCf, boxSize = model:GetBoundingBox()
+	local bottom = cframe:PointToObjectSpace(boxCf.Position).Y - boxSize.Y / 2
+	if math.abs(bottom - 0.02) > 0.005 then
+		model:PivotTo(cframe * CFrame.new(0, 0.02 - bottom, 0))
+	end
+	model.WorldPivot = cframe
+
+	-- Boîte englobante invisible : barre de vie et repère
 	local cf, size = model:GetBoundingBox()
 	local body = Instance.new("Part")
 	body.Name = "Body"
@@ -443,6 +451,9 @@ function EnemyBuilder.Build(enemyId: string, cframe: CFrame): (Model, BasePart, 
 	body.CFrame = cframe * CFrame.new(cframe:PointToObjectSpace(cf.Position))
 	body.Parent = model
 	model.PrimaryPart = body
+	-- Le pivot du modèle reste AU SOL (sous les pieds), pas au centre de la boîte :
+	-- sinon DungeonRenderer, qui place le pivot sur le sol, enfonçait l'ennemi de moitié
+	body.PivotOffset = body.CFrame:ToObjectSpace(cframe)
 
 	-- Contour lumineux visible à travers le décor : on voit toujours où sont les ennemis
 	local highlight = Instance.new("Highlight")

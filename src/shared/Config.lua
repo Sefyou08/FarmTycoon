@@ -683,8 +683,13 @@ Config.Expeditions = {
 	PortalPosition = Vector3.new(0, 0, 26), -- portail principal, devant le spawn
 	PortalInteractDistance = 12,
 
-	MaxWildPerZone = 10, -- créatures sauvages max en même temps dans une zone
-	SpawnInterval = 4, -- secondes entre deux apparitions (si des joueurs sont dans la zone)
+	MaxWildPerZone = 12, -- créatures sauvages max en même temps dans une zone
+	SpawnInterval = 2.5, -- secondes entre deux apparitions (si des joueurs sont dans la zone)
+	-- Plus d'apparitions, mais surtout des COMMUNES : le poids des communes est multiplié,
+	-- ce qui garde à peu près le même rythme d'apparition pour les raretés hautes
+	SpawnRarityBoost = { Common = 2 },
+	EntrySpawn = 4, -- créatures qui apparaissent tout de suite quand on arrive dans la zone
+	EntryRarityBoost = { Common = 3, Rare = 1.5 },
 	WildLifetime = 150, -- secondes avant qu'une créature sauvage reparte
 	WildWanderRadius = 6,
 	SpawnMargin = 35, -- bande du bord de zone sans créatures (réservée au décor, phase 10)

@@ -874,6 +874,9 @@ local function applyScale(model: Model, groundCFrame: CFrame, rarity: any, mutat
 		model.WorldPivot = groundCFrame
 		model:ScaleTo(scale)
 		model.PrimaryPart = primary
+		if primary then
+			primary.PivotOffset = primary.CFrame:ToObjectSpace(groundCFrame) -- pivot toujours au sol
+		end
 	end
 end
 
@@ -885,6 +888,7 @@ local function addHitbox(model: Model, groundCFrame: CFrame): BasePart
 	local local_ = groundCFrame:ToObjectSpace(cf)
 	local body = ArtKit.Block(model, "Body", size, groundCFrame * CFrame.new(local_.Position), WHITE, nil, { Transparency = 1, CanQuery = true })
 	model.PrimaryPart = body
+	body.PivotOffset = body.CFrame:ToObjectSpace(groundCFrame) -- pivot au sol, sous les pieds
 	return body
 end
 
