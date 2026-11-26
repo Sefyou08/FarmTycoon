@@ -506,6 +506,20 @@ local function releasePlot(player: Player)
 	print(("[PlotService] Parcelle %d libérée (départ de %s)"):format(plot.Id, player.Name))
 end
 
+-- Reconstruit toute la ferme du joueur à partir de ses données (ex. après un rebirth) :
+-- les services retirent leurs visuels (OnPlotReleased) puis les recréent (OnPlotReady).
+function PlotService:Reload(player: Player)
+	local plot = plotByPlayer[player]
+	if not plot then
+		return
+	end
+	if readyPlayers[player] then
+		runCallbacks(releasedCallbacks, player, plot)
+	end
+	readyPlayers[player] = nil
+	tryReady(player)
+end
+
 local function onCharacterAdded(player: Player, character: Model)
 	-- On attend que le personnage soit réellement placé avant de le déplacer
 	character:WaitForChild("HumanoidRootPart", 10)

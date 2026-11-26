@@ -29,8 +29,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - [x] Phase 4 : bâtiments de transformation, vitesse de marche et sprint
 - [x] Phase 5 : expéditions, créatures, capture
 - [x] Phase 5b : mode construction + champs
-- [ ] Phase 6 : collection, exposition, vitrine, Index, classement (à tester)
-- [ ] Phase 7 : progression, ressources rares, consommables, aides PNJ
+- [x] Phase 6 : collection, exposition, vitrine, Index, classement
+- [ ] Phase 7 : progression, ressources rares, consommables, aides PNJ (à tester)
 - [ ] Phase 8 : donjon
 - [ ] Phase 9 : monétisation
 - [ ] Phase 10 : direction artistique
@@ -53,3 +53,7 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 13. **Portail violet** derrière le spawn : expéditions et capture de créatures (bouton **📖 Créatures**).
 14. **Socles d'exposition** (🔨 Construire) : expose tes créatures (📖 Créatures → 🏛️ Exposer) pour gagner des Coins/seconde, même hors ligne. ⭐ épingle une créature dans la **vitrine** devant ta parcelle.
 15. **📚 Index** : complète une zone pour réclamer sa récompense. **🏡 Visiter** : va voir la ferme des autres joueurs. Panneau **🏆** près du spawn : classement des collections.
+16. **Niveau / XP** (barre en haut) : récolte, élevage, fabrication et capture font gagner de l'XP.
+17. **Stock rare** de la boutique de graines : renouvelé toutes les 5 min (compte à rebours).
+18. **🍴** dans le sac : manger un produit donne un boost (vitesse, XP, Coins, capture).
+19. **🧑‍🌾 Aides** : fermier et soigneur PNJ. **🐴 Monture** : monter sur ton cheval. **⭐ Rebirth** : renaître contre un multiplicateur de Coins.

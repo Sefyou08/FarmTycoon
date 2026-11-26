@@ -3,6 +3,9 @@
 	======================
 	Sprint : maintenir Maj (gauche ou droite) pour courir à Config.Movement.SprintSpeed.
 	Sur mobile/tablette, un bouton "🏃 Courir" dans le HUD active/désactive le sprint.
+	Monture : bouton "🐴 Monture" (le serveur vérifie et pose l'attribut "Mounted") ;
+	à cheval, les vitesses sont MountSpeed / MountSprintSpeed.
+	Boost de vitesse (consommables) : attribut "SpeedBoost" posé par le serveur (x1,2...).
 
 	Note : si un joueur a activé le "Shift Lock" dans ses paramètres Roblox,
 	Maj sert aussi à verrouiller la caméra (comportement normal de Roblox).
@@ -13,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local MovementController = {}
 
@@ -35,7 +39,11 @@ local function apply()
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		humanoid.WalkSpeed = if sprinting then MovementConfig.SprintSpeed else MovementConfig.WalkSpeed
+		local mounted = player:GetAttribute("Mounted") == true
+		local walk = if mounted then MovementConfig.MountSpeed else MovementConfig.WalkSpeed
+		local sprint = if mounted then MovementConfig.MountSprintSpeed else MovementConfig.SprintSpeed
+		local boost = player:GetAttribute("SpeedBoost") or 1
+		humanoid.WalkSpeed = (if sprinting then sprint else walk) * boost
 	end
 	if toggleButton then
 		toggleButton.Text = if sprinting then "🏃 Courir : ON" else "🏃 Courir"
@@ -71,6 +79,14 @@ function MovementController.Init(HUD)
 			setSprinting(not sprinting)
 		end)
 	end
+
+	-- Monture
+	local mountRemote: RemoteEvent = Remotes.Get("ToggleMount")
+	HUD.AddButton("MountButton", "🐴 Monture", Color3.fromRGB(150, 100, 60), 9, function()
+		mountRemote:FireServer()
+	end)
+	player:GetAttributeChangedSignal("Mounted"):Connect(apply)
+	player:GetAttributeChangedSignal("SpeedBoost"):Connect(apply)
 
 	-- Réapplique la vitesse à chaque réapparition (le serveur remet la vitesse de base)
 	player.CharacterAdded:Connect(function(character)

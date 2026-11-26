@@ -22,6 +22,10 @@ return {
 
 	Coins = Config.Currency.StartingCoins,
 	Rebirths = 0,
+	XP = 0, -- XP dans le niveau actuel
+	Level = 1, -- niveau du joueur
+	Boosts = {}, -- boosts actifs : { [type] = { Power, EndsAt = os.time() } }
+	Helpers = {}, -- aides PNJ : { Farmer = niveau, Caretaker = niveau } (absent = pas acheté)
 
 	Inventory = {}, -- produits récoltés : { [cropId] = { [variante] = quantité } } (variante "Normal" ou mutation en phase 3)
 	Seeds = {}, -- graines possédées : { [cropId] = quantité }

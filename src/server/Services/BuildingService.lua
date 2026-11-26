@@ -40,6 +40,7 @@ local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
+local XPService = require(script.Parent.XPService)
 
 local Settings = Config.BuildingSettings
 local LEVELS = Config.BuildingLevels
@@ -378,10 +379,12 @@ function BuildingService:Refresh(player: Player, buildingId: string)
 end
 
 -- Choisit la variante de l'ingrédient principal : la plus rare dont on a assez.
-local function pickPrimaryVariant(player: Player, itemId: string, amount: number): string?
+-- minVariant (recettes rares) : la variante doit être au moins de ce rang.
+local function pickPrimaryVariant(player: Player, itemId: string, amount: number, minVariant: string?): string?
 	local variants = ItemUtil.SortedVariants()
+	local minOrder = if minVariant then ItemUtil.GetVariant(minVariant).Order else 1
 	for i = #variants, 1, -1 do
-		if InventoryService:GetAmount(player, itemId, variants[i]) >= amount then
+		if ItemUtil.GetVariant(variants[i]).Order >= minOrder and InventoryService:GetAmount(player, itemId, variants[i]) >= amount then
 			return variants[i]
 		end
 	end
@@ -391,7 +394,7 @@ end
 -- Prend les ingrédients d'UNE commande. Renvoie la variante du produit, ou nil si impossible.
 local function takeIngredients(player: Player, recipe: any): string?
 	local primary = recipe.Inputs[1]
-	local variant = pickPrimaryVariant(player, primary.Item, primary.Amount)
+	local variant = pickPrimaryVariant(player, primary.Item, primary.Amount, recipe.MinVariant)
 	if not variant then
 		return nil
 	end
@@ -409,7 +412,8 @@ local function takeIngredients(player: Player, recipe: any): string?
 		local input = recipe.Inputs[index]
 		InventoryService:RemoveAnyVariant(player, input.Item, input.Amount)
 	end
-	return variant
+	-- Recette rare : le produit est déjà un objet rare, il sort en variante Normale
+	return if recipe.MinVariant then "Normal" else variant
 end
 
 local function actionQueue(state: State, buildingId: string, recipeId: any, count: any): (boolean, string)
@@ -444,6 +448,10 @@ local function actionQueue(state: State, buildingId: string, recipeId: any, coun
 	end
 
 	if queued == 0 then
+		if recipe.MinVariant then
+			local primary = recipe.Inputs[1]
+			return false, ("Il te faut %d %s (ou mieux)."):format(primary.Amount, ItemUtil.Label(primary.Item, recipe.MinVariant))
+		end
 		return false, "Il te manque des ingrédients."
 	end
 	updateVisual(state, buildingId)
@@ -476,6 +484,8 @@ local function actionCollect(state: State, buildingId: string): (boolean, string
 			building.Output[itemId] = nil
 		end
 	end
+
+	XPService:AddXP(state.Player, Config.Progression.XP.Craft * collected)
 
 	-- La place libérée peut débloquer des commandes terminées
 	simulate(buildingId, building, os.time(), BuildingService:GetSpeedMultiplier(state.Player))

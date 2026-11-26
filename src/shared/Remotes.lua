@@ -27,6 +27,8 @@ Remotes.EventNames = {
 	"CaptureEnded", -- Serveur -> Client : fin de capture imposée par le serveur (délai, éloignement...)
 	"ChatAnnounce", -- Serveur -> Clients : message système dans le chat (créature Secrète / Divine)
 	"RequestVisit", -- Client -> Serveur : (userId) se téléporter sur la parcelle d'un autre joueur
+	"ShopStock", -- Serveur -> Client : stock tournant de graines rares { EndsAt, Stock = { [cropId] = restant } }
+	"ToggleMount", -- Client -> Serveur : monter / descendre du cheval
 }
 
 -- RemoteFunctions (requête + réponse)
@@ -41,6 +43,9 @@ Remotes.FunctionNames = {
 	"BuildAction", -- Client -> Serveur : ("Buy" | "Place" | "Store", { Type, Id/Kind, X, Z, Rot }) -> (ok, message)
 	"DisplayAction", -- Client -> Serveur : ("Assign" | "Remove" | "Pin", idCréature) -> (ok, message)
 	"ClaimIndexReward", -- Client -> Serveur : (zoneId) -> (ok, message)
+	"Consume", -- Client -> Serveur : (itemId, variante) manger un consommable -> (ok, message)
+	"Rebirth", -- Client -> Serveur : () renaître -> (ok, message)
+	"HelperAction", -- Client -> Serveur : (helperId) acheter / améliorer une aide PNJ -> (ok, message)
 }
 
 local folder: Folder? = nil

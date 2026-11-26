@@ -19,9 +19,11 @@ local ServicesFolder = script.Parent:WaitForChild("Services")
 local SERVICE_ORDER = {
 	"DataService",
 	"SyncService",
-	"CurrencyService",
-	"PlotService",
 	"InventoryService",
+	"BoostService",
+	"CurrencyService",
+	"XPService",
+	"PlotService",
 	"FarmService",
 	"AnimalService",
 	"BuildingService",
@@ -34,6 +36,8 @@ local SERVICE_ORDER = {
 	"ExpeditionService",
 	"IndexService",
 	"LeaderboardService",
+	"HelperService",
+	"RebirthService",
 	"MovementService",
 }
 
@@ -57,4 +61,4 @@ for _, name in SERVICE_ORDER do
 	end
 end
 
-print("[FarmTycoon] Serveur démarré ✅ (Phase 6)")
+print("[FarmTycoon] Serveur démarré ✅ (Phase 7)")

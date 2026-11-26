@@ -111,6 +111,38 @@ Config.Crops = {
 		FruitShape = "Ball",
 		FruitSize = Vector3.new(2.2, 2.2, 2.2),
 	},
+
+	-- Cultures RARES : vendues uniquement dans le stock tournant de la boutique (phase 7)
+	Strawberry = {
+		DisplayName = "Fraise", Icon = "🍓", Rarity = "Rare", Order = 10, Feminine = true,
+		SeedPrice = 150, SellPrice = 320, GrowTime = 60, FeedValue = 35,
+		Color = Color3.fromRGB(240, 40, 70), FruitShape = "Ball", FruitSize = Vector3.new(1, 1, 1),
+	},
+	Blueberry = {
+		DisplayName = "Myrtille", Icon = "🫐", Rarity = "Rare", Order = 11, Feminine = true,
+		SeedPrice = 250, SellPrice = 520, GrowTime = 80, FeedValue = 55,
+		Color = Color3.fromRGB(70, 80, 220), FruitShape = "Ball", FruitSize = Vector3.new(0.9, 0.9, 0.9),
+	},
+	Watermelon = {
+		DisplayName = "Pastèque", Icon = "🍉", Rarity = "Epic", Order = 12, Feminine = true,
+		SeedPrice = 900, SellPrice = 2000, GrowTime = 150, FeedValue = 220,
+		Color = Color3.fromRGB(60, 160, 60), FruitShape = "Ball", FruitSize = Vector3.new(2.4, 2.4, 2.4),
+	},
+	Dragonfruit = {
+		DisplayName = "Fruit du dragon", Icon = "🐉", Rarity = "Epic", Order = 13,
+		SeedPrice = 1500, SellPrice = 3400, GrowTime = 200, FeedValue = 370,
+		Color = Color3.fromRGB(255, 60, 150), FruitShape = "Ball", FruitSize = Vector3.new(1.6, 1.6, 1.6),
+	},
+	StarFlower = {
+		DisplayName = "Fleur étoilée", Icon = "🌟", Rarity = "Legendary", Order = 14, Feminine = true,
+		SeedPrice = 6000, SellPrice = 15000, GrowTime = 360, FeedValue = 1600,
+		Color = Color3.fromRGB(255, 230, 80), FruitShape = "Ball", FruitSize = Vector3.new(1.8, 1.8, 1.8),
+	},
+	MoonPumpkin = {
+		DisplayName = "Citrouille lunaire", Icon = "🌙", Rarity = "Legendary", Order = 15, Feminine = true,
+		SeedPrice = 10000, SellPrice = 26000, GrowTime = 480, FeedValue = 2800,
+		Color = Color3.fromRGB(170, 190, 255), FruitShape = "Ball", FruitSize = Vector3.new(2.6, 2.6, 2.6),
+	},
 }
 
 --------------------------------------------------------------------------
@@ -145,6 +177,11 @@ Config.Farm = {
 
 	-- Pack de départ donné UNE seule fois à chaque joueur
 	StarterSeeds = { Carrot = 5, Wheat = 5 },
+
+	-- Mutations de plantes à la RÉCOLTE (mêmes variantes que les animaux : Config.Variants).
+	-- Chance de base, multipliée par RarityBonus selon la rareté de la culture.
+	HarvestMutations = { Gold = 0.04, Rainbow = 0.01, Legendary = 0.002, Mythic = 0.0004 },
+	HarvestMutationRarityBonus = { Common = 1, Rare = 1.5, Epic = 2, Legendary = 3 },
 }
 
 -- Fumier du cheval utilisé comme engrais sur une plante qui pousse
@@ -325,6 +362,10 @@ Config.Pens = {
 	Prices = { 300, 1500, 5000, 15000, 40000, 100000, 250000, 600000 },
 	-- Nombre max d'enclos selon le niveau de la parcelle (1 à 4)
 	MaxByLevel = { 2, 4, 6, 8 },
+	-- RESSOURCES RARES : chance qu'une production soit d'une variante SUPÉRIEURE à celle de
+	-- l'animal (Normal -> Doré -> Arc-en-ciel -> Légendaire -> Mythique). Plus l'animal est rare,
+	-- plus la chance est élevée.
+	RareProduceChance = { Normal = 0.03, Gold = 0.05, Rainbow = 0.07, Legendary = 0.1, Mythic = 0 },
 	-- Emprise d'un enclos placé (largeur X, profondeur Z) : clôture + mangeoire et caisse devant
 	Footprint = Vector2.new(22, 26),
 
@@ -356,6 +397,13 @@ Config.Shop = {
 	BuyAmounts = { 1, 5 }, -- boutons d'achat affichés dans la boutique de graines
 	MaxBuyAmount = 25, -- quantité max par requête
 	BuyCooldown = 0.2,
+
+	-- Stock TOURNANT des graines rares (même stock pour tout le serveur, quantité par joueur)
+	Rotation = {
+		Interval = 300, -- secondes entre deux renouvellements (compte à rebours affiché)
+		Chance = { Rare = 0.8, Epic = 0.4, Legendary = 0.12 }, -- chance qu'une graine soit en stock
+		Stock = { Rare = { 3, 6 }, Epic = { 1, 3 }, Legendary = { 1, 1 } }, -- quantité par joueur (min, max)
+	},
 }
 
 --------------------------------------------------------------------------
@@ -395,7 +443,10 @@ Config.Movement = {
 	SprintEnabled = true,
 	SprintSpeed = 32, -- vitesse en courant (touche maintenue, ou bouton sur mobile)
 	SprintKeys = { Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift },
-	-- Phase 7 : la monture (cheval) ajoutera un bonus ici
+	-- Monture (cheval) : il faut posséder au moins un cheval dans un enclos + le niveau requis
+	MountSpeed = 40,
+	MountSprintSpeed = 48,
+	MountSpecies = "Horse",
 }
 
 --------------------------------------------------------------------------
@@ -415,6 +466,14 @@ Config.Products = {
 	TruffleCheese = { DisplayName = "Fromage truffé", Icon = "🏆", Order = 9, SellPrice = 12000 },
 	Pillow = { DisplayName = "Oreiller", Icon = "🛏️", Order = 10, SellPrice = 5800 },
 	Coat = { DisplayName = "Manteau", Icon = "🧥", Order = 11, SellPrice = 5600 },
+
+	-- Produits RARES (recettes rares : ingrédient principal d'une variante minimale)
+	RoyalCake = { DisplayName = "Gâteau royal", Icon = "🎂", Order = 20, SellPrice = 2500, Rarity = "Rare" },
+	RainbowFabric = { DisplayName = "Tissu arc-en-ciel", Icon = "🌈", Order = 21, SellPrice = 25000, Rarity = "Epic" },
+	CelestialBread = { DisplayName = "Pain céleste", Icon = "🥐", Order = 22, SellPrice = 9000, Rarity = "Legendary" },
+	LegendaryCheese = { DisplayName = "Fromage légendaire", Icon = "👑", Order = 23, SellPrice = 120000, Rarity = "Legendary" },
+	DivineCream = { DisplayName = "Crème divine", Icon = "✨", Order = 24, SellPrice = 250000, Rarity = "Mythic", Feminine = true },
+	RoyalCoat = { DisplayName = "Manteau royal", Icon = "🦚", Order = 25, SellPrice = 18000, Rarity = "Rare" },
 }
 
 --------------------------------------------------------------------------
@@ -425,7 +484,9 @@ Config.Products = {
 --   X, Z           : position par défaut (anciennes sauvegardes) ; ensuite le joueur
 --                    place librement le bâtiment avec le mode construction
 --   Recipes        : Inputs (le 1er ingrédient donne la variante du produit),
---                    Output, Time (secondes au niveau 1), RequiredBuildingLevel (optionnel)
+--                    Output, Time (secondes au niveau 1), RequiredBuildingLevel (optionnel),
+--                    MinVariant (optionnel) : recette RARE, l'ingrédient principal doit être au
+--                    moins de cette variante ; le produit est alors un objet rare (variante Normale)
 -- Ordre de déblocage : Boulangerie (blé, œufs) -> Filature (laine) -> Laiterie (lait)
 --                      -> Fromagerie -> Atelier de couture (tissu + plumes / fourrure)
 --------------------------------------------------------------------------
@@ -438,6 +499,9 @@ Config.Buildings = {
 		Recipes = {
 			{ Id = "Bread", Inputs = { { Item = "Wheat", Amount = 4 } }, Output = { Item = "Bread", Amount = 1 }, Time = 30 },
 			{ Id = "Cake", Inputs = { { Item = "Egg", Amount = 3 }, { Item = "Wheat", Amount = 2 } }, Output = { Item = "Cake", Amount = 1 }, Time = 60 },
+			-- Recettes rares : MinVariant = variante minimale de l'ingrédient principal
+			{ Id = "RoyalCake", MinVariant = "Gold", Inputs = { { Item = "Egg", Amount = 3 }, { Item = "Wheat", Amount = 2 } }, Output = { Item = "RoyalCake", Amount = 1 }, Time = 120 },
+			{ Id = "CelestialBread", MinVariant = "Legendary", Inputs = { { Item = "Wheat", Amount = 4 } }, Output = { Item = "CelestialBread", Amount = 1 }, Time = 240 },
 		},
 	},
 	Spinning = {
@@ -448,6 +512,7 @@ Config.Buildings = {
 		Recipes = {
 			{ Id = "Yarn", Inputs = { { Item = "Wool", Amount = 2 } }, Output = { Item = "Yarn", Amount = 1 }, Time = 60 },
 			{ Id = "Fabric", Inputs = { { Item = "Yarn", Amount = 2 } }, Output = { Item = "Fabric", Amount = 1 }, Time = 120 },
+			{ Id = "RainbowFabric", MinVariant = "Rainbow", Inputs = { { Item = "Wool", Amount = 3 } }, Output = { Item = "RainbowFabric", Amount = 1 }, Time = 300 },
 		},
 	},
 	Dairy = {
@@ -458,6 +523,7 @@ Config.Buildings = {
 		Recipes = {
 			{ Id = "Cream", Inputs = { { Item = "Milk", Amount = 1 } }, Output = { Item = "Cream", Amount = 1 }, Time = 45 },
 			{ Id = "Butter", Inputs = { { Item = "Milk", Amount = 2 } }, Output = { Item = "Butter", Amount = 1 }, Time = 90 },
+			{ Id = "DivineCream", MinVariant = "Mythic", Inputs = { { Item = "Milk", Amount = 2 } }, Output = { Item = "DivineCream", Amount = 1 }, Time = 600, RequiredBuildingLevel = 3 },
 		},
 	},
 	Cheese = {
@@ -475,6 +541,7 @@ Config.Buildings = {
 				Time = 240,
 				RequiredBuildingLevel = 3, -- recette débloquée au niveau 3 du bâtiment
 			},
+			{ Id = "LegendaryCheese", MinVariant = "Legendary", Inputs = { { Item = "Milk", Amount = 3 } }, Output = { Item = "LegendaryCheese", Amount = 1 }, Time = 480, RequiredBuildingLevel = 2 },
 		},
 	},
 	Tailor = {
@@ -485,6 +552,7 @@ Config.Buildings = {
 		Recipes = {
 			{ Id = "Pillow", Inputs = { { Item = "Fabric", Amount = 1 }, { Item = "Feather", Amount = 4 } }, Output = { Item = "Pillow", Amount = 1 }, Time = 180 },
 			{ Id = "Coat", Inputs = { { Item = "Fabric", Amount = 1 }, { Item = "Fur", Amount = 5 } }, Output = { Item = "Coat", Amount = 1 }, Time = 180 },
+			{ Id = "RoyalCoat", MinVariant = "Gold", Inputs = { { Item = "Fur", Amount = 5 }, { Item = "Fabric", Amount = 1 } }, Output = { Item = "RoyalCoat", Amount = 1 }, Time = 300 },
 		},
 	},
 }
@@ -530,7 +598,6 @@ Config.Expeditions = {
 	CaptureDistance = 12, -- distance max pour lancer une capture
 
 	MaxCreatures = 100, -- créatures max dans la collection
-	MaxMisses = 2, -- ratés autorisés pendant le mini-jeu
 	CaptureTimeout = 20, -- secondes max pour finir le mini-jeu
 	MaxLatency = 1.0, -- tolérance réseau (s) sur le moment du clic envoyé par le client
 	HitTolerance = 0.02, -- marge (en fraction de barre) autour de la zone verte
@@ -570,55 +637,73 @@ Config.Zones = {
 --------------------------------------------------------------------------
 -- RARETÉS DES CRÉATURES
 --   Weight    : poids d'apparition (en % si le total fait 100)
---   BaseValue : valeur de base (x zone x mutation) ; sert à la vente et aux revenus (phase 6)
---   Capture   : Hits = clics réussis nécessaires, Width = largeur de la zone verte (0-1),
---               Speed = allers par seconde du curseur, Chance = tirage final après le mini-jeu
+--   BaseValue : valeur de base (x zone x mutation) ; sert à la vente
 --   Income    : Coins / seconde quand la créature est exposée sur un socle (x zone x mutation)
 --   Prestige  : points de prestige (vitrine, meilleure prise, classement)
 --   Announce  : "Server" = bannière, "Chat" = chat + bannière, "Global" = TOUS les serveurs
+--   SpawnAlert: "Zone" = prévient les joueurs de la zone à l'apparition, "Server" = tout le serveur
+--   Capture (mini-jeu, tout est réglable ici) :
+--     Hits      = clics réussis à enchaîner
+--     Width     = largeur de la zone verte (fraction de la barre, 0 à 1)
+--     Speed     = allers par seconde du curseur (plus petit = plus lent)
+--     MaxMisses = ratés autorisés
+--     Chance    = tirage final après le mini-jeu réussi (0 à 1)
+--   Visual (en attendant les vrais modèles de la phase 10) :
+--     Scale     = taille du modèle (Commune = 1)
+--     Vivid     = couleurs plus saturées et lumineuses
+--     Particles = étincelles par seconde autour de la créature (0 = aucune)
+--     Light     = portée de la lumière émise (0 = aucune)
+--     Beacon    = colonne de lumière visible de loin (course entre les joueurs)
 --------------------------------------------------------------------------
 Config.CreatureRarities = {
 	Common = {
 		DisplayName = "Commune", Order = 1, Color = Color3.fromRGB(200, 200, 200),
 		Weight = 60, BaseValue = 100,
 		Income = 1, Prestige = 1,
-		Capture = { Hits = 1, Width = 0.30, Speed = 0.8, Chance = 1.0 },
+		Capture = { Hits = 1, Width = 0.30, Speed = 0.8, MaxMisses = 2, Chance = 1.0 },
+		Visual = { Scale = 1, Vivid = false, Particles = 0, Light = 0, Beacon = false },
 	},
 	Rare = {
 		DisplayName = "Rare", Order = 2, Color = Color3.fromRGB(70, 150, 255),
 		Weight = 25, BaseValue = 400,
 		Income = 4, Prestige = 5,
-		Capture = { Hits = 2, Width = 0.24, Speed = 1.0, Chance = 0.9 },
+		Capture = { Hits = 2, Width = 0.26, Speed = 0.85, MaxMisses = 2, Chance = 0.95 },
+		Visual = { Scale = 1.05, Vivid = false, Particles = 0, Light = 0, Beacon = false },
 	},
 	Epic = {
 		DisplayName = "Épique", Order = 3, Color = Color3.fromRGB(170, 80, 240),
 		Weight = 10, BaseValue = 1500,
 		Income = 15, Prestige = 25,
-		Capture = { Hits = 2, Width = 0.18, Speed = 1.25, Chance = 0.75 },
+		Capture = { Hits = 2, Width = 0.23, Speed = 0.9, MaxMisses = 2, Chance = 0.9 },
+		Visual = { Scale = 1.2, Vivid = true, Particles = 3, Light = 8, Beacon = false },
 	},
 	Legendary = {
 		DisplayName = "Légendaire", Order = 4, Color = Color3.fromRGB(255, 180, 30),
 		Weight = 4, BaseValue = 6000,
 		Income = 60, Prestige = 100,
-		Capture = { Hits = 3, Width = 0.15, Speed = 1.5, Chance = 0.55 },
+		Capture = { Hits = 3, Width = 0.20, Speed = 0.95, MaxMisses = 2, Chance = 0.85 },
+		Visual = { Scale = 1.5, Vivid = true, Particles = 8, Light = 12, Beacon = false },
 	},
 	Mythic = {
 		DisplayName = "Mythique", Order = 5, Color = Color3.fromRGB(255, 70, 120),
-		Weight = 0.9, BaseValue = 25000, Announce = "Server",
+		Weight = 0.9, BaseValue = 25000, Announce = "Server", SpawnAlert = "Zone",
 		Income = 250, Prestige = 500,
-		Capture = { Hits = 3, Width = 0.12, Speed = 1.8, Chance = 0.4 },
+		Capture = { Hits = 3, Width = 0.18, Speed = 1.0, MaxMisses = 3, Chance = 0.8 },
+		Visual = { Scale = 1.8, Vivid = true, Particles = 15, Light = 16, Beacon = true },
 	},
 	Secret = {
 		DisplayName = "Secrète", Order = 6, Color = Color3.fromRGB(20, 255, 200),
-		Weight = 0.1, BaseValue = 120000, Announce = "Chat",
+		Weight = 0.1, BaseValue = 120000, Announce = "Chat", SpawnAlert = "Server",
 		Income = 1200, Prestige = 2500,
-		Capture = { Hits = 4, Width = 0.10, Speed = 2.1, Chance = 0.3 },
+		Capture = { Hits = 4, Width = 0.16, Speed = 1.05, MaxMisses = 3, Chance = 0.75 },
+		Visual = { Scale = 2.1, Vivid = true, Particles = 25, Light = 20, Beacon = true },
 	},
 	Divine = {
 		DisplayName = "Divine", Order = 7, Color = Color3.fromRGB(255, 235, 120),
-		Weight = 0.001, BaseValue = 1500000, Announce = "Global", Divine = true,
+		Weight = 0.001, BaseValue = 1500000, Announce = "Global", SpawnAlert = "Server", Divine = true,
 		Income = 10000, Prestige = 25000,
-		Capture = { Hits = 5, Width = 0.08, Speed = 2.4, Chance = 0.25 },
+		Capture = { Hits = 5, Width = 0.14, Speed = 1.1, MaxMisses = 3, Chance = 0.6 },
+		Visual = { Scale = 2.6, Vivid = true, Particles = 40, Light = 26, Beacon = true },
 	},
 }
 
@@ -722,6 +807,103 @@ Config.Leaderboard = {
 }
 
 --------------------------------------------------------------------------
+-- PROGRESSION : XP, niveau, rebirth (phase 7)
+--------------------------------------------------------------------------
+Config.Progression = {
+	-- XP pour passer du niveau N au niveau N+1 = XPBase x N ^ XPExponent
+	XPBase = 30,
+	XPExponent = 1.5,
+	LevelUpCoins = 100, -- Coins offerts au passage de niveau = LevelUpCoins x nouveau niveau
+	-- XP gagnée par action
+	XP = {
+		Harvest = 3, -- par récolte (x rang de rareté de la culture)
+		AnimalProduct = 2, -- par ressource ramassée
+		Craft = 6, -- par produit fabriqué récupéré
+		Capture = { Common = 10, Rare = 25, Epic = 60, Legendary = 150, Mythic = 400, Secret = 1000, Divine = 5000 },
+	},
+	-- Niveau requis pour débloquer
+	Unlocks = { Farmer = 5, Mount = 6, Caretaker = 8, Rebirth = 15 },
+}
+
+Config.Rebirth = {
+	BaseCost = 1000000, -- Coins nécessaires pour le 1er rebirth
+	CostGrowth = 3, -- chaque rebirth coûte x3 de plus
+	CoinMultiplierPerRebirth = 0.5, -- multiplicateur de Coins = 1 + 0,5 x rebirths (vente + socles)
+	-- Ce qui est remis à zéro : Coins, niveau de parcelle, champs (1 champ de 6 cases), plantes,
+	-- graines (pack de départ redonné), enclos et animaux, bâtiments, inventaire.
+	-- Ce qui est GARDÉ : créatures, Index, zones débloquées, socles (rangés), niveau et XP, aides PNJ.
+}
+
+--------------------------------------------------------------------------
+-- CONSOMMABLES ET BOOSTS (phase 7)
+--   Boost    : "Speed" (vitesse) | "XP" | "Coins" (vente + socles) | "Capture" (zone verte
+--              plus large + tirage final) | "Combat" (donjon, phase 8)
+--   Power    : bonus (0.2 = +20 %) ; Duration : secondes
+--   La variante de l'objet mangé renforce le boost (VariantPowerBonus / VariantDurationBonus par rang).
+--------------------------------------------------------------------------
+Config.Consumables = {
+	Strawberry = { Boost = "Speed", Power = 0.1, Duration = 90 },
+	Watermelon = { Boost = "XP", Power = 0.2, Duration = 120 },
+	Bread = { Boost = "Speed", Power = 0.15, Duration = 120 },
+	Cake = { Boost = "XP", Power = 0.25, Duration = 180 },
+	Cream = { Boost = "Coins", Power = 0.1, Duration = 180 },
+	Butter = { Boost = "Coins", Power = 0.2, Duration = 240 },
+	Cheese = { Boost = "Capture", Power = 0.1, Duration = 300 },
+	GoatCheese = { Boost = "Combat", Power = 0.15, Duration = 300 },
+	TruffleCheese = { Boost = "Capture", Power = 0.25, Duration = 600 },
+	RoyalCake = { Boost = "XP", Power = 0.6, Duration = 600 },
+	CelestialBread = { Boost = "Speed", Power = 0.4, Duration = 900 },
+	LegendaryCheese = { Boost = "Capture", Power = 0.4, Duration = 900 },
+	DivineCream = { Boost = "Coins", Power = 1.0, Duration = 1200 },
+}
+
+Config.Boosts = {
+	VariantPowerBonus = 0.5, -- +50 % de puissance par rang de variante (Doré = x1,5, Arc-en-ciel = x2...)
+	VariantDurationBonus = 0.5,
+	MaxDuration = 3600, -- un boost ne peut pas dépasser 1 h (en cumulant)
+	Types = {
+		Speed = { Icon = "🏃", DisplayName = "Vitesse" },
+		XP = { Icon = "⭐", DisplayName = "XP" },
+		Coins = { Icon = "💰", DisplayName = "Coins" },
+		Capture = { Icon = "🪢", DisplayName = "Capture" },
+		Combat = { Icon = "⚔️", DisplayName = "Combat (donjon)" },
+	},
+}
+
+--------------------------------------------------------------------------
+-- AIDES AUTOMATIQUES (PNJ) (phase 7)
+--   Fermier : récolte les plantes mûres puis replante (graine choisie, sinon la 1re possédée).
+--   Soigneur : remplit les mangeoires et ramasse la production des enclos.
+--   Levels : Price = prix d'achat / d'amélioration, Interval = secondes entre deux tournées,
+--            Actions (fermier) = cases traitées par tournée, Pens (soigneur) = enclos par tournée.
+--   Position : où le PNJ se tient sur la parcelle (coordonnées locales, bande d'entrée).
+--------------------------------------------------------------------------
+Config.Helpers = {
+	Farmer = {
+		DisplayName = "Fermier", Icon = "🧑‍🌾", Order = 1, Position = { X = -20, Z = 5 },
+		Color = Color3.fromRGB(70, 130, 60),
+		Levels = {
+			{ Price = 5000, Interval = 20, Actions = 3 },
+			{ Price = 20000, Interval = 15, Actions = 5 },
+			{ Price = 60000, Interval = 10, Actions = 8 },
+			{ Price = 150000, Interval = 7, Actions = 12 },
+			{ Price = 400000, Interval = 5, Actions = 18 },
+		},
+	},
+	Caretaker = {
+		DisplayName = "Soigneur", Icon = "🧺", Order = 2, Position = { X = 20, Z = 5 },
+		Color = Color3.fromRGB(200, 110, 60),
+		Levels = {
+			{ Price = 15000, Interval = 30, Pens = 1 },
+			{ Price = 40000, Interval = 25, Pens = 2 },
+			{ Price = 100000, Interval = 20, Pens = 4 },
+			{ Price = 250000, Interval = 15, Pens = 6 },
+			{ Price = 600000, Interval = 10, Pens = 8 },
+		},
+	},
+}
+
+--------------------------------------------------------------------------
 -- MODE CONSTRUCTION (placer / déplacer / ranger champs, enclos, bâtiments)
 --------------------------------------------------------------------------
 Config.Build = {
@@ -742,6 +924,10 @@ Config.Monetization = {
 	Products = {
 		-- Débloque l'étape d'agrandissement suivante sans payer de Coins
 		PlotExpansion = { Id = 0, Enabled = false },
+	},
+	GamePasses = {
+		-- Version premium des aides PNJ (tournées 2x plus rapides) : phase 9
+		PremiumHelpers = { Id = 0, Enabled = false },
 	},
 }
 

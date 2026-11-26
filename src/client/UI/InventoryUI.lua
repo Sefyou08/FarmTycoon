@@ -5,6 +5,7 @@
 	quantité, valeur estimée, et remplissage (ex. 12 / 300). La vente se fait au
 	stand 💰 VENTE.
 	La valeur affichée n'est qu'une estimation : le serveur calcule le vrai prix.
+	Les objets consommables (Config.Consumables) ont un bouton 🍴 Manger (boost temporaire).
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Theme = require(script.Parent.Theme)
 
 local InventoryUI = {}
@@ -20,6 +22,23 @@ local window: Frame
 local list: ScrollingFrame
 local summary: TextLabel
 local hudButton: TextButton?
+local notify: (string, string) -> ()
+local consumeRemote: RemoteFunction
+local busy = false
+
+local function eat(itemId: string, variant: string)
+	if busy then
+		return
+	end
+	busy = true
+	local ok, success, message = pcall(function()
+		return consumeRemote:InvokeServer(itemId, variant)
+	end)
+	busy = false
+	if ok then
+		notify(message or "", if success then "Success" else "Error")
+	end
+end
 
 local function rebuild(inventory: { [string]: { [string]: number } }?)
 	for _, child in list:GetChildren() do
@@ -57,6 +76,21 @@ local function rebuild(inventory: { [string]: { [string]: number } }?)
 						Text = ("%s  x%d"):format(ItemUtil.Label(itemId, variant), count),
 						Parent = row,
 					})
+					local consumable = Config.Consumables[itemId]
+					if consumable then
+						local boostInfo = Config.Boosts.Types[consumable.Boost]
+						local eatButton = Theme.Button({
+							AnchorPoint = Vector2.new(0.5, 0.5),
+							Position = UDim2.new(0.62, 0, 0.5, 0),
+							Size = UDim2.fromOffset(74, 32),
+							BackgroundColor3 = Color3.fromRGB(230, 120, 60),
+							Text = "🍴 " .. boostInfo.Icon,
+							Parent = row,
+						})
+						eatButton.Activated:Connect(function()
+							eat(itemId, variant)
+						end)
+					end
 					Theme.Label({
 						AnchorPoint = Vector2.new(1, 0),
 						Size = UDim2.new(0.4, -10, 1, -10),
@@ -87,7 +121,9 @@ function InventoryUI.Toggle()
 	window.Visible = not window.Visible
 end
 
-function InventoryUI.Init(screen: ScreenGui, HUD, StateController)
+function InventoryUI.Init(screen: ScreenGui, HUD, StateController, notifyFn: (string, string) -> ())
+	notify = notifyFn
+	consumeRemote = Remotes.Get("Consume")
 	local content
 	window, content = Theme.Window(screen, "Inventory", "🎒 Inventaire", Vector2.new(480, 400))
 

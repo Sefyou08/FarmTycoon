@@ -9,7 +9,8 @@
 	  CurrencyService:GetCoins(player) -> number
 	  CurrencyService:CanAfford(player, amount) -> boolean
 
-	(Phase 4 : AddCoins appliquera les multiplicateurs de rebirth / game pass.)
+	Multiplicateur des gains : CurrencyService:GetCoinMultiplier (rebirths + boost Coins),
+	appliqué par la vente et les socles (pas par les remboursements ni les récompenses).
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = require(script.Parent.DataService)
 local SyncService = require(script.Parent.SyncService)
+local BoostService = require(script.Parent.BoostService)
 
 local CurrencyService = {}
 
@@ -45,6 +47,13 @@ function CurrencyService:Refresh(player: Player)
 
 	SyncService:Set(player, "Coins", data.Coins)
 	SyncService:Set(player, "Rebirths", data.Rebirths)
+end
+
+-- Multiplicateur des GAINS (vente, socles) : rebirths x boost "Coins"
+function CurrencyService:GetCoinMultiplier(player: Player): number
+	local data = DataService:GetData(player)
+	local rebirths = if data then data.Rebirths else 0
+	return (1 + Config.Rebirth.CoinMultiplierPerRebirth * rebirths) * BoostService:GetMultiplier(player, "Coins")
 end
 
 function CurrencyService:GetCoins(player: Player): number

@@ -572,7 +572,7 @@ local function activate(player: Player, plot: any, data: { [string]: any })
 	local now = os.time()
 	if data.DisplayLastTick > 0 and state.Income > 0 then
 		local elapsed = math.clamp(now - data.DisplayLastTick, 0, DisplayConfig.MaxOfflineSeconds)
-		local ok, added = CurrencyService:AddCoins(player, state.Income * elapsed, "DisplayOffline")
+		local ok, added = CurrencyService:AddCoins(player, state.Income * elapsed * CurrencyService:GetCoinMultiplier(player), "DisplayOffline")
 		if ok and added > 0 then
 			SyncService:Notify(player, ("🏛️ Tes créatures exposées t'ont rapporté %s Coins pendant ton absence !"):format(Format.Number(added)), "Success")
 		end
@@ -601,7 +601,8 @@ local function incomeLoop()
 			local elapsed = math.clamp(now - state.Data.DisplayLastTick, 0, DisplayConfig.IncomeInterval * 3)
 			state.Data.DisplayLastTick = now
 			if state.Income > 0 and elapsed > 0 then
-				CurrencyService:AddCoins(player, state.Income * elapsed, "DisplayIncome", true)
+				local multiplier = CurrencyService:GetCoinMultiplier(player)
+				CurrencyService:AddCoins(player, state.Income * elapsed * multiplier, "DisplayIncome", true)
 			end
 		end
 	end

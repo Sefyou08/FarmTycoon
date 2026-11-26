@@ -83,8 +83,8 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 4 | Bâtiments de transformation + vitesse de marche et sprint | ✅ fait |
 | 5 | Expéditions (portail, zones, créatures sauvages, capture) | ✅ fait |
 | 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | ✅ fait |
-| 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) + vitrine de prestige + rareté Divine | 🧪 codée, à tester |
-| 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | à faire |
+| 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) + vitrine de prestige + rareté Divine | ✅ fait |
+| 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | 🧪 codée, à tester |
 | 8 | Donjon (ennemis, boss, combat simple, récompenses rares) | à faire |
 | 9 | Monétisation (Game Passes, Developer Products, IDs factices) + personnalisation cosmétique | à faire |
 | 10 | Direction artistique complète (créatures, animaux, zones, ferme, bâtiments) | à faire |
@@ -190,8 +190,8 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 - **Consommables et boosts** : manger un produit donne un boost temporaire (vitesse, XP, gain de
   Coins, chance de capture en expédition, dégâts / vie au donjon). Plus le produit est rare, plus
   le boost est fort et long. Affichage des boosts actifs avec un minuteur.
-- **XP et niveau joueur** (pas encore dans le jeu) : on gagne de l'XP en récoltant, produisant,
-  fabriquant et capturant ; le niveau débloque du contenu et des récompenses.
+- **XP et niveau joueur** : on gagne de l'XP en récoltant, produisant, fabriquant et capturant ;
+  le niveau débloque du contenu (fermier, monture, soigneur, rebirth) et donne des Coins.
 - **Aides automatiques** achetables et améliorables avec des Coins :
   - un **fermier PNJ** qui plante et récolte tout seul ;
   - un **soigneur PNJ** qui nourrit les animaux et ramasse la production.
@@ -254,6 +254,14 @@ Le gameplay est là ; il faut maintenant une vraie identité visuelle.
     graines, balance et sacs de pièces, bottes de foin et barrière d'enclos.
 - **Animations** (roues, lait qui coule, fumée) actives **uniquement quand le bâtiment produit**.
   Elles sont calculées côté client : le serveur pose seulement un attribut `Working`.
+- **Créatures rares** : en attendant, les Légendaires, Mythiques, Secrètes et Divines sont
+  agrandies (Divine x2,6), avec des couleurs plus vives, plus de particules et de lumière
+  (`Config.CreatureRarities[x].Visual`). Leur **design complet est à refaire** en phase 10.
+- **Modèles de la Toolbox** : certains modèles pourront être remplacés par des modèles de la
+  Toolbox. Le système est déjà en place pour les créatures : un Model nommé comme l'id de la
+  créature dans `ServerStorage/CustomModels/Creatures` remplace le modèle généré (taille de
+  rareté, mutation Géante et lumières appliquées par-dessus). Même principe à prévoir pour les
+  animaux et les bâtiments.
 - **Organisation du code des modèles** : une fonction de construction par créature, animal et
   bâtiment, derrière une interface commune. On pourra ainsi remplacer un modèle généré par un vrai
   modèle 3D (MeshPart importé, rangé dans ReplicatedStorage) **un par un**, sans toucher au
@@ -338,15 +346,26 @@ Stock de produits finis : 40 par bâtiment. Production hors ligne : 8 h max.
 | 🏜️ Désert | 100 000 | x15 | Dunelle, Scorpinou, Cactouille, Mirageon, Sphinxou, Pharaonix, Oasien, ✨ Solarion |
 | 🌋 Volcan | 400 000 | x50 | Braisou, Cendrou, Magmoche, Salamandrix, Pyrodrake, Volcanosaure, Cœur-de-Lave, ✨ Ignaros |
 
-| Rareté | Apparition | Valeur de base | Clics réussis | Largeur zone verte | Vitesse | Chance finale | Annonce |
-|---|---|---|---|---|---|---|---|
-| Commune | 60 % | 100 | 1 | 30 % | lente | 100 % | — |
-| Rare | 25 % | 400 | 2 | 24 % | | 90 % | — |
-| Épique | 10 % | 1 500 | 2 | 18 % | | 75 % | — |
-| Légendaire | 4 % | 6 000 | 3 | 15 % | | 55 % | — |
-| Mythique | 0,9 % | 25 000 | 3 | 12 % | | 40 % | bannière serveur |
-| Secrète | 0,1 % | 120 000 | 4 | 10 % | très rapide | 30 % | chat + bannière |
-| Divine | 0,001 % | 1 500 000 | 5 | 8 % | extrême | 25 % | tous les serveurs |
+| Rareté | Apparition | Valeur de base | Clics réussis | Zone verte | Vitesse curseur | Ratés permis | Chance finale | Taille | Annonce |
+|---|---|---|---|---|---|---|---|---|---|
+| Commune | 60 % | 100 | 1 | 30 % | 0,8 | 2 | 100 % | x1 | — |
+| Rare | 25 % | 400 | 2 | 26 % | 0,85 | 2 | 95 % | x1,05 | — |
+| Épique | 10 % | 1 500 | 2 | 23 % | 0,9 | 2 | 90 % | x1,2 | — |
+| Légendaire | 4 % | 6 000 | 3 | 20 % | 0,95 | 2 | 85 % | x1,5 | — |
+| Mythique | 0,9 % | 25 000 | 3 | 18 % | 1,0 | 3 | 80 % | x1,8 | bannière serveur |
+| Secrète | 0,1 % | 120 000 | 4 | 16 % | 1,05 | 3 | 75 % | x2,1 | chat + bannière |
+| Divine | 0,001 % | 1 500 000 | 5 | 14 % | 1,1 | 3 | 60 % | x2,6 | tous les serveurs |
+
+La difficulté vient du **nombre de réussites à enchaîner** et d'une zone verte un peu plus petite,
+pas d'une vitesse impossible. Tout est réglable par rareté dans `Config.CreatureRarities[x].Capture`
+(et l'apparence dans `.Visual`).
+
+**Captures partagées (course)** : les créatures sauvages sont les mêmes pour tous les joueurs de la
+zone. Plusieurs joueurs peuvent tenter la même en même temps ; le **premier qui réussit la gagne**.
+Un joueur qui échoue ne peut plus la retenter ; elle ne s'enfuit que si personne d'autre n'essaie.
+Les Mythiques, Secrètes et Divines ont une **colonne de lumière** visible de loin et une étiquette
+visible à travers le décor ; leur apparition est annoncée (zone pour les Mythiques, tout le serveur
+pour les Secrètes et Divines).
 
 Valeur d'une créature = valeur de base × multiplicateur de zone × mutation. 2 ratés autorisés
 par capture. En cas d'échec, la créature s'enfuit.
@@ -372,3 +391,53 @@ Vitesse de marche 24 (au lieu de 16), sprint à 32 en maintenant Maj (bouton sur
 - Emprises : enclos 22 × 26 (mangeoire et caisse devant), bâtiment = sa taille + 2 × 4.
 - Zone interdite : la bande d'entrée (les 10 premiers studs de profondeur : spawn, boutons
   d'agrandissement et de test). Placement sur une grille de 1 stud, rotation par quarts de tour.
+
+### 5.8 Progression, ressources rares, consommables et aides (phase 7)
+**XP** : XP pour passer du niveau N au N+1 = 30 × N^1,5 (niveau 1 → 2 : 30 XP ; 14 → 15 : ~1 570 XP).
+Récolte 3 XP × rang de rareté de la culture, ressource animale 2, produit fabriqué 6, capture de 10
+(Commune) à 5 000 (Divine). Passage de niveau : 100 × niveau en Coins.
+Déblocages : 🧑‍🌾 Fermier niv. 5, 🐴 Monture niv. 6, 🧺 Soigneur niv. 8, ⭐ Rebirth niv. 15.
+
+**Boutique tournante** : nouveau stock toutes les 5 min, même stock pour le serveur, quantité par
+joueur. Chance d'être en stock : Rare 80 % (3 à 6), Épique 40 % (1 à 3), Légendaire 12 % (1).
+
+| Culture rare | Rareté | Graine | Pousse | Vente |
+|---|---|---|---|---|
+| 🍓 Fraise | Rare | 150 | 1 min | 320 |
+| 🫐 Myrtille | Rare | 250 | 1 min 20 | 520 |
+| 🍉 Pastèque | Épique | 900 | 2 min 30 | 2 000 |
+| 🐉 Fruit du dragon | Épique | 1 500 | 3 min 20 | 3 400 |
+| 🌟 Fleur étoilée | Légendaire | 6 000 | 6 min | 15 000 |
+| 🌙 Citrouille lunaire | Légendaire | 10 000 | 8 min | 26 000 |
+
+**Mutations de plantes** à la récolte (mêmes variantes que les animaux) : Dorée 4 %, Arc-en-ciel
+1 %, Légendaire 0,2 %, Mythique 0,04 %, multipliées par 1,5 / 2 / 3 pour les cultures Rares /
+Épiques / Légendaires.
+
+**Ressources rares** : chance qu'une production soit d'une variante supérieure à celle de
+l'animal : Normal 3 %, Doré 5 %, Arc-en-ciel 7 %, Légendaire 10 %.
+
+**Recettes rares** (ingrédient principal d'une variante minimale) : Gâteau royal (Œufs Dorés+),
+Pain céleste (Blé Légendaire+), Tissu arc-en-ciel (Laine Arc-en-ciel+), Fromage légendaire (Lait
+Légendaire+), Crème divine (Lait Mythique), Manteau royal (Fourrure Dorée+).
+
+**Consommables** : 🍴 dans le sac. Puissance et durée +50 % par rang de variante de l'objet mangé,
+1 h maximum en cumulant. Exemples : Pain → vitesse +15 % 2 min ; Gâteau → XP +25 % 3 min ; Beurre →
+Coins +20 % 4 min ; Fromage → capture +10 % 5 min ; Crème divine → Coins +100 % 20 min.
+Le boost Combat est stocké pour le donjon (phase 8).
+
+**Monture** : il faut un cheval dans un enclos ; vitesse 40 (48 en sprint).
+
+**Rebirth** : 1 000 000 Coins × 3^rebirths ; gains de Coins (vente + socles) × (1 + 0,5 × rebirths).
+Perdu : Coins, agrandissements, champs (1 gardé), plantes, graines, enclos + animaux, bâtiments,
+inventaire. Gardé : créatures, Index, zones, socles (rangés), niveau / XP, aides, boosts.
+
+**Aides PNJ** :
+
+| Niveau | Fermier (prix / tournée / cases) | Soigneur (prix / tournée / enclos) |
+|---|---|---|
+| 1 | 5 000 / 20 s / 3 | 15 000 / 30 s / 1 |
+| 2 | 20 000 / 15 s / 5 | 40 000 / 25 s / 2 |
+| 3 | 60 000 / 10 s / 8 | 100 000 / 20 s / 4 |
+| 4 | 150 000 / 7 s / 12 | 250 000 / 15 s / 6 |
+| 5 | 400 000 / 5 s / 18 | 600 000 / 10 s / 8 |

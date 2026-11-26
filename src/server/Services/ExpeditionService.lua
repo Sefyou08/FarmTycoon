@@ -10,6 +10,12 @@
 	  • Des CRÉATURES SAUVAGES apparaissent dans les zones où il y a des joueurs :
 	    rareté tirée selon Config.CreatureRarities[x].Weight, mutation selon
 	    Config.CreatureMutations[x].Chance. Elles repartent après WildLifetime.
+	  • Les créatures sauvages sont PARTAGÉES par tous les joueurs de la zone : plusieurs
+	    joueurs peuvent tenter la même en même temps, le PREMIER qui réussit la gagne
+	    (les autres voient "X l'a capturée avant toi"). Un joueur qui échoue ne peut plus
+	    retenter cette créature ; elle ne s'enfuit que si personne d'autre n'essaie.
+	    Les très rares (Visual.Beacon) ont une colonne de lumière visible de loin et une
+	    alerte à l'apparition (SpawnAlert) : ça crée une course.
 	  • CAPTURE : le joueur utilise le prompt "Capturer". Le serveur crée une session
 	    (vitesse du curseur, positions des zones vertes) et l'envoie au client
 	    (CaptureStart). À chaque clic, le client envoie le temps serveur estimé ;
@@ -40,6 +46,8 @@ local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local AnnouncementService = require(script.Parent.AnnouncementService)
+local BoostService = require(script.Parent.BoostService)
+local XPService = require(script.Parent.XPService)
 
 local Exp = Config.Expeditions
 
@@ -56,7 +64,8 @@ type Wild = {
 	Model: Model,
 	Prompt: ProximityPrompt,
 	ExpiresAt: number,
-	Session: any?,
+	Sessions: { [Player]: any }, -- captures en cours sur cette créature (course entre joueurs)
+	FailedBy: { [Player]: boolean }, -- joueurs qui ont déjà échoué sur elle
 }
 
 type Session = {
@@ -68,6 +77,7 @@ type Session = {
 	Width: number,
 	Centers: { number },
 	HitsNeeded: number,
+	MaxMisses: number,
 	Hits: number,
 	Misses: number,
 	LastHit: number,
@@ -391,15 +401,57 @@ local function spawnWild(info: ZoneInfo)
 		Model = model,
 		Prompt = prompt,
 		ExpiresAt = os.clock() + Exp.WildLifetime,
-		Session = nil,
+		Sessions = {},
+		FailedBy = {},
 	}
 	prompt.Triggered:Connect(function(player)
 		startCapture(player, wild)
 	end)
 
+	-- Très rares : colonne de lumière visible de loin + étiquette visible à travers le décor
+	local visual = rarity.Visual or {}
+	if visual.Beacon then
+		local beaconHeight = 90
+		local beacon = Instance.new("Part")
+		beacon.Name = "Beacon"
+		beacon.Shape = Enum.PartType.Cylinder
+		beacon.Size = Vector3.new(beaconHeight, 3, 3)
+		beacon.CFrame = CFrame.new(position + Vector3.new(0, beaconHeight / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		beacon.Anchored = true
+		beacon.CanCollide = false
+		beacon.CanQuery = false
+		beacon.CanTouch = false
+		beacon.Material = Enum.Material.Neon
+		beacon.Color = rarity.Color
+		beacon.Transparency = 0.55
+		beacon.Parent = model
+
+		local farGui, farLabel = makeBillboard(body, Vector2.new(14, 3), Vector3.new(0, height / 2 + 8, 0), 600)
+		farGui.AlwaysOnTop = true
+		farLabel.Text = ('<font color="#%s">✨ %s ✨</font>'):format(rarity.Color:ToHex(), string.upper(rarity.DisplayName))
+	end
+
 	model.Parent = info.Folder
 	CollectionService:AddTag(model, WANDER_TAG)
 	info.Wilds[wild.Id] = wild
+
+	-- Alerte d'apparition : la course commence
+	if rarity.SpawnAlert then
+		local text = ("✨ Une créature %s est apparue (%s %s) : %s !"):format(rarity.DisplayName, def.Icon, def.DisplayName, creatureDef.DisplayName)
+		for player, zoneId in playerZone do
+			if rarity.SpawnAlert == "Server" or zoneId == info.Id then
+				SyncService:Notify(player, text, "Rare")
+			end
+		end
+		if rarity.SpawnAlert == "Server" then
+			-- Les joueurs à la ferme sont aussi prévenus
+			for _, player in Players:GetPlayers() do
+				if not playerZone[player] then
+					SyncService:Notify(player, text .. " Vite, au portail 🧭 !", "Rare")
+				end
+			end
+		end
+	end
 end
 
 local function spawnLoop()
@@ -409,7 +461,7 @@ local function spawnLoop()
 		for zoneId, info in zones do
 			-- Les créatures trop anciennes repartent (sauf pendant une capture)
 			for _, wild in info.Wilds do
-				if now > wild.ExpiresAt and not wild.Session then
+				if now > wild.ExpiresAt and next(wild.Sessions) == nil then
 					destroyWild(wild)
 				end
 			end
@@ -435,6 +487,15 @@ end
 --------------------------------------------------------------------------
 -- Capture
 --------------------------------------------------------------------------
+
+-- Bonus des consommables (BoostService, phase 7) : zone verte plus large, tirage final plus facile
+function ExpeditionService:GetCaptureWidthMultiplier(player: Player): number
+	return 1 + BoostService:GetPower(player, "Capture") / 2
+end
+
+function ExpeditionService:GetCaptureChanceBonus(player: Player): number
+	return BoostService:GetPower(player, "Capture")
+end
 
 local function announce(player: Player, creatureId: string, mutationId: string)
 	local def = Config.Creatures[creatureId]
@@ -467,14 +528,15 @@ local function giveCreature(player: Player, creatureId: string, mutationId: stri
 	return true
 end
 
--- Termine une session. outcome : "Captured" | "Escaped" | "Cancelled" | "Timeout"
+-- Termine une session. outcome : "Captured" | "Escaped" | "Cancelled" | "Timeout" | "Stolen"
 local function endSession(session: Session, outcome: string, fromServer: boolean): string
 	local player = session.Player
 	local wild = session.Wild
 	if sessions[player] == session then
 		sessions[player] = nil
 	end
-	wild.Session = nil
+	wild.Sessions[player] = nil
+	local othersTrying = next(wild.Sessions) ~= nil
 
 	local label = CreatureUtil.Label(wild.CreatureId, wild.Mutation)
 	local message
@@ -483,19 +545,34 @@ local function endSession(session: Session, outcome: string, fromServer: boolean
 			message = ("🎉 Tu as capturé %s !"):format(label)
 			SyncService:Notify(player, message, if wild.Mutation ~= "Normal" then "Rare" else "Success")
 			announce(player, wild.CreatureId, wild.Mutation)
+			XPService:AddXP(player, Config.Progression.XP.Capture[Config.Creatures[wild.CreatureId].Rarity] or 10)
 		else
 			message = "Ta collection est pleine !"
 		end
+		-- Les autres joueurs qui tentaient leur chance ont perdu la course
+		local losers = {}
+		for other, otherSession in wild.Sessions do
+			losers[other] = otherSession
+		end
 		destroyWild(wild)
+		for _, otherSession in losers do
+			endSession(otherSession, "Stolen", true)
+		end
+	elseif outcome == "Stolen" then
+		message = ("😫 Trop tard ! Quelqu'un a capturé %s avant toi."):format(label)
 	elseif outcome == "Escaped" then
-		message = ("💨 %s s'est échappé..."):format(label)
+		wild.FailedBy[player] = true
+		if othersTrying then
+			message = ("💨 %s t'a échappé... mais d'autres joueurs tentent encore !"):format(label)
+		else
+			message = ("💨 %s s'est échappé..."):format(label)
+			destroyWild(wild)
+		end
 		SyncService:Notify(player, message, "Error")
-		destroyWild(wild)
 	else
 		-- Annulé / trop lent : la créature reste, quelqu'un d'autre peut tenter
 		message = if outcome == "Timeout" then "Trop lent : la créature s'est libérée." else "Capture annulée."
-		if wild.Model and wild.Model.Parent then
-			wild.Prompt.Enabled = true
+		if not othersTrying and wild.Model and wild.Model.Parent then
 			wild.Model:SetAttribute("Frozen", nil)
 		end
 	end
@@ -507,10 +584,14 @@ local function endSession(session: Session, outcome: string, fromServer: boolean
 end
 
 startCapture = function(player: Player, wild: Wild)
-	if playerZone[player] ~= wild.ZoneId or wild.Session or not wild.Model.Parent then
+	if playerZone[player] ~= wild.ZoneId or not wild.Model.Parent then
 		return
 	end
 	if sessions[player] then
+		return
+	end
+	if wild.FailedBy[player] then
+		SyncService:Notify(player, "Cette créature se méfie de toi maintenant : laisse ta chance aux autres !", "Error")
 		return
 	end
 	if not RemoteGuard.CheckCooldown(player, "StartCapture", 1) then
@@ -531,11 +612,12 @@ startCapture = function(player: Player, wild: Wild)
 	local def = Config.Creatures[wild.CreatureId]
 	local rarity = CreatureUtil.GetRarity(def.Rarity)
 	local capture = rarity.Capture
+	local width = capture.Width * ExpeditionService:GetCaptureWidthMultiplier(player)
 
 	-- Paramètres générés par le serveur
 	local centers = {}
 	for i = 1, capture.Hits do
-		centers[i] = rng:NextNumber(capture.Width / 2 + 0.05, 1 - capture.Width / 2 - 0.05)
+		centers[i] = rng:NextNumber(width / 2 + 0.05, 1 - width / 2 - 0.05)
 	end
 	local now = Workspace:GetServerTimeNow()
 	local session: Session = {
@@ -544,17 +626,24 @@ startCapture = function(player: Player, wild: Wild)
 		Wild = wild,
 		Start = now + 0.5, -- petit délai pour que l'interface apparaisse
 		Speed = capture.Speed,
-		Width = capture.Width,
+		Width = width,
 		Centers = centers,
 		HitsNeeded = capture.Hits,
+		MaxMisses = capture.MaxMisses or 2,
 		Hits = 0,
 		Misses = 0,
 		LastHit = now,
 		Expires = now + Exp.CaptureTimeout,
 	}
+
+	-- Course : prévient les joueurs qui tentent déjà
+	for other in wild.Sessions do
+		SyncService:Notify(other, ("⚔️ Course ! %s tente aussi de capturer %s !"):format(player.DisplayName, def.DisplayName), "Info")
+		SyncService:Notify(player, ("⚔️ Course ! %s est déjà en train de la capturer !"):format(other.DisplayName), "Info")
+	end
+
 	sessions[player] = session
-	wild.Session = session
-	wild.Prompt.Enabled = false
+	wild.Sessions[player] = session
 	wild.Model:SetAttribute("Frozen", true) -- la créature arrête de marcher
 
 	Remotes.Get("CaptureStart"):FireClient(player, {
@@ -564,7 +653,7 @@ startCapture = function(player: Player, wild: Wild)
 		Width = session.Width,
 		Centers = centers,
 		HitsNeeded = session.HitsNeeded,
-		MaxMisses = Exp.MaxMisses,
+		MaxMisses = session.MaxMisses,
 		Label = CreatureUtil.Label(wild.CreatureId, wild.Mutation),
 		RarityName = rarity.DisplayName,
 		RarityColor = rarity.Color,
@@ -602,6 +691,7 @@ local function onCaptureAction(player: Player, action: any, sessionId: any, clai
 		if session.Hits >= session.HitsNeeded then
 			-- Tirage final selon la rareté
 			local chance = CreatureUtil.GetRarity(Config.Creatures[session.Wild.CreatureId].Rarity).Capture.Chance
+			chance = math.min(1, chance + ExpeditionService:GetCaptureChanceBonus(player))
 			local outcome = if rng:NextNumber() <= chance then "Captured" else "Escaped"
 			return { Result = "Ended", Outcome = outcome, Message = endSession(session, outcome, false) }
 		end
@@ -609,7 +699,7 @@ local function onCaptureAction(player: Player, action: any, sessionId: any, clai
 	end
 
 	session.Misses += 1
-	if session.Misses > Exp.MaxMisses then
+	if session.Misses > session.MaxMisses then
 		return { Result = "Ended", Outcome = "Escaped", Message = endSession(session, "Escaped", false) }
 	end
 	return { Result = "Miss", Hits = session.Hits, Misses = session.Misses }

@@ -3,7 +3,8 @@
 	=======
 	Interface principale toujours visible :
 	  - compteurs de Coins (animé) et de Rebirths, en haut au centre
-	  - colonne de boutons à gauche (🏠 Ma ferme, 🎒 Inventaire, ...)
+	  - barre de niveau / XP et revenus des socles sous les compteurs
+	  - grille de boutons à gauche, sur 2 colonnes (🏠 Ma ferme, 🎒 Sac, ...)
 	Les autres écrans ajoutent leurs boutons avec HUD.AddButton().
 ]]
 
@@ -11,6 +12,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Theme = require(script.Parent.Theme)
@@ -24,6 +26,8 @@ HUD.Screen = nil :: ScreenGui?
 local coinsLabel: TextLabel
 local rebirthsLabel: TextLabel
 local incomeLabel: TextLabel
+local levelFill: Frame
+local levelLabel: TextLabel
 local leftColumn: Frame
 local coinsDisplayValue = Instance.new("NumberValue") -- valeur animée affichée
 
@@ -73,7 +77,7 @@ end
 function HUD.AddButton(name: string, text: string, color: Color3, order: number, onClick: () -> ()): TextButton
 	local button = Theme.Button({
 		Name = name,
-		Size = UDim2.fromOffset(150, 44),
+		Size = UDim2.fromOffset(130, 40),
 		BackgroundColor3 = color,
 		Text = text,
 		LayoutOrder = order,
@@ -115,11 +119,29 @@ function HUD.Init(StateController)
 		coinsLabel.Text = Format.Number(value)
 	end)
 
-	-- Revenus des créatures exposées, sous les compteurs
+	-- Barre de niveau / XP
+	local levelBar = Instance.new("Frame")
+	levelBar.Name = "LevelBar"
+	levelBar.AnchorPoint = Vector2.new(0.5, 0)
+	levelBar.Position = UDim2.new(0.5, 0, 0, 60)
+	levelBar.Size = UDim2.fromOffset(390, 20)
+	levelBar.BackgroundColor3 = Theme.Colors.Panel
+	levelBar.Parent = screen
+	Theme.Corner(levelBar, 8)
+	Theme.Stroke(levelBar, 2)
+	levelFill = Instance.new("Frame")
+	levelFill.Size = UDim2.fromScale(0, 1)
+	levelFill.BackgroundColor3 = Color3.fromRGB(90, 200, 255)
+	levelFill.BorderSizePixel = 0
+	levelFill.Parent = levelBar
+	Theme.Corner(levelFill, 8)
+	levelLabel = Theme.Label({ Size = UDim2.fromScale(1, 1), ZIndex = 2, TextStrokeTransparency = 0.4, Text = "", Parent = levelBar })
+
+	-- Revenus des créatures exposées, sous la barre de niveau
 	incomeLabel = Theme.Label({
 		Name = "Income",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 60),
+		Position = UDim2.new(0.5, 0, 0, 84),
 		Size = UDim2.fromOffset(260, 22),
 		TextColor3 = Theme.Colors.Coins,
 		TextStrokeTransparency = 0.4,
@@ -132,15 +154,17 @@ function HUD.Init(StateController)
 	leftColumn.Name = "LeftButtons"
 	leftColumn.AnchorPoint = Vector2.new(0, 0.5)
 	leftColumn.Position = UDim2.new(0, 12, 0.5, 0)
-	leftColumn.Size = UDim2.fromOffset(150, 440)
+	leftColumn.Size = UDim2.fromOffset(266, 300)
 	leftColumn.BackgroundTransparency = 1
 	leftColumn.Parent = screen
 
-	local columnLayout = Instance.new("UIListLayout")
-	columnLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	columnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-	columnLayout.Padding = UDim.new(0, 8)
-	columnLayout.Parent = leftColumn
+	local grid = Instance.new("UIGridLayout")
+	grid.CellSize = UDim2.fromOffset(130, 40)
+	grid.CellPadding = UDim2.fromOffset(6, 6)
+	grid.FillDirectionMaxCells = 2
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.VerticalAlignment = Enum.VerticalAlignment.Center
+	grid.Parent = leftColumn
 
 	local teleportRemote: RemoteEvent = Remotes.Get("RequestTeleportHome")
 	HUD.AddButton("HomeButton", "🏠 Ma ferme", Theme.Colors.Button, 1, function()
@@ -157,6 +181,13 @@ function HUD.Init(StateController)
 			setCoins(value)
 		elseif key == "Rebirths" then
 			setRebirths(value)
+		end
+		if key == "*" or key == "XP" or key == "Level" then
+			local level = StateController.Get("Level") or 1
+			local xp = StateController.Get("XP") or 0
+			local needed = math.floor(Config.Progression.XPBase * level ^ Config.Progression.XPExponent)
+			levelFill.Size = UDim2.fromScale(math.clamp(xp / needed, 0, 1), 1)
+			levelLabel.Text = ("Niveau %d   •   %s / %s XP"):format(level, Format.Number(xp), Format.Number(needed))
 		end
 		if key == "*" or key == "DisplayIncome" then
 			local income = StateController.Get("DisplayIncome") or 0

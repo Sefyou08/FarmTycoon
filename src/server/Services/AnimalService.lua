@@ -39,6 +39,7 @@ local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
+local XPService = require(script.Parent.XPService)
 
 local PenConfig = Config.Pens
 
@@ -158,7 +159,15 @@ end
 -- Production (simulation, utilisée en jeu ET pour le hors-ligne)
 --------------------------------------------------------------------------
 
+-- Variante juste au-dessus (Normal -> Gold -> Rainbow -> Legendary -> Mythic, plafonnée)
+local function nextVariant(variantId: string): string
+	local variants = ItemUtil.SortedVariants()
+	local index = table.find(variants, variantId) or 1
+	return variants[math.min(index + 1, #variants)]
+end
+
 -- Fait avancer la production de l'enclos jusqu'à `now`. Renvoie le nombre de ressources produites.
+-- Chaque ressource a une petite chance d'être d'une variante supérieure (Config.Pens.RareProduceChance).
 local function simulate(pen: { [string]: any }, now: number, multiplier: number): number
 	local elapsed = math.clamp(now - (pen.LastUpdate or now), 0, PenConfig.MaxOfflineSeconds)
 	pen.LastUpdate = now
@@ -181,7 +190,23 @@ local function simulate(pen: { [string]: any }, now: number, multiplier: number)
 
 			if count > 0 then
 				pen.Feed -= count * species.FeedPerProduct
-				pen.Storage[animal.Variant] = (pen.Storage[animal.Variant] or 0) + count
+				-- Ressources rares : tirage pour chaque ressource produite
+				local upgradeChance = PenConfig.RareProduceChance[animal.Variant] or 0
+				local upgraded = 0
+				if upgradeChance > 0 then
+					for _ = 1, count do
+						if math.random() < upgradeChance then
+							upgraded += 1
+						end
+					end
+				end
+				if count - upgraded > 0 then
+					pen.Storage[animal.Variant] = (pen.Storage[animal.Variant] or 0) + count - upgraded
+				end
+				if upgraded > 0 then
+					local better = nextVariant(animal.Variant)
+					pen.Storage[better] = (pen.Storage[better] or 0) + upgraded
+				end
 				produced += count
 			end
 
@@ -537,25 +562,23 @@ local function validate(state: State, player: Player, part: BasePart, action: st
 	return RemoteGuard.CheckCooldown(player, action, 0.3)
 end
 
-onTroughTriggered = function(state: State, key: string, player: Player)
-	local visual = state.Visuals[key]
-	if not visual or not validate(state, player, visual.TroughPrompt.Parent :: BasePart, "FeedPen") then
-		return
-	end
+-- Remplit la mangeoire avec les récoltes acceptées (ordre de préférence). Renvoie les rations ajoutées.
+-- silent = true pour le soigneur PNJ (pas de notification).
+local function feedPen(state: State, key: string, player: Player, silent: boolean?): number
 	local pen = state.Data.Pens[key]
 	local species = pen and pen.Species and Config.Animals[pen.Species]
 	if not species then
-		return
+		return 0
 	end
-
 	simulate(pen, os.time(), AnimalService:GetProductionMultiplier(player))
 	local needed = PenConfig.FeedCapacity - pen.Feed
 	if needed <= 0 then
-		SyncService:Notify(player, "La mangeoire est pleine.", "Info")
-		return
+		if not silent then
+			SyncService:Notify(player, "La mangeoire est pleine.", "Info")
+		end
+		return 0
 	end
 
-	-- Prend dans l'inventaire les récoltes acceptées, dans l'ordre de préférence
 	local given, parts = 0, {}
 	local hasAcceptedFood = false
 	for _, cropId in species.Diet do
@@ -574,44 +597,47 @@ onTroughTriggered = function(state: State, key: string, player: Player)
 		end
 	end
 
-	if given > 0 then
-		SyncService:Notify(player, ("+%d rations (%s)"):format(given, table.concat(parts, ", ")), "Success")
-	elseif hasAcceptedFood then
-		SyncService:Notify(player, "La mangeoire est presque pleine.", "Info")
-	else
-		local names = {}
-		for _, cropId in species.Diet do
-			table.insert(names, ItemUtil.Label(cropId))
+	if not silent then
+		if given > 0 then
+			SyncService:Notify(player, ("+%d rations (%s)"):format(given, table.concat(parts, ", ")), "Success")
+		elseif hasAcceptedFood then
+			SyncService:Notify(player, "La mangeoire est presque pleine.", "Info")
+		else
+			local names = {}
+			for _, cropId in species.Diet do
+				table.insert(names, ItemUtil.Label(cropId))
+			end
+			SyncService:Notify(player, ("%s mange : %s. Récolte-en d'abord !"):format(species.DisplayName, table.concat(names, ", ")), "Error")
 		end
-		SyncService:Notify(player, ("%s mange : %s. Récolte-en d'abord !"):format(species.DisplayName, table.concat(names, ", ")), "Error")
 	end
 	updatePenInfo(state, key)
+	return given
 end
 
-onCrateTriggered = function(state: State, key: string, player: Player)
-	local visual = state.Visuals[key]
-	if not visual or not validate(state, player, visual.CratePrompt.Parent :: BasePart, "CollectPen") then
-		return
-	end
+-- Ramasse la caisse (variantes les plus rares d'abord). Renvoie le nombre de ressources ramassées.
+local function collectPen(state: State, key: string, player: Player, silent: boolean?): number
 	local pen = state.Data.Pens[key]
 	local species = pen and pen.Species and Config.Animals[pen.Species]
 	if not species then
-		return
+		return 0
 	end
-
 	simulate(pen, os.time(), AnimalService:GetProductionMultiplier(player))
 	if storageTotal(pen) <= 0 then
-		SyncService:Notify(player, "Rien à récupérer pour l'instant.", "Info")
-		return
+		if not silent then
+			SyncService:Notify(player, "Rien à récupérer pour l'instant.", "Info")
+		end
+		return 0
 	end
 	local space = InventoryService:GetFreeSpace(player)
 	if space <= 0 then
-		SyncService:Notify(player, "Inventaire plein ! Va vendre au stand 💰", "Error")
-		return
+		if not silent then
+			SyncService:Notify(player, "Inventaire plein ! Va vendre au stand 💰", "Error")
+		end
+		return 0
 	end
 
-	-- Les variantes les plus rares d'abord
 	local collected, parts = 0, {}
+	local rare = false
 	local variants = ItemUtil.SortedVariants()
 	for i = #variants, 1, -1 do
 		local variant = variants[i]
@@ -620,14 +646,56 @@ onCrateTriggered = function(state: State, key: string, player: Player)
 		if take > 0 and InventoryService:AddItem(player, species.Resource, variant, take) then
 			pen.Storage[variant] = if count - take > 0 then count - take else nil
 			collected += take
+			rare = rare or variant ~= "Normal"
 			table.insert(parts, ("%d %s"):format(take, ItemUtil.Label(species.Resource, variant)))
 		end
 	end
 
 	if collected > 0 then
-		SyncService:Notify(player, "+" .. table.concat(parts, ", "), "Success")
+		XPService:AddXP(player, Config.Progression.XP.AnimalProduct * collected)
+		-- Le soigneur PNJ ne prévient que pour les ressources rares
+		if not silent or rare then
+			SyncService:Notify(player, "+" .. table.concat(parts, ", "), if rare then "Rare" else "Success")
+		end
 	end
 	updatePenInfo(state, key)
+	return collected
+end
+
+onTroughTriggered = function(state: State, key: string, player: Player)
+	local visual = state.Visuals[key]
+	if visual and validate(state, player, visual.TroughPrompt.Parent :: BasePart, "FeedPen") then
+		feedPen(state, key, player, false)
+	end
+end
+
+onCrateTriggered = function(state: State, key: string, player: Player)
+	local visual = state.Visuals[key]
+	if visual and validate(state, player, visual.CratePrompt.Parent :: BasePart, "CollectPen") then
+		collectPen(state, key, player, false)
+	end
+end
+
+-- Tournée du soigneur PNJ : nourrit et ramasse jusqu'à maxPens enclos posés.
+-- Renvoie (rations données, ressources ramassées).
+function AnimalService:AutoCare(player: Player, maxPens: number): (number, number)
+	local state = states[player]
+	if not state then
+		return 0, 0
+	end
+	local fed, collected, done = 0, 0, 0
+	for _, key in sortedPenKeys(state.Data) do
+		local pen = state.Data.Pens[key]
+		if done >= maxPens then
+			break
+		end
+		if pen.Placed and pen.Species then
+			collected += collectPen(state, key, player, true)
+			fed += feedPen(state, key, player, true)
+			done += 1
+		end
+	end
+	return fed, collected
 end
 
 --------------------------------------------------------------------------

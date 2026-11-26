@@ -24,8 +24,9 @@ local SellService = {}
 
 local standPosition: Vector3
 
-function SellService:GetPlayerSellMultiplier(_player: Player): number
-	return 1 -- phase 7 : rebirths ; phase 8 : game pass x2
+function SellService:GetPlayerSellMultiplier(player: Player): number
+	-- Rebirths + boost Coins (phase 9 : game pass x2 ici aussi)
+	return CurrencyService:GetCoinMultiplier(player)
 end
 
 local function onSellTriggered(player: Player)

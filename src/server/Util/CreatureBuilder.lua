@@ -5,12 +5,23 @@
 	à partir de Config.Creatures, avec l'effet de sa mutation :
 	  Dorée (couleur or), Géante (taille x2), Arc-en-ciel (couleurs animées par
 	  le client), Spectrale (translucide et lumineuse).
-	Réutilisé en phase 6 pour les socles d'exposition.
-	Pour mettre de vrais modèles plus tard : remplace seulement ce fichier.
+	Réutilisé pour les socles d'exposition et la vitrine.
+
+	Taille et éclat selon la rareté (Config.CreatureRarities[x].Visual) : les
+	Légendaires, Mythiques, Secrètes et Divines sont plus grandes, plus vives, avec
+	plus de particules et de lumière.
+
+	REMPLACER UN MODÈLE (Toolbox / MeshPart importé), créature par créature :
+	  1. crée dans ServerStorage un dossier "CustomModels", puis un dossier "Creatures" dedans ;
+	  2. mets-y un Model nommé EXACTEMENT comme l'id de la créature (ex. "Pharaonix"),
+	     tourné vers -Z (l'avant du modèle), pieds au niveau de son pivot ;
+	  3. c'est tout : ce modèle sera cloné à la place du modèle généré (taille de rareté,
+	     mutation Géante et lumières de rareté appliquées par-dessus).
 ]]
 
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local CreatureUtil = require(ReplicatedStorage.Shared.CreatureUtil)
@@ -28,18 +39,94 @@ local function hasFeature(def: any, feature: string): boolean
 	return false
 end
 
+-- Couleur plus saturée et plus lumineuse (raretés hautes)
+local function vivid(color: Color3): Color3
+	local h, sat, v = color:ToHSV()
+	return Color3.fromHSV(h, math.min(1, sat * 1.35 + 0.15), math.min(1, v * 1.1 + 0.05))
+end
+
+-- Lumière + particules aux couleurs de la rareté
+local function addRarityEffects(body: BasePart, rarity: any, accent: Color3)
+	local visual = rarity.Visual or {}
+	if (visual.Light or 0) > 0 then
+		local light = Instance.new("PointLight")
+		light.Color = rarity.Color
+		light.Range = visual.Light
+		light.Brightness = 2
+		light.Parent = body
+	end
+	if (visual.Particles or 0) > 0 then
+		local particles = Instance.new("ParticleEmitter")
+		particles.Name = "RarityParticles"
+		particles.Color = ColorSequence.new(rarity.Color, accent)
+		particles.LightEmission = 1
+		particles.Rate = visual.Particles
+		particles.Lifetime = NumberRange.new(1, 1.8)
+		particles.Speed = NumberRange.new(0.8, 2)
+		particles.SpreadAngle = Vector2.new(180, 180)
+		particles.Size = NumberSequence.new(0.45, 0)
+		particles.Parent = body
+	end
+end
+
+-- Taille finale = taille de la rareté x mutation Géante ; le pivot reste au sol
+local function applyScale(model: Model, groundCFrame: CFrame, rarity: any, mutation: any)
+	local scale = ((rarity.Visual and rarity.Visual.Scale) or 1) * (mutation.Scale or 1)
+	if scale ~= 1 then
+		model.WorldPivot = groundCFrame
+		model:ScaleTo(scale)
+	end
+end
+
+-- Modèle de remplacement fourni à la main (ServerStorage.CustomModels.Creatures.<id>), sinon nil
+local function customModel(creatureId: string): Model?
+	local folder = ServerStorage:FindFirstChild("CustomModels")
+	local creatures = folder and folder:FindFirstChild("Creatures")
+	local template = creatures and creatures:FindFirstChild(creatureId)
+	if template and template:IsA("Model") then
+		return template:Clone()
+	end
+	return nil
+end
+
 -- Renvoie (model, bodyPart). groundCFrame = position au sol, regard vers -Z.
 function CreatureBuilder.Build(creatureId: string, mutationId: string, groundCFrame: CFrame): (Model, Part)
 	local def = Config.Creatures[creatureId]
 	local mutation = CreatureUtil.GetMutation(mutationId)
+	local rarity = CreatureUtil.GetRarity(def.Rarity)
 
+	-- 1. Modèle importé (Toolbox / MeshPart) s'il existe
+	local custom = customModel(creatureId)
+	if custom then
+		custom.Name = creatureId
+		custom.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+		local body = custom.PrimaryPart or custom:FindFirstChildWhichIsA("BasePart", true)
+		custom.PrimaryPart = body
+		for _, descendant in custom:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				descendant.Anchored = true
+				descendant.CanCollide = false
+				descendant.CanTouch = false
+				descendant.CanQuery = descendant == body
+			end
+		end
+		custom:PivotTo(groundCFrame)
+		addRarityEffects(body :: BasePart, rarity, def.Accent)
+		applyScale(custom, groundCFrame, rarity, mutation)
+		return custom, body :: Part
+	end
+
+	-- 2. Sinon : modèle généré en Parts
 	local model = Instance.new("Model")
 	model.Name = creatureId
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 
 	local s = def.Size
-	local color = if mutation.Gold then mutation.Color else def.Color
-	local accent = if mutation.Gold then Color3.fromRGB(255, 240, 150) else def.Accent
+	local isVivid = rarity.Visual and rarity.Visual.Vivid
+	local baseColor = if isVivid then vivid(def.Color) else def.Color
+	local baseAccent = if isVivid then vivid(def.Accent) else def.Accent
+	local color = if mutation.Gold then mutation.Color else baseColor
+	local accent = if mutation.Gold then Color3.fromRGB(255, 240, 150) else baseAccent
 
 	local function part(name: string, shape: Enum.PartType, size: Vector3, offset: CFrame, partColor: Color3, keepColor: boolean?): Part
 		local p = Instance.new("Part")
@@ -153,7 +240,7 @@ function CreatureBuilder.Build(creatureId: string, mutationId: string, groundCFr
 	end
 
 	-- Divine : auréole dorée au-dessus de la tête, lumière intense, pluie d'étincelles
-	if CreatureUtil.GetRarity(def.Rarity).Divine then
+	if rarity.Divine then
 		local haloRadius = s * 0.45
 		local haloCenter = CFrame.new(0, top + s * 0.5, front * 0.2)
 		for i = 1, 12 do
@@ -176,11 +263,9 @@ function CreatureBuilder.Build(creatureId: string, mutationId: string, groundCFr
 		sparkles.Parent = body
 	end
 
-	-- Géante : on agrandit tout le modèle autour de son pivot (au sol)
-	if mutation.Scale and mutation.Scale ~= 1 then
-		model.WorldPivot = groundCFrame
-		model:ScaleTo(mutation.Scale)
-	end
+	-- Éclat de la rareté, puis taille (rareté x mutation Géante)
+	addRarityEffects(body, rarity, accent)
+	applyScale(model, groundCFrame, rarity, mutation)
 
 	return model, body
 end

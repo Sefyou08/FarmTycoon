@@ -107,6 +107,10 @@ local function buildRecipeRow(def: any, recipe: any, building: any, inventory: a
 	row.BackgroundColor3 = Color3.fromRGB(50, 56, 75)
 	row.Parent = recipeList
 	Theme.Corner(row, 10)
+	-- Recette rare : bordure de la couleur de la variante demandée
+	if recipe.MinVariant then
+		Theme.Stroke(row, 2, ItemUtil.GetVariant(recipe.MinVariant).Color)
+	end
 
 	Theme.Label({
 		Size = UDim2.new(1, -16, 0, 24),
@@ -123,13 +127,25 @@ local function buildRecipeRow(def: any, recipe: any, building: any, inventory: a
 
 	-- Ingrédients : vert si on en a assez, rouge sinon
 	local parts = {}
-	for _, input in recipe.Inputs do
+	for index, input in recipe.Inputs do
 		local have = 0
-		for _, count in (inventory and inventory[input.Item]) or {} do
-			have += count
+		local label = ItemUtil.Label(input.Item)
+		if index == 1 and recipe.MinVariant then
+			-- Recette rare : seule une variante assez rare compte (et il en faut assez d'UNE variante)
+			local minOrder = ItemUtil.GetVariant(recipe.MinVariant).Order
+			for variant, count in (inventory and inventory[input.Item]) or {} do
+				if ItemUtil.GetVariant(variant).Order >= minOrder then
+					have = math.max(have, count)
+				end
+			end
+			label = ItemUtil.Label(input.Item, recipe.MinVariant) .. "+"
+		else
+			for _, count in (inventory and inventory[input.Item]) or {} do
+				have += count
+			end
 		end
 		local color = if have >= input.Amount then "#7CFF7C" else "#FF7C7C"
-		table.insert(parts, ('<font color="%s">%d %s (%d)</font>'):format(color, input.Amount, ItemUtil.Label(input.Item), have))
+		table.insert(parts, ('<font color="%s">%d %s (%d)</font>'):format(color, input.Amount, label, have))
 	end
 	Theme.Label({
 		Size = UDim2.new(1, -16, 0, 20),

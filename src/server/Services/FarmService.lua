@@ -45,6 +45,7 @@ local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
+local XPService = require(script.Parent.XPService)
 
 local FarmConfig = Config.Farm
 local TILES_PER_FIELD = FarmConfig.FieldColumns * FarmConfig.FieldRows
@@ -364,15 +365,17 @@ local function unlockTile(farm: Farm, tile: Tile)
 	SyncService:Notify(player, "Case débloquée ! 🌱", "Success")
 end
 
-local function plantSeed(farm: Farm, tile: Tile)
+local function plantSeed(farm: Farm, tile: Tile, silent: boolean?): boolean
 	local player = farm.Player
 	local cropId = resolveSeed(player)
 	if not cropId then
-		SyncService:Notify(player, "Tu n'as plus de graines ! Achète-en à la boutique 🌱", "Error")
-		return
+		if not silent then
+			SyncService:Notify(player, "Tu n'as plus de graines ! Achète-en à la boutique 🌱", "Error")
+		end
+		return false
 	end
 	if not InventoryService:ConsumeSeed(player, cropId) then
-		return
+		return false
 	end
 
 	local now = os.time()
@@ -387,30 +390,60 @@ local function plantSeed(farm: Farm, tile: Tile)
 	if InventoryService:GetSeedCount(player, cropId) <= 0 then
 		resolveSeed(player)
 	end
+	return true
 end
 
-local function harvestTile(farm: Farm, tile: Tile)
+-- Mutation de plante à la récolte (Config.Farm.HarvestMutations), de la plus rare à la plus commune
+local function rollHarvestMutation(cropId: string): string
+	local crop = Config.Crops[cropId]
+	local bonus = FarmConfig.HarvestMutationRarityBonus[crop.Rarity] or 1
+	local roll = math.random()
+	local cumulative = 0
+	local variants = ItemUtil.SortedVariants()
+	for i = #variants, 1, -1 do
+		local chance = FarmConfig.HarvestMutations[variants[i]]
+		if chance then
+			cumulative += chance * bonus
+			if roll < cumulative then
+				return variants[i]
+			end
+		end
+	end
+	return "Normal"
+end
+
+-- Récolte une case mûre. silent = true pour le fermier PNJ (pas de notification pour les normales).
+-- Renvoie true si la récolte a eu lieu.
+local function harvestTile(farm: Farm, tile: Tile, silent: boolean?): boolean
 	local player = farm.Player
 	local plant = farm.Data.Plants[tile.Key]
 	local now = os.time()
 	if not plant or now < plant.ReadyAt then
-		return -- pas encore mûre (le client ne devrait même pas voir le prompt)
+		return false -- pas encore mûre (le client ne devrait même pas voir le prompt)
 	end
 	if not InventoryService:HasRoom(player, 1) then
-		SyncService:Notify(player, "Inventaire plein ! Va vendre au stand 💰", "Error")
-		return
+		if not silent then
+			SyncService:Notify(player, "Inventaire plein ! Va vendre au stand 💰", "Error")
+		end
+		return false
 	end
 
-	-- Phase 7 : tirage de mutation de plante ici (Dorée, Arc-en-ciel...)
-	local variant = "Normal"
+	local variant = rollHarvestMutation(plant.CropId)
 	if not InventoryService:AddItem(player, plant.CropId, variant, 1) then
-		return
+		return false
 	end
 	farm.Data.Stats.TotalHarvested += 1
+	local rarityRank = (Config.Rarities[Config.Crops[plant.CropId].Rarity] or Config.Rarities.Common).Order
+	XPService:AddXP(player, Config.Progression.XP.Harvest * rarityRank)
 
 	farm.Data.Plants[tile.Key] = nil
 	renderTile(farm, tile, now)
-	SyncService:Notify(player, ("+1 %s"):format(CropUtil.Label(plant.CropId)), "Success")
+	if variant ~= "Normal" then
+		SyncService:Notify(player, ("✨ Mutation ! %s"):format(ItemUtil.Label(plant.CropId, variant)), "Mutation")
+	elseif not silent then
+		SyncService:Notify(player, ("+1 %s"):format(CropUtil.Label(plant.CropId)), "Success")
+	end
+	return true
 end
 
 -- Fumier : retire une partie du temps de pousse restant (une seule fois par plante).
@@ -557,6 +590,53 @@ end
 --------------------------------------------------------------------------
 -- API pour le mode construction (PlacementService)
 --------------------------------------------------------------------------
+
+-- Tournée du fermier PNJ : récolte les plantes mûres puis replante les cases vides,
+-- dans la limite de maxActions. Renvoie (récoltes, plantations).
+function FarmService:AutoFarm(player: Player, maxActions: number): (number, number)
+	local farm = farms[player]
+	if not farm then
+		return 0, 0
+	end
+	local harvested, planted, actions = 0, 0, 0
+	local now = os.time()
+	-- 1. Récoltes
+	for fieldId, visual in farm.Fields do
+		local field = farm.Data.Fields[fieldId]
+		for _, tile in visual.Tiles do
+			if actions >= maxActions then
+				return harvested, planted
+			end
+			local plant = farm.Data.Plants[tile.Key]
+			if field and tile.Index <= field.Unlocked and plant and now >= plant.ReadyAt then
+				if harvestTile(farm, tile, true) then
+					harvested += 1
+					actions += 1
+				else
+					break -- inventaire plein
+				end
+			end
+		end
+	end
+	-- 2. Plantations
+	for fieldId, visual in farm.Fields do
+		local field = farm.Data.Fields[fieldId]
+		for _, tile in visual.Tiles do
+			if actions >= maxActions then
+				return harvested, planted
+			end
+			if field and tile.Index <= field.Unlocked and not farm.Data.Plants[tile.Key] then
+				if plantSeed(farm, tile, true) then
+					planted += 1
+					actions += 1
+				else
+					return harvested, planted -- plus de graines
+				end
+			end
+		end
+	end
+	return harvested, planted
+end
 
 function FarmService:CanBuyField(player: Player): (number?, string?)
 	local farm = farms[player]
