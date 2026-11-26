@@ -55,7 +55,7 @@ end
 
 -- Point au hasard dans l'anneau de décor (hors parcelles, avant les montagnes)
 local function randomSpot(margin: number): (number, number)
-	local limit = Config.Art.Farm.MountainRing.Radius - 140
+	local limit = math.min(Config.Art.Farm.MountainRing.Radius - 140, Config.Bounds.FarmRadius - 15)
 	for _ = 1, 40 do
 		local x = rng:NextNumber(-limit, limit)
 		local z = rng:NextNumber(-limit, limit)
@@ -472,6 +472,22 @@ end
 
 --------------------------------------------------------------------------
 
+-- Murs invisibles en cercle autour de la ferme (avant les montagnes) : on ne peut ni sortir
+-- de la map ni escalader le décor. Assez hauts pour tous les sauts (même à cheval).
+local function buildBoundary()
+	local bounds = Config.Bounds
+	local walls = Instance.new("Folder")
+	walls.Name = "FarmBoundary"
+	walls.Parent = Workspace
+	local radius, count, height = bounds.FarmRadius, bounds.FarmWallSegments, bounds.WallHeight
+	local segment = 2 * radius * math.tan(math.pi / count) + 2
+	for i = 0, count - 1 do
+		local a = (i + 0.5) / count * math.pi * 2
+		local pos = Vector3.new(math.cos(a) * radius, height / 2 - 20, math.sin(a) * radius)
+		ArtKit.Block(walls, "BoundaryWall", Vector3.new(segment, height, 4), CFrame.lookAt(pos, Vector3.new(0, pos.Y, 0)), Color3.new(1, 1, 1), nil, { Transparency = 1, CanCollide = true, CastShadow = false })
+	end
+end
+
 function FarmScenery.Build()
 	-- Le Baseplate gris est remplacé par le terrain d'herbe
 	for _, name in { "Baseplate", "FarmGround" } do
@@ -494,6 +510,7 @@ function FarmScenery.Build()
 	buildFence()
 	buildPlaza()
 	buildVegetation()
+	buildBoundary()
 end
 
 return FarmScenery

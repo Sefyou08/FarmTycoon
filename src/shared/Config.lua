@@ -1552,6 +1552,19 @@ Config.Playtime = {
 }
 
 --------------------------------------------------------------------------
+-- LIMITES DE LA MAP (murs invisibles + retour automatique au point sûr)
+--   Le saut le plus haut (Astrelune, JumpPower 90) monte à ~21 studs : les murs font 160.
+--------------------------------------------------------------------------
+Config.Bounds = {
+	WallHeight = 160,
+	FarmRadius = 585, -- rayon de la zone de jeu de la ferme (avant le pied des montagnes)
+	FarmWallSegments = 40,
+	FallY = -30, -- en dessous : le joueur est ramené à un point sûr
+	CheckInterval = 0.5, -- secondes entre deux vérifications (serveur)
+	Margin = 12, -- tolérance au-delà des murs avant de ramener le joueur
+}
+
+--------------------------------------------------------------------------
 -- SAUVEGARDE
 --------------------------------------------------------------------------
 Config.Data = {

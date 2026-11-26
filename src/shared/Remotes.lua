@@ -57,6 +57,7 @@ Remotes.FunctionNames = {
 	"AnimalAction", -- Client -> Serveur : ("Place", animalId, penKey?) | ("Store", animalId) | ("Pin", animalId) -> (ok, message)
 	"TutorialAction", -- Client -> Serveur : ("Skip") | ("Restart") -> (ok, message)
 	"ClaimPlaytime", -- Client -> Serveur : (index) réclamer une récompense de temps de jeu -> (ok, message)
+	"SellItems", -- Client -> Serveur : ("All" | { { Item, Variant, Amount } }) vendre au stand -> (ok, message)
 }
 
 local folder: Folder? = nil

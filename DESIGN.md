@@ -370,6 +370,14 @@ Le gameplay est là ; il faut maintenant une vraie identité visuelle.
 - Boutons au sol (`TycoonPad`, `Config.TycoonPads`) : 💰 / 💎 Agrandir, boosts Robux de 2 h avec
   minuteur du boost actif (`PadController`).
 
+**Limites de la map et vente au choix** :
+- Murs invisibles de 160 studs (`Config.Bounds`) : cercle autour de la ferme (avant les montagnes),
+  autour de chaque zone et de chaque arène. `BoundaryService` ramène tout joueur hors limites ou
+  tombé sous la map (arène → entrée, zone → portail de retour, ferme → parcelle) sans réapparition ;
+  une zone / arène atteinte sans passer par le portail renvoie à la ferme.
+- Stand de vente : fenêtre `SellUI` (onglets, quantité par objet, sélection, tout vendre),
+  RemoteFunction `SellItems` validée par le serveur.
+
 ---
 
 ## 5. Équilibrage de base

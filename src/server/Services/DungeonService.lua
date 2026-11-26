@@ -148,6 +148,15 @@ local function buildArena(index: number)
 	} do
 		table.insert(walls, makePart({ Name = "Wall", Size = wall[1], CFrame = CFrame.new(origin + wall[2]), Material = Enum.Material.Rock, Parent = folder }))
 	end
+	-- Murs invisibles très hauts au-dessus des murs visibles : on ne saute pas hors de l'arène
+	for _, wall in {
+		{ Vector3.new(size + 8, Config.Bounds.WallHeight, 4), Vector3.new(0, Config.Bounds.WallHeight / 2, size / 2 + 2) },
+		{ Vector3.new(size + 8, Config.Bounds.WallHeight, 4), Vector3.new(0, Config.Bounds.WallHeight / 2, -size / 2 - 2) },
+		{ Vector3.new(4, Config.Bounds.WallHeight, size + 8), Vector3.new(size / 2 + 2, Config.Bounds.WallHeight / 2, 0) },
+		{ Vector3.new(4, Config.Bounds.WallHeight, size + 8), Vector3.new(-size / 2 - 2, Config.Bounds.WallHeight / 2, 0) },
+	} do
+		makePart({ Name = "InvisibleWall", Size = wall[1], CFrame = CFrame.new(origin + wall[2]), Transparency = 1, CanQuery = false, Parent = folder })
+	end
 	-- Quelques piliers pour se mettre à l'abri
 	for _, offset in { Vector3.new(-25, 0, -15), Vector3.new(25, 0, -15), Vector3.new(-25, 0, 20), Vector3.new(25, 0, 20) } do
 		table.insert(walls, makePart({ Name = "Pillar", Shape = Enum.PartType.Cylinder, Size = Vector3.new(14, 5, 5), CFrame = CFrame.new(origin + offset + Vector3.new(0, 7, 0)) * CFrame.Angles(0, 0, math.rad(90)), Material = Enum.Material.Rock, Parent = folder }))
@@ -722,6 +731,25 @@ local function buildPortal()
 	prompt.RequiresLineOfSight = false
 	prompt:SetAttribute("OpenUI", "Dungeon")
 	prompt.Parent = anchor
+end
+
+-- Arène du donjon en cours (limites de la map) : (centre, côté, point d'entrée) ou nil
+function DungeonService:GetArenaBounds(player: Player): (Vector3?, number?, CFrame?)
+	local run = runs[player]
+	if not run then
+		return nil, nil, nil
+	end
+	-- (aussi pendant l'écran de fin : le joueur reste dans l'arène jusqu'au retour)
+	return run.Arena.Origin, Combat.ArenaSize, run.Arena.EntryCFrame
+end
+
+-- Toutes les arènes (pour repérer un joueur dans une arène sans y être entré par le portail)
+function DungeonService:GetAllArenaBounds(): { { Origin: Vector3, Size: number } }
+	local result = {}
+	for _, arena in arenas do
+		table.insert(result, { Origin = arena.Origin, Size = Combat.ArenaSize })
+	end
+	return result
 end
 
 function DungeonService:Init()

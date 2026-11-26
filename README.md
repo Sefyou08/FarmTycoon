@@ -48,7 +48,7 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 7. **E** sur la mangeoire pour la remplir avec tes récoltes, **E** sur la caisse pour ramasser la production.
 8. Le **fumier** du cheval sert d'engrais : **E** sur une plante qui pousse.
 9. **E** sur la porte d'un bâtiment : lancer des recettes, récupérer, améliorer.
-10. Stand **💰 VENTE** (à droite du spawn) : tout vendre.
+10. Stand **💰 VENTE** (à droite du spawn) : choisis ce que tu vends (onglets, quantité par objet) ou vends tout.
 11. Boutons au sol à l'entrée de ta parcelle : **💰 Agrandir** (Coins) ou **💎 Agrandir** (Robux, immédiat),
     et des boosts Robux de 2 h (⚡ XP, 💰 Coins, 🏭 Production, 🌱 Pousse) : marche dessus ou appuie sur E.
 12. **Maj** pour courir.

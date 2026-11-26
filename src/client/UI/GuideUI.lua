@@ -12,7 +12,7 @@ local GuideUI = {}
 local PAGES = {
 	{
 		Title = "🌱 Cultures",
-		Text = "1. Achète des graines au stand 🌱 GRAINES (devant le spawn).\n2. Choisis une graine dans la barre en bas de l'écran.\n3. Va dans ton champ et appuie sur E sur une case de terre pour planter.\n4. La plante pousse en 3 étapes. Quand elle affiche « Prêt ! », appuie sur E pour récolter.\n5. Vends tes récoltes au stand 💰 VENTE, ou garde-les pour nourrir tes animaux et cuisiner.\n\nAstuces : les cases grises se débloquent avec E. Une récolte peut muter (Dorée, Arc-en-ciel...) et valoir beaucoup plus. Le stock rare de la boutique change toutes les 5 minutes.",
+		Text = "1. Achète des graines au stand 🌱 GRAINES (devant le spawn).\n2. Choisis une graine dans la barre en bas de l'écran.\n3. Va dans ton champ et appuie sur E sur une case de terre pour planter.\n4. La plante pousse en 3 étapes. Quand elle affiche « Prêt ! », appuie sur E pour récolter.\n5. Au stand 💰 VENTE, choisis ce que tu vends (objet par objet, ou tout), et garde le reste pour nourrir tes animaux et cuisiner.\n\nAstuces : les cases grises se débloquent avec E. Une récolte peut muter (Dorée, Arc-en-ciel...) et valoir beaucoup plus. Le stock rare de la boutique change toutes les 5 minutes.",
 	},
 	{
 		Title = "🐄 Animaux",

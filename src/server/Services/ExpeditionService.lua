@@ -263,12 +263,14 @@ local function buildZone(zoneId: string, def: any, parent: Folder)
 	local size = def.Size
 	-- Le sol, les falaises et le décor sont en Terrain + Parts (ZoneScenery, phase 10).
 	-- Murs invisibles tout autour : on ne sort pas de la zone
-	local wallHeight = 60
+	-- (assez hauts pour tous les sauts, même à cheval ; ils descendent sous le sol)
+	local wallHeight = Config.Bounds.WallHeight
+	local wallY = wallHeight / 2 - 20
 	for _, wall in {
-		{ Vector3.new(size + 8, wallHeight, 4), Vector3.new(0, wallHeight / 2, size / 2 + 2) },
-		{ Vector3.new(size + 8, wallHeight, 4), Vector3.new(0, wallHeight / 2, -size / 2 - 2) },
-		{ Vector3.new(4, wallHeight, size + 8), Vector3.new(size / 2 + 2, wallHeight / 2, 0) },
-		{ Vector3.new(4, wallHeight, size + 8), Vector3.new(-size / 2 - 2, wallHeight / 2, 0) },
+		{ Vector3.new(size + 8, wallHeight, 4), Vector3.new(0, wallY, size / 2 + 2) },
+		{ Vector3.new(size + 8, wallHeight, 4), Vector3.new(0, wallY, -size / 2 - 2) },
+		{ Vector3.new(4, wallHeight, size + 8), Vector3.new(size / 2 + 2, wallY, 0) },
+		{ Vector3.new(4, wallHeight, size + 8), Vector3.new(-size / 2 - 2, wallY, 0) },
 	} do
 		makePart({ Name = "Cliff", Size = wall[1], CFrame = CFrame.new(def.Center + wall[2]), Transparency = 1, CanQuery = false, Parent = folder })
 	end
@@ -826,6 +828,15 @@ end
 
 function ExpeditionService:GetZone(player: Player): string?
 	return playerZone[player]
+end
+
+-- Infos d'une zone pour les limites de la map : (centre, côté, point d'arrivée)
+function ExpeditionService:GetZoneBounds(zoneId: string): (Vector3?, number?, CFrame?)
+	local info = zones[zoneId]
+	if not info then
+		return nil, nil, nil
+	end
+	return info.Def.Center, info.Def.Size, info.ArrivalCFrame
 end
 
 function ExpeditionService:ReturnHome(player: Player)

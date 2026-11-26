@@ -46,6 +46,7 @@ local SERVICE_ORDER = {
 	"MonetizationService",
 	"TutorialService",
 	"PlaytimeService",
+	"BoundaryService",
 }
 
 local services = {}
