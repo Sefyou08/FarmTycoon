@@ -1601,10 +1601,10 @@ Config.Security = {
 -- DEBUG (mettre Enabled = false avant de publier le jeu)
 --------------------------------------------------------------------------
 Config.Debug = {
-	Enabled = true,
+	Enabled = false, -- VERSION DE SORTIE : pas de dalle de pièces de test, pas de messages de debug
 	TestCoinPadAmount = 25, -- coins donnés par le pad jaune de test sur chaque parcelle
 	TestCoinPadCooldown = 1, -- secondes entre deux utilisations du pad
-	PrintDataOnLoad = true, -- affiche les données chargées dans l'Output
+	PrintDataOnLoad = false, -- affiche les données chargées dans l'Output
 }
 
 return Config
