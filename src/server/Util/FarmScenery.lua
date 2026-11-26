@@ -82,12 +82,23 @@ local function buildTerrain()
 	terrain.WaterWaveSize = 0.08
 	terrain.WaterWaveSpeed = 6
 	pcall(function()
-		terrain.Decoration = true -- brins d'herbe animés
+		-- Pas de brins d'herbe 3D : ils étaient trop hauts et cachaient les champs, enclos et socles
+		terrain.Decoration = false
 	end)
 
 	-- Sol d'herbe : dessus à y = 0
 	local size = Art.GroundSize
 	terrain:FillBlock(CFrame.new(0, -6, 0), Vector3.new(size, 12, size), Enum.Material.Grass)
+
+	-- Sous les parcelles : terre (pas d'herbe) ; le sol de chaque parcelle est une Part au-dessus
+	for column = 0, Plots.Columns - 1 do
+		local x = (column - (Plots.Columns - 1) / 2) * Plots.SpacingX
+		for _, side in { -1, 1 } do
+			local z = side * (Plots.FrontOffsetZ + maxExp.Depth / 2)
+			terrain:FillBlock(CFrame.new(x, -2, z), Vector3.new(maxExp.Width + 4, 4, maxExp.Depth + 4), Enum.Material.Ground)
+		end
+	end
+	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(120, 90, 60))
 
 	-- Ruisseau nord-sud (creusé puis rempli d'eau), berges de sable
 	local length = Config.Art.Farm.MountainRing.Radius * 2

@@ -444,6 +444,17 @@ function EnemyBuilder.Build(enemyId: string, cframe: CFrame): (Model, BasePart, 
 	body.Parent = model
 	model.PrimaryPart = body
 
+	-- Contour lumineux visible à travers le décor : on voit toujours où sont les ennemis
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "EnemyOutline"
+	highlight.Adornee = model
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.OutlineColor = if def.Boss then rgb(255, 215, 60) else rgb(255, 90, 70)
+	highlight.OutlineTransparency = 0
+	highlight.FillColor = if def.Boss then rgb(255, 200, 80) else rgb(255, 120, 100)
+	highlight.FillTransparency = 0.85
+	highlight.Parent = model
+
 	-- Articulations : position de chaque pièce par rapport au pivot
 	local pivot = model:GetPivot()
 	local joints = {}

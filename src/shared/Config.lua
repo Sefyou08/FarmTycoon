@@ -406,6 +406,7 @@ Config.Animals = {
 Config.Pens = {
 	Size = 20, -- côté de l'enclos (studs)
 	Capacity = 4, -- animaux max par enclos (une seule espèce par enclos)
+	InventoryCapacity = 60, -- animaux max dans 🐾 Mes animaux (hors enclos)
 	FeedCapacity = 300, -- rations max dans la mangeoire
 	StorageCapacity = 30, -- ressources max dans la caisse avant de devoir les récupérer
 	MaxOfflineSeconds = 8 * 3600, -- production hors ligne plafonnée à 8 h
@@ -481,7 +482,7 @@ Config.Plots = {
 	},
 	ExpandInteractDistance = 10,
 
-	GroundColor = Color3.fromRGB(106, 170, 70),
+	GroundColor = Color3.fromRGB(150, 205, 100), -- sol de parcelle par défaut (plus clair que le terrain)
 	BorderColor = Color3.fromRGB(110, 75, 45),
 	SignColor = Color3.fromRGB(150, 105, 60),
 
@@ -1266,7 +1267,7 @@ Config.Cosmetics = {
 	PenGold = { Category = "PenSkin", Name = "Or", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(255, 200, 50), Material = Enum.Material.Foil },
 
 	-- Sol de parcelle
-	FloorGrass = { Category = "PlotFloor", Name = "Herbe", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(106, 170, 70), Material = Enum.Material.Grass },
+	FloorGrass = { Category = "PlotFloor", Name = "Gazon", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(150, 205, 100), Material = Enum.Material.Grass },
 	FloorMeadow = { Category = "PlotFloor", Name = "Prairie fleurie", Unlock = { Kind = "Level", Level = 10 }, Color = rgb2(130, 190, 90), Material = Enum.Material.LeafyGrass },
 	FloorSand = { Category = "PlotFloor", Name = "Sable doré", Unlock = { Kind = "Coins", Price = 50000 }, Color = rgb2(230, 205, 140), Material = Enum.Material.Sand },
 	FloorSnow = { Category = "PlotFloor", Name = "Neige", Unlock = { Kind = "Index", Zone = "Mountain" }, Color = rgb2(240, 245, 255), Material = Enum.Material.Snow },
@@ -1412,10 +1413,11 @@ Config.Art = {
 			FogColor = rgb3(90, 40, 30), Density = 0.5, Haze = 2.5, AtmosphereColor = rgb3(200, 90, 50), Decay = rgb3(255, 90, 30),
 			Tint = rgb3(255, 220, 200), Saturation = 0.2, Contrast = 0.15, Bloom = 0.7,
 		},
+		-- Donjon : ambiance violette mais BIEN éclairée (on doit voir les ennemis)
 		Dungeon = {
-			ClockTime = 0, Brightness = 1, Ambient = rgb3(90, 70, 110), OutdoorAmbient = rgb3(80, 60, 100),
-			FogColor = rgb3(40, 25, 55), Density = 0.4, Haze = 1.5, AtmosphereColor = rgb3(120, 80, 160), Decay = rgb3(160, 60, 200),
-			Tint = rgb3(235, 225, 255), Saturation = 0.15, Contrast = 0.18, Bloom = 0.8,
+			ClockTime = 15, Brightness = 2.6, Ambient = rgb3(150, 135, 170), OutdoorAmbient = rgb3(175, 160, 195),
+			FogColor = rgb3(120, 100, 150), Density = 0.18, Haze = 0.4, AtmosphereColor = rgb3(200, 180, 230), Decay = rgb3(170, 120, 210),
+			Tint = rgb3(245, 238, 255), Saturation = 0.12, Contrast = 0.08, Bloom = 0.4,
 		},
 	},
 	TransitionTime = 1.5, -- secondes de transition entre deux éclairages

@@ -43,6 +43,7 @@ local CreatureUtil = require(ReplicatedStorage.Shared.CreatureUtil)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local CreatureBuilder = require(script.Parent.Parent.Util.CreatureBuilder)
 local ZoneScenery = require(script.Parent.Parent.Util.ZoneScenery)
 local DataService = require(script.Parent.DataService)
@@ -568,6 +569,7 @@ local function endSession(session: Session, outcome: string, fromServer: boolean
 	if outcome == "Captured" then
 		if giveCreature(player, wild.CreatureId, wild.Mutation) then
 			message = ("🎉 Tu as capturé %s !"):format(label)
+			GameEvents.Fire(player, "Capture")
 			SyncService:Notify(player, message, if wild.Mutation ~= "Normal" then "Rare" else "Success")
 			announce(player, wild.CreatureId, wild.Mutation)
 			XPService:AddXP(player, Config.Progression.XP.Capture[Config.Creatures[wild.CreatureId].Rarity] or 10)
@@ -868,6 +870,7 @@ local function onExpeditionAction(player: Player, action: any, zoneId: any): (bo
 		-- sinon la vérification "est-il dans la zone ?" le retirerait pendant l'attente
 		teleportTo(player, zones[zoneId].ArrivalCFrame)
 		playerZone[player] = zoneId
+		GameEvents.Fire(player, "Travel", zoneId)
 		return true, ("Bienvenue : %s %s ! Approche-toi d'une créature pour la capturer."):format(def.Icon, def.DisplayName)
 	end
 	return false, "Action inconnue."

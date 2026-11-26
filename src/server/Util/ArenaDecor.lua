@@ -241,6 +241,11 @@ function ArenaDecor.Apply(arena: Arena, dungeonId: string)
 	folder.Name = "Decor"
 	folder.Parent = arena.Floor.Parent
 	arena.Decor = folder
+	-- Grandes lumières douces au-dessus de l'arène : bonne visibilité quel que soit le thème
+	for _, offset in { Vector3.new(-25, 22, -25), Vector3.new(25, 22, -25), Vector3.new(-25, 22, 25), Vector3.new(25, 22, 25), Vector3.new(0, 26, 0) } do
+		local lamp = ArtKit.Block(folder, "ArenaLight", Vector3.one, CFrame.new(arena.Origin + offset), Color3.new(1, 1, 1), nil, { Transparency = 1 })
+		ArtKit.Light(lamp, Color3.fromRGB(255, 245, 230), 60, 1.3)
+	end
 	local theme = THEMES[dungeonId]
 	if theme and def then
 		theme(arena, folder, Config.Combat.ArenaSize / 2)

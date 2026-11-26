@@ -40,6 +40,7 @@ local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local CropUtil = require(ReplicatedStorage.Shared.CropUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local ArenaDecor = require(script.Parent.Parent.Util.ArenaDecor)
 local DataService = require(script.Parent.DataService)
 local SyncService = require(script.Parent.SyncService)
@@ -347,6 +348,7 @@ local function endRun(run: Run, outcome: string, reason: string?)
 	local message
 	if outcome == "Victory" then
 		local summary = giveRewards(run)
+		GameEvents.Fire(player, "DungeonWin")
 		message = ("🏆 Victoire : %s !\n%s"):format(run.Def.DisplayName, summary)
 		SyncService:Notify(player, "🏆 Donjon terminé ! " .. summary, "Rare")
 	elseif outcome == "Defeat" then

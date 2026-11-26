@@ -42,6 +42,7 @@ local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
@@ -387,6 +388,9 @@ local function plantSeed(farm: Farm, tile: Tile, silent: boolean?): boolean
 		ReadyAt = now + FarmService:GetGrowTime(player, cropId),
 	}
 	renderTile(farm, tile, now)
+	if not silent then
+		GameEvents.Fire(player, "Plant")
+	end
 
 	-- Plus de graines de ce type : on passe automatiquement à la suivante
 	if InventoryService:GetSeedCount(player, cropId) <= 0 then
@@ -440,6 +444,9 @@ local function harvestTile(farm: Farm, tile: Tile, silent: boolean?): boolean
 
 	farm.Data.Plants[tile.Key] = nil
 	renderTile(farm, tile, now)
+	if not silent then
+		GameEvents.Fire(player, "Harvest")
+	end
 	if variant ~= "Normal" then
 		SyncService:Notify(player, ("✨ Mutation ! %s"):format(ItemUtil.Label(plant.CropId, variant)), "Mutation")
 	elseif not silent then

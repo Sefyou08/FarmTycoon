@@ -27,6 +27,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local DataService = require(script.Parent.DataService)
 local SyncService = require(script.Parent.SyncService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -90,6 +91,7 @@ local function onConsume(player: Player, itemId: any, variant: any): (boolean, s
 	local power = consumable.Power * (1 + BoostConfig.VariantPowerBonus * rank)
 	local duration = consumable.Duration * (1 + BoostConfig.VariantDurationBonus * rank)
 	BoostService:Grant(player, consumable.Boost, power, duration)
+	GameEvents.Fire(player, "Consume")
 
 	local info = BoostConfig.Types[consumable.Boost]
 	return true, ("%s %s mangé : boost %s +%d %% pendant %s"):format(

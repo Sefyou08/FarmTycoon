@@ -9,9 +9,9 @@
 	    (CreatureUtil.GetIncome), versés toutes les Config.Display.IncomeInterval
 	    secondes, et aussi pendant l'absence du joueur (plafonné).
 	  • VITRINE DE PRESTIGE : devant l'entrée de chaque parcelle, côté allée,
-	    Config.Showcase.Slots socles éclairés montrent les créatures ET animaux les
-	    plus prestigieux du joueur (rareté puis mutation), ou ceux qu'il a épinglés
-	    (data.ShowcasePicks). Tout le monde la voit en passant devant.
+	    Config.Showcase.Slots socles éclairés montrent d'abord ce que le joueur a épinglé
+	    (data.ShowcasePicks : créatures, ou animaux "A:<id>"), puis ses créatures les plus
+	    prestigieuses. Un animal n'y apparaît QUE s'il est épinglé. Tout le monde la voit.
 	  • PANNEAU de la parcelle : "Ferme de X" + la meilleure prise du joueur.
 
 	RemoteFunction "DisplayAction" (validée ici) :
@@ -38,6 +38,7 @@ local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local CreatureBuilder = require(script.Parent.Parent.Util.CreatureBuilder)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
@@ -306,18 +307,25 @@ local function showcaseEntries(data: { [string]: any }): { { [string]: any } }
 		byUid[entry.Id] = candidate
 		table.insert(candidates, candidate)
 	end
+	-- Animaux : SEULEMENT s'ils sont épinglés (⭐ dans 🐾 Mes animaux), jamais par défaut
+	local function addAnimal(speciesId: string, animal: { [string]: any })
+		byUid["A:" .. tostring(animal.Id)] = {
+			Kind = "Animal",
+			Species = speciesId,
+			Variant = animal.Variant,
+			Prestige = CreatureUtil.GetAnimalPrestige(speciesId, animal.Variant),
+			Key = "A:" .. tostring(animal.Id),
+		}
+	end
 	for _, pen in data.Pens do
 		if pen.Species then
 			for _, animal in pen.Animals do
-				table.insert(candidates, {
-					Kind = "Animal",
-					Species = pen.Species,
-					Variant = animal.Variant,
-					Prestige = CreatureUtil.GetAnimalPrestige(pen.Species, animal.Variant),
-					Key = "A:" .. tostring(animal.Id),
-				})
+				addAnimal(pen.Species, animal)
 			end
 		end
+	end
+	for _, animal in data.AnimalInventory or {} do
+		addAnimal(animal.Species, animal)
 	end
 
 	local result, used = {}, {}
@@ -516,6 +524,7 @@ local function onDisplayAction(player: Player, action: any, uid: any): (boolean,
 			if pedestal.Placed and not pedestal.Creature then
 				pedestal.Creature = uid
 				buildPedestal(state, id)
+				GameEvents.Fire(player, "Exhibit")
 				SyncService:Set(player, "Pedestals", data.Pedestals)
 				syncIncome(state)
 				return true, ("🏛️ %s exposé : +%s Coins/s"):format(label, Format.Number(CreatureUtil.GetIncome(entry.Creature, entry.Mutation)))
@@ -554,13 +563,10 @@ local function onDisplayAction(player: Player, action: any, uid: any): (boolean,
 		if pedestalOf(data, uid) then
 			return false, "Retire-le d'abord de son socle."
 		end
-		local penKey, reason = AnimalService:FindPenFor(player, def.Horse)
-		if not penKey then
-			return false, reason or "Pas d'enclos libre."
-		end
 		local variant = Config.Mounts.MutationToVariant[entry.Mutation] or "Normal"
-		if not AnimalService:AddAnimal(player, penKey, def.Horse, variant) then
-			return false, "Impossible de le mettre en enclos."
+		local ok, reason = AnimalService:GiveAnimal(player, def.Horse, variant)
+		if not ok then
+			return false, reason or "🐾 Mes animaux est plein."
 		end
 		for index, creature in data.Creatures do
 			if creature.Id == uid then
@@ -569,7 +575,7 @@ local function onDisplayAction(player: Player, action: any, uid: any): (boolean,
 			end
 		end
 		SyncService:Set(player, "Creatures", data.Creatures)
-		return true, ("🐾 %s est dans son enclos : il y produira son crin (et reste une monture) !"):format(label)
+		return true, ("🐾 %s rejoint 🐾 Mes animaux : place-le dans un enclos pour qu'il produise son crin (il reste une monture) !"):format(label)
 	end
 	return false, "Action inconnue."
 end

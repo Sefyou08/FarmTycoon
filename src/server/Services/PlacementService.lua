@@ -26,6 +26,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local DataService = require(script.Parent.DataService)
 local CurrencyService = require(script.Parent.CurrencyService)
 local PlotService = require(script.Parent.PlotService)
@@ -128,12 +129,15 @@ local function actionBuy(player: Player, data: { [string]: any }, payload: { [st
 		return true, "🌱 Champ placé ! Débloque ses cases avec E."
 	elseif placeType == "Pen" then
 		AnimalService:CreatePen(player, x, z, rot)
-		return true, "🐾 Enclos placé !"
+		GameEvents.Fire(player, "BuildPen")
+		return true, "🐾 Enclos placé ! Mets-y un animal depuis 🐾 Mes animaux."
 	elseif placeType == "Pedestal" then
 		DisplayService:CreatePedestal(player, x, z, rot)
+		GameEvents.Fire(player, "BuildPedestal")
 		return true, "🏛️ Socle placé ! Expose une créature depuis 📖 Créatures."
 	end
 	BuildingService:Create(player, kind, x, z, rot)
+	GameEvents.Fire(player, "BuildBuilding", kind)
 	return true, PlacementUtil.Label("Building", kind) .. " placé(e) !"
 end
 

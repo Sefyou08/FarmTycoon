@@ -29,7 +29,10 @@ return {
 	Hatching = {}, -- œufs en train d'éclore : { { Id, Egg = "ForestEgg", ReadyAt = os.time() } }
 	DungeonClears = {}, -- victoires par donjon : { [dungeonId] = nombre }
 	Wheel = { LastFree = 0, ExtraSpins = 0 }, -- roue quotidienne : dernier tour gratuit (os.time), tours achetés
-	PendingAnimals = {}, -- animaux gagnés en attente d'un enclos libre : { { Species, Variant } }
+	PendingAnimals = {}, -- (ancien) animaux gagnés en attente : transférés dans AnimalInventory
+	AnimalInventory = {}, -- 🐾 Mes animaux : animaux pas encore dans un enclos { { Id, Species, Variant } }
+	Tutorial = { Step = 1, Skipped = false, Rewarded = {} }, -- quêtes du tutoriel
+
 	Cosmetics = { Owned = {}, Equipped = {} }, -- cosmétiques achetés et équipés ({ [catégorie] = id })
 
 	Inventory = {}, -- produits récoltés : { [cropId] = { [variante] = quantité } } (variante "Normal" ou mutation en phase 3)

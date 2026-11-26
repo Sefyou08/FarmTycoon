@@ -15,6 +15,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local StandBuilder = require(script.Parent.Parent.Util.StandBuilder)
 local CurrencyService = require(script.Parent.CurrencyService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -53,6 +54,7 @@ local function onSellTriggered(player: Player)
 
 	local ok, added = CurrencyService:AddCoins(player, total, "SellAll")
 	if ok then
+		GameEvents.Fire(player, "Sell")
 		SyncService:Notify(player, ("+%s Coins (%d produits vendus)"):format(Format.Number(added), count), "Success")
 	end
 end

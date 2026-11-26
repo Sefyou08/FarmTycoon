@@ -38,6 +38,7 @@ local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
@@ -411,6 +412,7 @@ local function actionQueue(state: State, buildingId: string, recipeId: any, coun
 	end
 	updateVisual(state, buildingId)
 	sync(state)
+	GameEvents.Fire(state.Player, "QueueRecipe", buildingId)
 	return true, ("+%d %s en fabrication"):format(queued, ItemUtil.Label(recipe.Output.Item))
 end
 
@@ -446,6 +448,7 @@ local function actionCollect(state: State, buildingId: string): (boolean, string
 	simulate(buildingId, building, os.time(), BuildingService:GetSpeedMultiplier(state.Player))
 	updateVisual(state, buildingId)
 	sync(state)
+	GameEvents.Fire(state.Player, "CollectRecipe", buildingId)
 	return true, "+" .. table.concat(parts, ", ")
 end
 

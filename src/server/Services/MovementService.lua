@@ -71,7 +71,7 @@ local function listMounts(player: Player): { { [string]: any } }
 			SprintSpeed = math.floor(stats.SprintSpeed * multiplier + 0.5),
 			JumpPower = stats.JumpPower,
 			Perk = stats.Perk,
-			Where = if kind == "Pen" then "Enclos" else "Collection",
+			Where = if kind == "Pen" then "Enclos" elseif kind == "Stable" then "Mes animaux" else "Collection",
 		})
 	end
 	-- Chevaux dans les enclos (cheval de ferme et chevaux sauvages mis en enclos)
@@ -80,6 +80,12 @@ local function listMounts(player: Player): { { [string]: any } }
 			for _, animal in pen.Animals do
 				add("Pen", tostring(animal.Id), pen.Species, animal.Variant)
 			end
+		end
+	end
+	-- Chevaux dans 🐾 Mes animaux (pas encore en enclos)
+	for _, animal in data.AnimalInventory or {} do
+		if Mounts.Species[animal.Species] then
+			add("Stable", animal.Id, animal.Species, animal.Variant)
 		end
 	end
 	-- Chevaux sauvages encore dans la collection

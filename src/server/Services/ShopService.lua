@@ -21,6 +21,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local CropUtil = require(ReplicatedStorage.Shared.CropUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local StandBuilder = require(script.Parent.Parent.Util.StandBuilder)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
@@ -126,6 +127,7 @@ local function onBuySeed(player: Player, cropId: any, amount: any): (boolean, st
 
 	InventoryService:AddSeeds(player, cropId, count)
 	FarmService:RefreshSeedSelection(player)
+	GameEvents.Fire(player, "BuySeed")
 	if crop.Rarity ~= "Common" then
 		bought[player] = bought[player] or {}
 		bought[player][cropId] = (bought[player][cropId] or 0) + count

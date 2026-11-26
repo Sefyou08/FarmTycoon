@@ -36,9 +36,12 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local PatternBuilder = require(script.Parent.Parent.Util.PatternBuilder)
 local AnimalBuilder = require(script.Parent.Parent.Util.AnimalBuilder)
+local GameEvents = require(script.Parent.Parent.Util.GameEvents)
+local DataService = require(script.Parent.DataService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -577,6 +580,7 @@ local function feedPen(state: State, key: string, player: Player, silent: boolea
 
 	if not silent then
 		if given > 0 then
+			GameEvents.Fire(player, "Feed")
 			SyncService:Notify(player, ("+%d rations (%s)"):format(given, table.concat(parts, ", ")), "Success")
 		elseif hasAcceptedFood then
 			SyncService:Notify(player, "La mangeoire est presque pleine.", "Info")
@@ -819,6 +823,179 @@ function AnimalService:AddAnimal(player: Player, penKey: string, speciesId: stri
 end
 
 --------------------------------------------------------------------------
+-- 🐾 Mes animaux : inventaire des animaux hors enclos
+--------------------------------------------------------------------------
+
+local function syncInventory(state: State)
+	SyncService:Set(state.Player, "AnimalInventory", state.Data.AnimalInventory)
+end
+
+-- Donne un animal au joueur : il arrive dans 🐾 Mes animaux (achat, roue, cheval sauvage...)
+function AnimalService:GiveAnimal(player: Player, speciesId: string, variantId: string): (boolean, string?)
+	local data = DataService:GetData(player)
+	if not data or not Config.Animals[speciesId] or not ItemUtil.IsValidVariant(variantId) then
+		return false, "Animal invalide."
+	end
+	if #data.AnimalInventory >= PenConfig.InventoryCapacity then
+		return false, ("🐾 Mes animaux est plein (%d max) : place-en dans un enclos."):format(PenConfig.InventoryCapacity)
+	end
+	table.insert(data.AnimalInventory, { Id = HttpService:GenerateGUID(false), Species = speciesId, Variant = variantId })
+	SyncService:Set(player, "AnimalInventory", data.AnimalInventory)
+	return true, nil
+end
+
+function AnimalService:HasInventoryRoom(player: Player): boolean
+	local data = DataService:GetData(player)
+	return data ~= nil and #data.AnimalInventory < PenConfig.InventoryCapacity
+end
+
+local function findInPens(data: { [string]: any }, animalId: string): (string?, number?)
+	for key, pen in data.Pens do
+		for index, animal in pen.Animals do
+			if animal.Id == animalId then
+				return key, index
+			end
+		end
+	end
+	return nil, nil
+end
+
+local function animalLabel(speciesId: string, variantId: string): string
+	local species = Config.Animals[speciesId]
+	local adjective = ItemUtil.VariantAdjective(species, variantId)
+	return species.Icon .. " " .. species.DisplayName .. (if adjective ~= "" then " " .. adjective else "")
+end
+
+-- Inventaire -> enclos (penKey facultatif : sinon le premier enclos compatible)
+local function placeAnimal(state: State, animalId: string, penKey: string?): (boolean, string)
+	local data = state.Data
+	local index
+	for i, entry in data.AnimalInventory do
+		if entry.Id == animalId then
+			index = i
+			break
+		end
+	end
+	if not index then
+		return false, "Animal introuvable."
+	end
+	local entry = data.AnimalInventory[index]
+	local key = penKey
+	if key == nil then
+		local found, reason = AnimalService:FindPenFor(state.Player, entry.Species)
+		if not found then
+			return false, reason or "Aucun enclos libre."
+		end
+		key = found
+	end
+	local pen = data.Pens[key :: string]
+	if not pen or not pen.Placed then
+		return false, "Enclos introuvable (est-il posé ?)."
+	end
+	if pen.Species and pen.Species ~= entry.Species then
+		return false, "Cet enclos accueille déjà une autre espèce."
+	end
+	if #pen.Animals >= PenConfig.Capacity then
+		return false, ("Cet enclos est plein (%d max)."):format(PenConfig.Capacity)
+	end
+	simulate(pen, os.time(), AnimalService:GetProductionMultiplier(state.Player))
+	pen.Species = entry.Species
+	table.remove(data.AnimalInventory, index)
+	-- L'animal garde son identifiant (les épingles de la vitrine restent valables)
+	local animal = { Id = entry.Id, Variant = entry.Variant, Progress = 0 }
+	table.insert(pen.Animals, animal)
+	spawnAnimalVisual(state, key :: string, animal)
+	updatePenInfo(state, key :: string)
+	syncPens(state)
+	syncInventory(state)
+	GameEvents.Fire(state.Player, "PlaceAnimal")
+	return true, animalLabel(entry.Species, entry.Variant) .. " entre dans l'enclos !"
+end
+
+-- Enclos -> inventaire
+local function storeAnimal(state: State, animalId: string): (boolean, string)
+	local data = state.Data
+	local key, index = findInPens(data, animalId)
+	if not key or not index then
+		return false, "Animal introuvable dans tes enclos."
+	end
+	if #data.AnimalInventory >= PenConfig.InventoryCapacity then
+		return false, "🐾 Mes animaux est plein."
+	end
+	local pen = data.Pens[key]
+	simulate(pen, os.time(), AnimalService:GetProductionMultiplier(state.Player))
+	local animal = table.remove(pen.Animals, index)
+	local speciesId = pen.Species
+	table.insert(data.AnimalInventory, { Id = animal.Id, Species = speciesId, Variant = animal.Variant })
+	if #pen.Animals == 0 then
+		pen.Species = nil
+	end
+	local visual = state.Visuals[key]
+	if visual and visual.Animals[animal.Id] then
+		visual.Animals[animal.Id]:Destroy()
+		visual.Animals[animal.Id] = nil
+	end
+	updatePenInfo(state, key)
+	syncPens(state)
+	syncInventory(state)
+	return true, animalLabel(speciesId, animal.Variant) .. " retourne dans 🐾 Mes animaux."
+end
+
+-- Épingle / désépingle un animal (enclos ou inventaire) dans la vitrine de prestige
+local function pinAnimal(state: State, animalId: string): (boolean, string)
+	local data = state.Data
+	local exists = findInPens(data, animalId) ~= nil
+	if not exists then
+		for _, entry in data.AnimalInventory do
+			if entry.Id == animalId then
+				exists = true
+			end
+		end
+	end
+	if not exists then
+		return false, "Animal introuvable."
+	end
+	local key = "A:" .. animalId
+	local picks = data.ShowcasePicks
+	local index = table.find(picks, key)
+	if index then
+		table.remove(picks, index)
+		SyncService:Set(state.Player, "ShowcasePicks", picks)
+		return true, "L'animal n'est plus épinglé dans la vitrine."
+	end
+	if #picks >= Config.Showcase.Slots then
+		return false, ("Vitrine pleine (%d épinglés max)."):format(Config.Showcase.Slots)
+	end
+	table.insert(picks, key)
+	SyncService:Set(state.Player, "ShowcasePicks", picks)
+	return true, "⭐ Animal épinglé dans la vitrine !"
+end
+
+local function onAnimalAction(player: Player, action: any, animalId: any, penKey: any): (boolean, string)
+	if not RemoteGuard.CheckCooldown(player, "AnimalAction", 0.3) then
+		return false, "Doucement !"
+	end
+	local state = states[player]
+	if not state then
+		return false, "Ta ferme n'est pas encore prête."
+	end
+	if type(animalId) ~= "string" then
+		return false, "Requête invalide."
+	end
+	if action == "Place" then
+		if penKey ~= nil and type(penKey) ~= "string" then
+			return false, "Requête invalide."
+		end
+		return placeAnimal(state, animalId, penKey)
+	elseif action == "Store" then
+		return storeAnimal(state, animalId)
+	elseif action == "Pin" then
+		return pinAnimal(state, animalId)
+	end
+	return false, "Action inconnue."
+end
+
+--------------------------------------------------------------------------
 -- Activation / désactivation
 --------------------------------------------------------------------------
 
@@ -887,6 +1064,18 @@ local function activate(player: Player, plot: any, data: { [string]: any })
 		buildPenVisual(state, key)
 	end
 	syncPens(state)
+
+	-- Anciens animaux "en attente" (roue) : ils vont dans 🐾 Mes animaux
+	if type(data.AnimalInventory) ~= "table" then
+		data.AnimalInventory = {}
+	end
+	for _, pending in data.PendingAnimals or {} do
+		if Config.Animals[pending.Species] then
+			table.insert(data.AnimalInventory, { Id = HttpService:GenerateGUID(false), Species = pending.Species, Variant = pending.Variant or "Normal" })
+		end
+	end
+	data.PendingAnimals = {}
+	syncInventory(state)
 end
 
 local function deactivate(player: Player, _plot: any)
@@ -926,6 +1115,7 @@ function AnimalService:Init()
 end
 
 function AnimalService:Start()
+	Remotes.Get("AnimalAction").OnServerInvoke = onAnimalAction
 	task.spawn(productionLoop)
 end
 

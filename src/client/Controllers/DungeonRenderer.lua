@@ -123,7 +123,7 @@ local function buildView(id: number, key: string, cframe: CFrame): View?
 
 	-- Barre de vie
 	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromScale(math.max(4, s * 1.2), 1.4)
+	gui.Size = UDim2.fromScale(math.max(4, def.Size * 1.2), 1.4)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, bodySize.Y / 2 + 1.5, 0)
 	gui.MaxDistance = 140
 	gui.LightInfluence = 0

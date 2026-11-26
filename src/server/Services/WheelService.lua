@@ -8,7 +8,7 @@
 	    la donne tout de suite, et renvoie au client l'index de la case gagnée : le client
 	    fait tourner la roue avec suspense et s'arrête sur cette case.
 	  • Récompense ultra rare : l'Astrelune, animal exclusif (annonce sur TOUS les serveurs).
-	    Sans enclos libre, elle attend dans data.PendingAnimals et arrive dès qu'un enclos se libère.
+	    Elle arrive dans 🐾 Mes animaux (si c'est plein, elle attend dans data.PendingAnimals).
 ]]
 
 local Players = game:GetService("Players")
@@ -66,16 +66,14 @@ local function rollIndex(): number
 	return 1
 end
 
--- Livre les animaux en attente si un enclos est libre
+-- Livre les animaux en attente dans 🐾 Mes animaux s'il y a de la place
 local function deliverPending(player: Player, data: { [string]: any }): boolean
 	local delivered = false
 	for i = #data.PendingAnimals, 1, -1 do
 		local pending = data.PendingAnimals[i]
-		local penKey = AnimalService:FindPenFor(player, pending.Species)
-		if penKey and AnimalService:AddAnimal(player, penKey, pending.Species, pending.Variant) then
+		if AnimalService:GiveAnimal(player, pending.Species, pending.Variant) then
 			table.remove(data.PendingAnimals, i)
 			delivered = true
-			SyncService:Notify(player, ("%s %s est arrivée dans ton enclos !"):format(Config.Animals[pending.Species].Icon, Config.Animals[pending.Species].DisplayName), "Rare")
 		end
 	end
 	return delivered
@@ -130,10 +128,11 @@ local function grant(player: Player, data: { [string]: any }, reward: { [string]
 		return "📖 Créature"
 	elseif reward.Kind == "Animal" then
 		local species = Config.Animals[reward.Species]
-		table.insert(data.PendingAnimals, { Species = reward.Species, Variant = reward.Variant or "Normal" })
-		if not deliverPending(player, data) then
-			SyncService:Notify(player, ("%s %s t'attend : construis ou libère un enclos pour l'accueillir !"):format(species.Icon, species.DisplayName), "Rare")
+		if not AnimalService:GiveAnimal(player, reward.Species, reward.Variant or "Normal") then
+			-- Inventaire plein : on la garde de côté, elle arrivera dès qu'il y a de la place
+			table.insert(data.PendingAnimals, { Species = reward.Species, Variant = reward.Variant or "Normal" })
 		end
+		SyncService:Notify(player, ("%s %s t'attend dans 🐾 Mes animaux !"):format(species.Icon, species.DisplayName), "Rare")
 		AnnouncementService:Announce(("🦄 %s a gagné l'animal EXCLUSIF %s à la roue !"):format(player.DisplayName, species.DisplayName), Color3.fromRGB(255, 120, 220), "Global")
 		return ("%s %s, l'animal EXCLUSIF de la roue !"):format(species.Icon, species.DisplayName)
 	end

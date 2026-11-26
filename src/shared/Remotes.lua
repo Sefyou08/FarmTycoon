@@ -54,6 +54,9 @@ Remotes.FunctionNames = {
 	"MountAction", -- Client -> Serveur : ("Mount", kind, id) | ("Dismount") | ("List") -> résultat
 	"SpinWheel", -- Client -> Serveur : () tourner la roue -> { Ok, Index, Text, Jackpot, Message }
 	"CosmeticAction", -- Client -> Serveur : ("Buy" | "Equip", cosmeticId) -> (ok, message)
+	"AnimalAction", -- Client -> Serveur : ("Place", animalId, penKey?) | ("Store", animalId) | ("Pin", animalId) -> (ok, message)
+	"TutorialAction", -- Client -> Serveur : ("Skip") | ("Restart") -> (ok, message)
+	"ClaimPlaytime", -- Client -> Serveur : (index) réclamer une récompense de temps de jeu -> (ok, message)
 }
 
 local folder: Folder? = nil
