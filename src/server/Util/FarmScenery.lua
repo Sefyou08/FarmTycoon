@@ -2,7 +2,8 @@
 	FarmScenery.lua
 	===============
 	Décor de la ferme (phase 10), construit une fois au démarrage du serveur :
-	  • terrain d'herbe (Terrain Roblox, herbe animée) à la place du Baseplate gris ;
+	  • sol en grandes Parts « Grass » (texture plate, sans brins) à la place du Baseplate gris ;
+	    le Terrain ne sert qu'au ruisseau et aux montagnes (jamais sous un sol en Parts) ;
 	  • montagnes enneigées en arrière-plan (anneau autour de la map) ;
 	  • ruisseau nord-sud entre deux colonnes de parcelles, un étang, un pont en bois
 	    arrondi sur le chemin principal ;
@@ -84,26 +85,26 @@ local function buildTerrain()
 		terrain.Decoration = false
 	end)
 
-	-- Sol : PAS d'herbe. Le Terrain (terre) est caché 1 stud sous le sol ; le sol visible est fait
-	-- de grandes Parts lisses vertes (dessus à y = 0), coupées seulement par le ruisseau.
+	-- Sol : UNE seule couche visible = de grandes Parts en matériau Grass (texture d'herbe plate,
+	-- sans brins). AUCUN Terrain sous ces Parts : le Terrain (voxels de 4 studs) arrondit sa
+	-- surface et ressortait au travers. Le Terrain ne sert plus qu'au ruisseau et aux montagnes.
 	local size = Art.GroundSize
-	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(120, 95, 65))
-	terrain:FillBlock(CFrame.new(0, -7, 0), Vector3.new(size, 12, size), Enum.Material.Ground)
-
 	local sx, width = Art.StreamX, Art.StreamWidth
-	local gap = width / 2 + 1.5
-	local west = (-size / 2 + (sx - gap)) / 2
-	local east = ((sx + gap) + size / 2) / 2
-	for _, info in { { west, (sx - gap) + size / 2 }, { east, size / 2 - (sx + gap) } } do
-		ArtKit.Block(folder, "FarmGround", Vector3.new(info[2], 2, size), CFrame.new(info[1], -1, 0), Art.GrassColor, Enum.Material.SmoothPlastic, { CanCollide = true, CanQuery = true, CastShadow = false })
+	local depth = 8 -- épaisseur du sol (de y = -8 à y = 0)
+	local west = (-size / 2 + (sx - width / 2)) / 2
+	local east = ((sx + width / 2) + size / 2) / 2
+	for _, info in { { west, (sx - width / 2) + size / 2 }, { east, size / 2 - (sx + width / 2) } } do
+		ArtKit.Block(folder, "FarmGround", Vector3.new(info[2], depth, size), CFrame.new(info[1], -depth / 2, 0), Art.GrassColor, Enum.Material.Grass, { CanCollide = true, CanQuery = true, CastShadow = false })
 	end
 
-	-- Ruisseau nord-sud (creusé puis rempli d'eau), berges de sable, dans la fente entre les deux sols
-	local length = Config.Art.Farm.MountainRing.Radius * 2
-	terrain:FillBlock(CFrame.new(sx, -6, 0), Vector3.new(width + 6, 4, length), Enum.Material.Sand)
-	terrain:FillBlock(CFrame.new(sx, -3, 0), Vector3.new(width, 4, length), Enum.Material.Air)
-	terrain:FillBlock(CFrame.new(sx, -3.6, 0), Vector3.new(width, 2.8, length), Enum.Material.Water)
-	-- Étang au sud : une Part d'eau (pas de trou dans le sol)
+	-- Ruisseau nord-sud dans la fente entre les deux sols : lit de sable + eau (sous le niveau du sol)
+	local length = size
+	terrain:FillBlock(CFrame.new(sx, -6, 0), Vector3.new(width, 4, length), Enum.Material.Sand) -- y -8 à -4
+	terrain:FillBlock(CFrame.new(sx, -2.5, 0), Vector3.new(width, 3, length), Enum.Material.Water) -- y -4 à -1
+	for _, side in { -1, 1 } do
+		ArtKit.Block(folder, "StreamBank", Vector3.new(0.4, 3.6, length), CFrame.new(sx + side * (width / 2 - 0.2), -2.1, 0), Color3.fromRGB(205, 180, 130), Enum.Material.Sand, { CanCollide = true })
+	end
+	-- Étang au sud : une Part d'eau posée sur le sol
 	ArtKit.Disc(folder, "PondRim", 0.5, 66, CFrame.new(POND + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(215, 195, 150), Enum.Material.Sand)
 	ArtKit.Disc(folder, "PondWater", 0.6, 60, CFrame.new(POND + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(70, 170, 225), Enum.Material.Glass, { Transparency = 0.15, Reflectance = 0.3 })
 
@@ -479,6 +480,9 @@ function FarmScenery.Build()
 			old:Destroy()
 		end
 	end
+	-- Efface tout Terrain existant (ancienne herbe, terrain sauvegardé dans la place...) :
+	-- tout le décor est reconstruit ici, et les zones d'expédition juste après
+	Workspace.Terrain:Clear()
 	folder = Instance.new("Folder")
 	folder.Name = "Scenery"
 	folder.Parent = Workspace

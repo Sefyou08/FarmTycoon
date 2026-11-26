@@ -483,7 +483,7 @@ Config.Plots = {
 	ExpandInteractDistance = 10,
 	GateWidth = 16, -- ouverture de la clôture à l'entrée de la parcelle
 
-	GroundColor = Color3.fromRGB(150, 205, 100), -- sol de parcelle par défaut (plus clair que le terrain)
+	GroundColor = Color3.fromRGB(150, 210, 95), -- sol de parcelle par défaut (plus clair que la map)
 	BorderColor = Color3.fromRGB(110, 75, 45),
 	SignColor = Color3.fromRGB(150, 105, 60),
 
@@ -1293,7 +1293,7 @@ Config.Cosmetics = {
 	PenGold = { Category = "PenSkin", Name = "Or", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(255, 200, 50), Material = Enum.Material.Foil },
 
 	-- Sol de parcelle
-	FloorGrass = { Category = "PlotFloor", Name = "Vert prairie", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(150, 205, 100), Material = Enum.Material.SmoothPlastic },
+	FloorGrass = { Category = "PlotFloor", Name = "Gazon clair", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(150, 210, 95), Material = Enum.Material.Grass },
 	FloorMeadow = { Category = "PlotFloor", Name = "Prairie fleurie", Unlock = { Kind = "Level", Level = 10 }, Color = rgb2(130, 190, 90), Material = Enum.Material.SmoothPlastic, Pattern = "Flowers" },
 	FloorSand = { Category = "PlotFloor", Name = "Sable doré", Unlock = { Kind = "Coins", Price = 50000 }, Color = rgb2(230, 205, 140), Material = Enum.Material.Sand },
 	FloorSnow = { Category = "PlotFloor", Name = "Neige", Unlock = { Kind = "Index", Zone = "Mountain" }, Color = rgb2(240, 245, 255), Material = Enum.Material.Snow },
@@ -1475,7 +1475,7 @@ Config.Art = {
 		BranchPathWidth = 8,
 		Trees = 140, Flowers = 220, Bushes = 60, Rocks = 30,
 		MountainRing = { Radius = 760, Count = 16 },
-		GrassColor = rgb3(110, 180, 70),
+		GrassColor = rgb3(88, 150, 58), -- sol de la map (plus foncé que le sol des parcelles)
 		PathColor = rgb3(205, 170, 115),
 	},
 

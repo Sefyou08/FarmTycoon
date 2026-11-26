@@ -358,7 +358,9 @@ Le gameplay est là ; il faut maintenant une vraie identité visuelle.
 - **❓ Guide** (`GuideUI`) et **récompenses de temps de jeu** (`PlaytimeService`, `Config.Playtime`).
 
 **Lisibilité et boutons tycoon** :
-- Plus aucune herbe : sol de la ferme et de la Forêt en grandes Parts vertes lisses (Terrain caché dessous).
+- Sol de la ferme et de la Forêt : UNE couche de grandes Parts en matériau Grass (texture plate, sans
+  brins) ; aucun Terrain dessous (`Terrain:Clear()` au démarrage, Terrain seulement pour l'eau et les
+  montagnes) : plus de terre ni d'herbe qui perce au travers.
 - Éléments interactifs surélevés et lumineux : jardinières des champs (cadre coloré, case à débloquer
   dorée, panneau 🌱), socles et vitrine plus hauts avec liseré, disques lumineux devant stands et
   portails, paillasson lumineux devant les portes, repères sous la mangeoire et la caisse.

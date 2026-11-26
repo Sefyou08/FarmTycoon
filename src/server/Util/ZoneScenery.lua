@@ -62,13 +62,13 @@ end
 local function ground(env: Env, floor: Enum.Material, cliff: Enum.Material, cap: Enum.Material?, partColor: Color3?, gapZ: number?, gapWidth: number?)
 	local c, size = env.Center, env.Half * 2
 	if partColor then
-		terrain:FillBlock(CFrame.new(c - Vector3.new(0, 7, 0)), Vector3.new(size + 120, 12, size + 120), Enum.Material.Ground)
+		-- Sol en Parts « Grass » seulement, SANS Terrain dessous (il ressortait au travers)
 		local full = size + 120
 		local minZ, maxZ = -full / 2, full / 2
-		local pieces = if gapZ then { { minZ, gapZ - gapWidth / 2 - 1 }, { gapZ + gapWidth / 2 + 1, maxZ } } else { { minZ, maxZ } }
+		local pieces = if gapZ then { { minZ, gapZ - gapWidth / 2 }, { gapZ + gapWidth / 2, maxZ } } else { { minZ, maxZ } }
 		for _, piece in pieces do
 			local depth = piece[2] - piece[1]
-			ArtKit.Block(env.Folder, "ZoneGround", Vector3.new(full, 2, depth), CFrame.new(c + Vector3.new(0, -1, (piece[1] + piece[2]) / 2)), partColor, Enum.Material.SmoothPlastic, { CanCollide = true, CanQuery = true, CastShadow = false })
+			ArtKit.Block(env.Folder, "ZoneGround", Vector3.new(full, 8, depth), CFrame.new(c + Vector3.new(0, -4, (piece[1] + piece[2]) / 2)), partColor, Enum.Material.Grass, { CanCollide = true, CanQuery = true, CastShadow = false })
 		end
 	else
 		terrain:FillBlock(CFrame.new(c - Vector3.new(0, 6, 0)), Vector3.new(size + 120, 12, size + 120), floor)
@@ -113,11 +113,12 @@ end
 local function forest(env: Env)
 	-- Sol vert lisse (pas d'herbe), falaises de roche ; rivière le long du bord nord avec un pont
 	local riverZ = env.Half - 22
-	ground(env, Enum.Material.Ground, Enum.Material.Rock, Enum.Material.Ground, rgb(95, 165, 70), riverZ, 12)
+	ground(env, Enum.Material.Ground, Enum.Material.Rock, nil, rgb(90, 155, 60), riverZ, 12)
 	local leaves = { rgb(60, 140, 55), rgb(80, 165, 60), rgb(50, 120, 50) }
 	local c = env.Center
-	terrain:FillBlock(CFrame.new(c + Vector3.new(0, -3, riverZ)), Vector3.new(env.Half * 2 + 120, 4, 12), Enum.Material.Air)
-	terrain:FillBlock(CFrame.new(c + Vector3.new(0, -3.6, riverZ)), Vector3.new(env.Half * 2 + 120, 2.8, 12), Enum.Material.Water)
+	-- Rivière dans la fente entre les sols : lit de sable + eau, sous le niveau du sol
+	terrain:FillBlock(CFrame.new(c + Vector3.new(0, -6, riverZ)), Vector3.new(env.Half * 2 + 120, 4, 12), Enum.Material.Sand)
+	terrain:FillBlock(CFrame.new(c + Vector3.new(0, -2.5, riverZ)), Vector3.new(env.Half * 2 + 120, 3, 12), Enum.Material.Water)
 	local bridge = CFrame.new(c + Vector3.new(-40, 0, riverZ))
 	for i = -3, 3 do
 		ArtKit.Block(env.Folder, "BridgePlank", Vector3.new(6, 0.4, 2), bridge * CFrame.new(0, 0.6 + (1 - math.abs(i) / 3) * 0.8, i * 2), rgb(140, 95, 60), Enum.Material.WoodPlanks, { CanCollide = true })
