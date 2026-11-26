@@ -78,8 +78,8 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 |---|---|---|
 | 1 | Setup Rojo, parcelles, argent, sauvegarde | ✅ fait |
 | 2 | Planter, pousse en 3 stades, récolte, vente, boutique de graines | ✅ fait |
-| 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | 🧪 codée, à tester |
-| 4 | Bâtiments de transformation (machines, recettes, files de production) | à faire |
+| 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | ✅ fait |
+| 4 | Bâtiments de transformation (machines, recettes, files de production) + vitesse de marche et sprint | 🧪 codée, à tester |
 | 5 | Expéditions (portail, zones, créatures sauvages, capture) | à faire |
 | 6 | Collection et exposition (socles, Coins/s, Index, classement) | à faire |
 | 7 | Progression (boutique tournante, plantes rares et mutations, collecteurs, rebirth, monture) | à faire |
@@ -189,16 +189,34 @@ Valeur produite ≈ 2,2 à 2,8 fois le coût de la nourriture consommée.
 | Légendaire | 0,4 % | x2 | x8 | or + aura lumineuse |
 | Mythique | 0,1 % | x3 | x20 | arc-en-ciel + aura violette, annonce au serveur |
 
-### 5.4 Bâtiments (phase 4, provisoire)
-Ordre de déblocage visé : Laiterie → Filature → Fromagerie → Boulangerie → autres.
-Un produit transformé vaut environ 1,8 à 2,5 fois la valeur des ressources utilisées.
+### 5.4 Bâtiments (phase 4)
+Ordre de déblocage, choisi selon les ressources dont le joueur dispose en premier :
+**Boulangerie** (blé, œufs) → **Filature** (laine) → **Laiterie** (lait) → **Fromagerie** →
+**Atelier de couture** (tissu + plumes / fourrure). Chaque bâtiment demande le précédent et un
+niveau de parcelle. La variante du **1er ingrédient** est transmise au produit.
 
-| Bâtiment | Recettes envisagées |
-|---|---|
-| Laiterie | Lait → Beurre ; Lait → Crème |
-| Filature | Laine → Fil ; Fil → Tissu |
-| Fromagerie | Lait (ou lait de chèvre) → Fromage |
-| Boulangerie | Œufs + Blé → Gâteau ; Blé → Pain |
+| Bâtiment | Prix | Parcelle | Recettes (temps au niveau 1) |
+|---|---|---|---|
+| 🥖 Boulangerie | 1 500 | niv. 1 | 4 Blé → 🍞 Pain 70 (30 s) ; 3 Œufs + 2 Blé → 🍰 Gâteau 170 (1 min) |
+| 🧶 Filature | 8 000 | niv. 1 | 2 Laine → 🧵 Fil 520 (1 min) ; 2 Fil → 🧣 Tissu 2 300 (2 min) |
+| 🥛 Laiterie | 25 000 | niv. 2 | 1 Lait → 🍦 Crème 700 (45 s) ; 2 Lait → 🧈 Beurre 1 500 (1 min 30) |
+| 🧀 Fromagerie | 60 000 | niv. 2 | 3 Lait de chèvre → Fromage de chèvre 1 300 (2 min) ; 3 Lait → 🧀 Fromage 2 400 (2 min 30) ; 2 Fromages + 1 Truffe → Fromage truffé 12 000 (4 min, bâtiment niv. 3) |
+| 🪡 Atelier de couture | 150 000 | niv. 3 | 1 Tissu + 4 Plumes → 🛏️ Oreiller 5 800 (3 min) ; 1 Tissu + 5 Fourrures → 🧥 Manteau 5 600 (3 min) |
+
+Améliorations (communes à tous les bâtiments, prix = prix du bâtiment × multiplicateur) :
+
+| Niveau | Prix | Vitesse | Productions en même temps | File d'attente |
+|---|---|---|---|---|
+| 1 | — | x1 | 1 | 5 |
+| 2 | x1,5 | x1,25 | 1 | 8 |
+| 3 | x3 | x1,5 | 2 | 10 |
+| 4 | x6 | x2 | 2 | 12 |
+| 5 | x12 | x2,5 | 3 | 15 |
+
+Stock de produits finis : 40 par bâtiment. Production hors ligne : 8 h max.
+
+### 5.6 Déplacement
+Vitesse de marche 24 (au lieu de 16), sprint à 32 en maintenant Maj (bouton sur mobile).
 
 ### 5.5 Créatures (phase 5, provisoire)
 Raretés : Commune, Rare, Épique, Légendaire, Mythique, Secrète (de la plus fréquente à la plus

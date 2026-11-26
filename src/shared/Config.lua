@@ -368,6 +368,127 @@ Config.Plots = {
 }
 
 --------------------------------------------------------------------------
+-- DÉPLACEMENT DU PERSONNAGE
+--------------------------------------------------------------------------
+Config.Movement = {
+	WalkSpeed = 24, -- vitesse de marche normale (Roblox par défaut : 16)
+	SprintEnabled = true,
+	SprintSpeed = 32, -- vitesse en courant (touche maintenue, ou bouton sur mobile)
+	SprintKeys = { Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift },
+	-- Phase 7 : la monture (cheval) ajoutera un bonus ici
+}
+
+--------------------------------------------------------------------------
+-- PRODUITS TRANSFORMÉS (fabriqués dans les bâtiments)
+--   Valeur ≈ 1,8 à 2,5 fois celle des ingrédients ; la variante de l'ingrédient
+--   principal est transmise au produit ("Beurre Doré" = x2).
+--------------------------------------------------------------------------
+Config.Products = {
+	Bread = { DisplayName = "Pain", Icon = "🍞", Order = 1, SellPrice = 70 },
+	Cake = { DisplayName = "Gâteau", Icon = "🍰", Order = 2, SellPrice = 170 },
+	Yarn = { DisplayName = "Fil", Icon = "🧵", Order = 3, SellPrice = 520 },
+	Fabric = { DisplayName = "Tissu", Icon = "🧣", Order = 4, SellPrice = 2300 },
+	Cream = { DisplayName = "Crème", Icon = "🍦", Order = 5, SellPrice = 700, Feminine = true },
+	Butter = { DisplayName = "Beurre", Icon = "🧈", Order = 6, SellPrice = 1500 },
+	GoatCheese = { DisplayName = "Fromage de chèvre", Icon = "🥧", Order = 7, SellPrice = 1300 },
+	Cheese = { DisplayName = "Fromage", Icon = "🧀", Order = 8, SellPrice = 2400 },
+	TruffleCheese = { DisplayName = "Fromage truffé", Icon = "🏆", Order = 9, SellPrice = 12000 },
+	Pillow = { DisplayName = "Oreiller", Icon = "🛏️", Order = 10, SellPrice = 5800 },
+	Coat = { DisplayName = "Manteau", Icon = "🧥", Order = 11, SellPrice = 5600 },
+}
+
+--------------------------------------------------------------------------
+-- BÂTIMENTS DE TRANSFORMATION
+--   Price          : prix de construction (Coins)
+--   RequiredLevel  : niveau de parcelle nécessaire
+--   Requires       : bâtiment à construire avant (ordre de déblocage)
+--   X, Z           : emplacement sur la parcelle (coordonnées locales, Z = profondeur)
+--   Recipes        : Inputs (le 1er ingrédient donne la variante du produit),
+--                    Output, Time (secondes au niveau 1), RequiredBuildingLevel (optionnel)
+-- Ordre de déblocage : Boulangerie (blé, œufs) -> Filature (laine) -> Laiterie (lait)
+--                      -> Fromagerie -> Atelier de couture (tissu + plumes / fourrure)
+--------------------------------------------------------------------------
+Config.Buildings = {
+	Bakery = {
+		DisplayName = "Boulangerie", Icon = "🥖", Order = 1, Feminine = true,
+		Price = 1500, RequiredLevel = 1, Requires = nil,
+		X = -12, Z = 50, Width = 13, Depth = 11,
+		WallColor = Color3.fromRGB(235, 210, 170), RoofColor = Color3.fromRGB(170, 70, 50),
+		Recipes = {
+			{ Id = "Bread", Inputs = { { Item = "Wheat", Amount = 4 } }, Output = { Item = "Bread", Amount = 1 }, Time = 30 },
+			{ Id = "Cake", Inputs = { { Item = "Egg", Amount = 3 }, { Item = "Wheat", Amount = 2 } }, Output = { Item = "Cake", Amount = 1 }, Time = 60 },
+		},
+	},
+	Spinning = {
+		DisplayName = "Filature", Icon = "🧶", Order = 2, Feminine = true,
+		Price = 8000, RequiredLevel = 1, Requires = "Bakery",
+		X = 12, Z = 50, Width = 13, Depth = 11,
+		WallColor = Color3.fromRGB(200, 190, 230), RoofColor = Color3.fromRGB(90, 70, 150),
+		Recipes = {
+			{ Id = "Yarn", Inputs = { { Item = "Wool", Amount = 2 } }, Output = { Item = "Yarn", Amount = 1 }, Time = 60 },
+			{ Id = "Fabric", Inputs = { { Item = "Yarn", Amount = 2 } }, Output = { Item = "Fabric", Amount = 1 }, Time = 120 },
+		},
+	},
+	Dairy = {
+		DisplayName = "Laiterie", Icon = "🥛", Order = 3, Feminine = true,
+		Price = 25000, RequiredLevel = 2, Requires = "Spinning",
+		X = -12, Z = 72, Width = 13, Depth = 11,
+		WallColor = Color3.fromRGB(240, 245, 255), RoofColor = Color3.fromRGB(60, 120, 200),
+		Recipes = {
+			{ Id = "Cream", Inputs = { { Item = "Milk", Amount = 1 } }, Output = { Item = "Cream", Amount = 1 }, Time = 45 },
+			{ Id = "Butter", Inputs = { { Item = "Milk", Amount = 2 } }, Output = { Item = "Butter", Amount = 1 }, Time = 90 },
+		},
+	},
+	Cheese = {
+		DisplayName = "Fromagerie", Icon = "🧀", Order = 4, Feminine = true,
+		Price = 60000, RequiredLevel = 2, Requires = "Dairy",
+		X = 12, Z = 72, Width = 13, Depth = 11,
+		WallColor = Color3.fromRGB(255, 225, 130), RoofColor = Color3.fromRGB(150, 100, 40),
+		Recipes = {
+			{ Id = "GoatCheese", Inputs = { { Item = "GoatMilk", Amount = 3 } }, Output = { Item = "GoatCheese", Amount = 1 }, Time = 120 },
+			{ Id = "Cheese", Inputs = { { Item = "Milk", Amount = 3 } }, Output = { Item = "Cheese", Amount = 1 }, Time = 150 },
+			{
+				Id = "TruffleCheese",
+				Inputs = { { Item = "Cheese", Amount = 2 }, { Item = "Truffle", Amount = 1 } },
+				Output = { Item = "TruffleCheese", Amount = 1 },
+				Time = 240,
+				RequiredBuildingLevel = 3, -- recette débloquée au niveau 3 du bâtiment
+			},
+		},
+	},
+	Tailor = {
+		DisplayName = "Atelier de couture", Icon = "🪡", Order = 5,
+		Price = 150000, RequiredLevel = 3, Requires = "Cheese",
+		X = 0, Z = 96, Width = 15, Depth = 11,
+		WallColor = Color3.fromRGB(250, 200, 210), RoofColor = Color3.fromRGB(180, 60, 110),
+		Recipes = {
+			{ Id = "Pillow", Inputs = { { Item = "Fabric", Amount = 1 }, { Item = "Feather", Amount = 4 } }, Output = { Item = "Pillow", Amount = 1 }, Time = 180 },
+			{ Id = "Coat", Inputs = { { Item = "Fabric", Amount = 1 }, { Item = "Fur", Amount = 5 } }, Output = { Item = "Coat", Amount = 1 }, Time = 180 },
+		},
+	},
+}
+
+-- Niveaux d'amélioration (communs à tous les bâtiments)
+--   CostMultiplier : prix de l'amélioration = Price du bâtiment x ce multiplicateur
+--   Speed          : vitesse de production
+--   Slots          : nombre de productions EN MÊME TEMPS
+--   QueueSize      : nombre max de commandes dans la file d'attente
+Config.BuildingLevels = {
+	{ CostMultiplier = 0, Speed = 1, Slots = 1, QueueSize = 5 },
+	{ CostMultiplier = 1.5, Speed = 1.25, Slots = 1, QueueSize = 8 },
+	{ CostMultiplier = 3, Speed = 1.5, Slots = 2, QueueSize = 10 },
+	{ CostMultiplier = 6, Speed = 2, Slots = 2, QueueSize = 12 },
+	{ CostMultiplier = 12, Speed = 2.5, Slots = 3, QueueSize = 15 },
+}
+
+Config.BuildingSettings = {
+	OutputCapacity = 40, -- produits finis max en attente dans un bâtiment
+	MaxOfflineSeconds = 8 * 3600, -- production hors ligne plafonnée à 8 h
+	InteractDistance = 12,
+	QueueAmounts = { 1, 5 }, -- boutons "Lancer x1 / x5" dans l'interface
+}
+
+--------------------------------------------------------------------------
 -- MONÉTISATION (préparée, DÉSACTIVÉE : activée en phase 8)
 -- Remplace les Id = 0 par les vrais IDs créés sur le Creator Dashboard.
 --------------------------------------------------------------------------

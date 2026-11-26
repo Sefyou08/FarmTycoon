@@ -30,6 +30,7 @@ Remotes.FunctionNames = {
 	"GetState", -- Client -> Serveur : renvoie l'état complet du joueur (ou nil si pas encore chargé)
 	"BuySeed", -- Client -> Serveur : (seedId, quantité) -> (ok, message)
 	"BuyAnimal", -- Client -> Serveur : (speciesId) -> (ok, message, variante)
+	"BuildingAction", -- Client -> Serveur : (buildingId, action, ...) -> (ok, message)
 }
 
 local folder: Folder? = nil

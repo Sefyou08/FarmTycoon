@@ -4,7 +4,7 @@
 	Tout ce qui peut être dans l'inventaire est un "objet" (item) :
 	  - les récoltes (Config.Crops)
 	  - les ressources animales (Config.Resources)
-	  - (phase 4) les produits transformés
+	  - les produits transformés (Config.Products)
 	Chaque objet existe en plusieurs VARIANTES (Config.Variants : Normal, Gold...),
 	qui multiplient sa valeur de vente.
 	Partagé client/serveur.
@@ -14,8 +14,8 @@ local Config = require(script.Parent.Config)
 
 local ItemUtil = {}
 
--- Ordre d'affichage : récoltes, puis ressources
-local CATEGORIES = { Config.Crops, Config.Resources }
+-- Ordre d'affichage : récoltes, puis ressources, puis produits transformés
+local CATEGORIES = { Config.Crops, Config.Resources, Config.Products }
 
 local sortedIds: { string }? = nil
 

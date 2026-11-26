@@ -36,9 +36,15 @@ return {
 	--     Storage = { [variante] = quantité } dans la caisse,
 	--     LastUpdate = os.time() de la dernière simulation (production hors ligne) } }
 	Pens = {},
-	Upgrades = {}, -- (phase 4) améliorations débloquées : { [upgradeId] = niveau }
-	Pets = {}, -- (phase 5) liste des familiers possédés : { { Id = "...", PetType = "..." } }
-	EquippedPets = {}, -- (phase 5) liste des Id équipés
+	-- Bâtiments construits : { [buildingId] = {
+	--     Level = 1,
+	--     Queue = { { Recipe = "Bread", Variant = "Normal", Remaining = secondes de travail } },
+	--     Output = { [itemId] = { [variante] = quantité } }  -- produits finis à récupérer
+	--     LastUpdate = os.time() } }
+	Buildings = {},
+	Upgrades = {}, -- (phase 7) améliorations : { [upgradeId] = niveau } (ex. ExtraTiles, collecteurs)
+	Creatures = {}, -- (phase 5) créatures capturées en expédition
+	Displayed = {}, -- (phase 6) créatures exposées sur les socles
 
 	Stats = {
 		TotalEarned = 0, -- total de coins gagnés depuis toujours

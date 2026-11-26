@@ -25,8 +25,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 
 - [x] Phase 1 : setup Rojo, parcelles, argent, sauvegarde
 - [x] Phase 2 : planter, pousse (3 stades), récolte, vente
-- [ ] Phase 3 : animaux de ferme, enclos, variantes, agrandissement de parcelle (à tester)
-- [ ] Phase 4 : bâtiments de transformation
+- [x] Phase 3 : animaux de ferme, enclos, variantes, agrandissement de parcelle
+- [ ] Phase 4 : bâtiments de transformation, vitesse de marche et sprint (à tester)
 - [ ] Phase 5 : expéditions
 - [ ] Phase 6 : collection et exposition
 - [ ] Phase 7 : progression (boutique tournante, rebirth...)
@@ -43,3 +43,5 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 7. Le **fumier** du cheval sert d'engrais : **E** sur une plante qui pousse.
 8. Stand **💰 VENTE** (à droite du spawn) : tout vendre.
 9. Bouton bleu à l'entrée de ta parcelle : **agrandir** la parcelle.
+10. Boutons orange au fond de ta parcelle : construire les **bâtiments** (boulangerie, filature...). **E** sur la porte pour lancer des recettes, récupérer les produits et améliorer le bâtiment.
+11. **Maj** pour courir.
