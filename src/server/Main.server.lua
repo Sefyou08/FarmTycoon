@@ -66,4 +66,4 @@ for _, name in SERVICE_ORDER do
 	end
 end
 
-print("[FarmTycoon] Serveur démarré ✅ (Phase 9)")
+print("[FarmTycoon] Serveur démarré ✅ (Phase 10)")

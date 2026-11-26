@@ -15,6 +15,7 @@ local PlantTimers = require(Controllers:WaitForChild("PlantTimers"))
 local AnimalController = require(Controllers:WaitForChild("AnimalController"))
 local MovementController = require(Controllers:WaitForChild("MovementController"))
 local MountController = require(Controllers:WaitForChild("MountController"))
+local LightingController = require(Controllers:WaitForChild("LightingController"))
 
 local Notifications = require(UI:WaitForChild("Notifications"))
 local Theme = require(UI:WaitForChild("Theme"))
@@ -58,10 +59,11 @@ WheelUI.Init(HUD.Screen, HUD, StateController, Notifications.Show)
 CosmeticsUI.Init(HUD.Screen, HUD, StateController, Notifications.Show)
 
 PromptController.Init()
+LightingController.Init()
 PlantTimers.Init()
 AnimalController.Init()
 MovementController.Init(HUD)
 MountController.Init(HUD.Screen, HUD, Theme, Notifications.Show)
 StateController.Init() -- en dernier : l'UI écoute déjà Changed quand l'état arrive
 
-print("[FarmTycoon] Client démarré ✅ (Phase 9)")
+print("[FarmTycoon] Client démarré ✅ (Phase 10)")

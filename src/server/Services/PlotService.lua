@@ -37,6 +37,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local FarmScenery = require(script.Parent.Parent.Util.FarmScenery)
 local DataService = require(script.Parent.DataService)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
@@ -116,32 +117,8 @@ function PlotService:ToWorld(plot: Plot, x: number, z: number, height: number?):
 end
 
 local function buildWorld()
-	local maxDepth = EXPANSIONS[MAX_LEVEL].Depth
-	local mapWidth = PlotConfig.SpacingX * PlotConfig.Columns + 120
-	local mapDepth = (PlotConfig.FrontOffsetZ + maxDepth) * 2 + 80
-
-	-- Sol général si la place n'a pas déjà un Baseplate
-	if not Workspace:FindFirstChild("Baseplate") and not Workspace:FindFirstChild("FarmGround") then
-		makePart({
-			Name = "FarmGround",
-			Size = Vector3.new(mapWidth, 2, mapDepth),
-			Position = Vector3.new(0, -1, 0),
-			Color = Color3.fromRGB(90, 140, 60),
-			Material = Enum.Material.Grass,
-			Parent = Workspace,
-		})
-	end
-
-	-- Allée centrale entre les deux rangées de parcelles
-	makePart({
-		Name = "CentralPath",
-		Size = Vector3.new(PlotConfig.SpacingX * PlotConfig.Columns, 0.2, PlotConfig.FrontOffsetZ * 2 - 4),
-		Position = Vector3.new(0, 0.1, 0),
-		Color = Color3.fromRGB(200, 180, 140),
-		Material = Enum.Material.Sand,
-		CanCollide = false,
-		Parent = Workspace,
-	})
+	-- Terrain, montagnes, ruisseau, chemins, arbres, place du spawn, éclairage (phase 10)
+	FarmScenery.Build()
 
 	if not Workspace:FindFirstChildWhichIsA("SpawnLocation") then
 		local spawn = Instance.new("SpawnLocation")
@@ -182,9 +159,27 @@ local function applyLevel(plot: Plot, level: number)
 			Size = side[1],
 			CFrame = plot.CFrame * CFrame.new(side[2]),
 			Color = PlotConfig.BorderColor,
-			Material = Enum.Material.Wood,
+			Material = Enum.Material.WoodPlanks,
 			Parent = plot.Borders,
 		})
+		-- Petits poteaux arrondis tous les 12 studs (phase 10)
+		local length = math.max(side[1].X, side[1].Z)
+		local alongX = side[1].X > side[1].Z
+		local count = math.floor(length / 12)
+		for j = 0, count do
+			local offset = -length / 2 + j * (length / count)
+			local local_ = side[2] + (if alongX then Vector3.new(offset, 0.4, 0) else Vector3.new(0, 0.4, offset))
+			makePart({
+				Name = "BorderPost",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(1.6, 1.1, 1.1),
+				CFrame = plot.CFrame * CFrame.new(local_) * CFrame.Angles(0, 0, math.rad(90)),
+				Color = PlotConfig.BorderColor:Lerp(Color3.new(0, 0, 0), 0.15),
+				Material = Enum.Material.Wood,
+				CanCollide = false,
+				Parent = plot.Borders,
+			})
+		end
 	end
 
 	-- Bouton d'agrandissement : visible seulement si la parcelle a un propriétaire et n'est pas au max

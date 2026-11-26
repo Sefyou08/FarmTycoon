@@ -1,0 +1,225 @@
+--[[
+	ArtKit.lua
+	==========
+	Boîte à outils commune à tous les modèles générés (phase 10) :
+	  • petites fonctions pour créer des Parts « cartoon » (bloc, boule, cylindre
+	    vertical, coin, triangle) déjà ancrées, lisses, sans collision par défaut ;
+	  • la BIBLIOTHÈQUE DE MODÈLES DE REMPLACEMENT (Toolbox / MeshPart importé).
+
+	REMPLACER UN MODÈLE GÉNÉRÉ PAR UN MODÈLE À TOI
+	  ServerStorage
+	    └ CustomModels (Folder)
+	        ├ Creatures (Folder) : Model nommé comme l'id de la créature (ex. "Pharaonix")
+	        ├ Animals   (Folder) : Model nommé comme l'espèce (ex. "Cow", "Chicken", "Horse")
+	        ├ Buildings (Folder) : Model nommé comme le bâtiment (ex. "Bakery", "Dairy")
+	        ├ Stands    (Folder) : "SeedShop", "SellStand", "AnimalShop"
+	        ├ Enemies   (Folder) : Model nommé comme l'ennemi ou le boss (ex. "Slime")
+	        └ Mascot    (Folder) : "Biscotte"
+	  Règles : le modèle regarde vers -Z (son avant), ses pieds sont au niveau de son
+	  pivot (WorldPivot), et il a la bonne taille (≈ celle du modèle généré). Le jeu le
+	  clone à la place du modèle généré ; tout le gameplay reste identique.
+]]
+
+local ServerStorage = game:GetService("ServerStorage")
+
+local ArtKit = {}
+
+local DEFAULTS = {
+	Anchored = true,
+	CanCollide = false,
+	CanTouch = false,
+	CanQuery = false,
+	TopSurface = Enum.SurfaceType.Smooth,
+	BottomSurface = Enum.SurfaceType.Smooth,
+	Material = Enum.Material.SmoothPlastic,
+}
+
+-- Part générique : props = propriétés Roblox (Size, CFrame, Color, Material, Parent...)
+function ArtKit.Part(props: { [string]: any }, className: string?): BasePart
+	local part = Instance.new(className or "Part") :: any
+	for key, value in DEFAULTS do
+		if props[key] == nil then
+			part[key] = value
+		end
+	end
+	local parent = props.Parent
+	for key, value in props do
+		if key ~= "Parent" then
+			part[key] = value
+		end
+	end
+	part.Parent = parent
+	return part
+end
+
+-- Bloc
+function ArtKit.Block(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3, material: Enum.Material?, extra: { [string]: any }?): BasePart
+	local props = { Name = name, Size = size, CFrame = cframe, Color = color, Material = material or Enum.Material.SmoothPlastic, Parent = parent }
+	if extra then
+		for k, v in extra do
+			props[k] = v
+		end
+	end
+	return ArtKit.Part(props)
+end
+
+-- Boule (size = diamètre en X, Y, Z ; une Part Ball reste ronde : on garde le plus petit côté)
+function ArtKit.Ball(parent: Instance, name: string, diameter: number, cframe: CFrame, color: Color3, material: Enum.Material?, extra: { [string]: any }?): BasePart
+	local props = { Name = name, Shape = Enum.PartType.Ball, Size = Vector3.one * diameter, CFrame = cframe, Color = color, Material = material or Enum.Material.SmoothPlastic, Parent = parent }
+	if extra then
+		for k, v in extra do
+			props[k] = v
+		end
+	end
+	return ArtKit.Part(props)
+end
+
+-- Ellipsoïde (boule étirée : une Part Block avec un SpecialMesh "Sphere")
+function ArtKit.Ellipsoid(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3, material: Enum.Material?, extra: { [string]: any }?): BasePart
+	local part = ArtKit.Block(parent, name, size, cframe, color, material, extra)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = part
+	return part
+end
+
+-- Cylindre VERTICAL (axe Y) : cframe = centre
+function ArtKit.Cylinder(parent: Instance, name: string, height: number, diameter: number, cframe: CFrame, color: Color3, material: Enum.Material?, extra: { [string]: any }?): BasePart
+	local props = {
+		Name = name,
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(height, diameter, diameter),
+		CFrame = cframe * CFrame.Angles(0, 0, math.rad(90)),
+		Color = color,
+		Material = material or Enum.Material.SmoothPlastic,
+		Parent = parent,
+	}
+	if extra then
+		for k, v in extra do
+			props[k] = v
+		end
+	end
+	return ArtKit.Part(props)
+end
+
+-- Cylindre HORIZONTAL (axe X local) : roues, rouleaux, meules
+function ArtKit.Disc(parent: Instance, name: string, thickness: number, diameter: number, cframe: CFrame, color: Color3, material: Enum.Material?, extra: { [string]: any }?): BasePart
+	local props = { Name = name, Shape = Enum.PartType.Cylinder, Size = Vector3.new(thickness, diameter, diameter), CFrame = cframe, Color = color, Material = material or Enum.Material.SmoothPlastic, Parent = parent }
+	if extra then
+		for k, v in extra do
+			props[k] = v
+		end
+	end
+	return ArtKit.Part(props)
+end
+
+-- Coin (WedgePart) : fin à l'avant (-Z), pleine hauteur à l'arrière (+Z)
+function ArtKit.Wedge(parent: Instance, name: string, size: Vector3, cframe: CFrame, color: Color3, material: Enum.Material?, extra: { [string]: any }?): BasePart
+	local props = { Name = name, Size = size, CFrame = cframe, Color = color, Material = material or Enum.Material.SmoothPlastic, Parent = parent }
+	if extra then
+		for k, v in extra do
+			props[k] = v
+		end
+	end
+	return ArtKit.Part(props, "WedgePart")
+end
+
+-- Triangle isocèle debout (oreilles, toits pointus, flammes) : base en bas, pointe en haut.
+-- width = largeur de la base, height = hauteur, depth = épaisseur
+function ArtKit.Triangle(parent: Instance, name: string, width: number, height: number, depth: number, cframe: CFrame, color: Color3, material: Enum.Material?, extra: { [string]: any }?)
+	local half = width / 2
+	-- Deux coins dos à dos (chaque coin = moitié du triangle)
+	local left = ArtKit.Wedge(parent, name, Vector3.new(depth, height, half), cframe * CFrame.new(-half / 2, 0, 0) * CFrame.Angles(0, math.rad(90), 0), color, material, extra)
+	local right = ArtKit.Wedge(parent, name, Vector3.new(depth, height, half), cframe * CFrame.new(half / 2, 0, 0) * CFrame.Angles(0, math.rad(-90), 0), color, material, extra)
+	return left, right
+end
+
+-- Toit à deux pentes (deux coins) : cframe = centre du bas du toit, regarde -Z
+function ArtKit.Roof(parent: Instance, name: string, width: number, height: number, depth: number, cframe: CFrame, color: Color3, material: Enum.Material?)
+	local half = width / 2
+	ArtKit.Wedge(parent, name, Vector3.new(depth, height, half), cframe * CFrame.new(-half / 2, height / 2, 0) * CFrame.Angles(0, math.rad(90), 0), color, material)
+	ArtKit.Wedge(parent, name, Vector3.new(depth, height, half), cframe * CFrame.new(half / 2, height / 2, 0) * CFrame.Angles(0, math.rad(-90), 0), color, material)
+end
+
+-- Rend tout un modèle "décor" : sans collision ni requête (ombres conservées)
+function ArtKit.MakeDecor(model: Instance)
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = true
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+		end
+	end
+end
+
+-- Couleur plus foncée / plus claire
+function ArtKit.Darker(color: Color3, amount: number?): Color3
+	return color:Lerp(Color3.new(0, 0, 0), amount or 0.25)
+end
+
+function ArtKit.Lighter(color: Color3, amount: number?): Color3
+	return color:Lerp(Color3.new(1, 1, 1), amount or 0.25)
+end
+
+-- Lumière ponctuelle
+function ArtKit.Light(parent: Instance, color: Color3, range: number, brightness: number?): PointLight
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Range = range
+	light.Brightness = brightness or 1.5
+	light.Parent = parent
+	return light
+end
+
+-- Particules simples
+function ArtKit.Particles(parent: Instance, props: { [string]: any }): ParticleEmitter
+	local emitter = Instance.new("ParticleEmitter") :: any
+	emitter.LightEmission = 0.6
+	emitter.Lifetime = NumberRange.new(1, 2)
+	emitter.Speed = NumberRange.new(0.5, 1.5)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Size = NumberSequence.new(0.4, 0)
+	for k, v in props do
+		emitter[k] = v
+	end
+	emitter.Parent = parent
+	return emitter
+end
+
+--------------------------------------------------------------------------
+-- Bibliothèque de modèles de remplacement
+--------------------------------------------------------------------------
+
+-- Renvoie un CLONE de ServerStorage.CustomModels.<category>.<id>, ou nil
+function ArtKit.Custom(category: string, id: string): Model?
+	local root = ServerStorage:FindFirstChild("CustomModels")
+	local folder = root and root:FindFirstChild(category)
+	local template = folder and folder:FindFirstChild(id)
+	if template and template:IsA("Model") then
+		local clone = template:Clone()
+		clone.Name = id
+		if not clone.PrimaryPart then
+			clone.PrimaryPart = clone:FindFirstChildWhichIsA("BasePart", true)
+		end
+		return clone
+	end
+	return nil
+end
+
+-- Prépare un modèle importé : ancré, sans collision, posé sur groundCFrame.
+-- keepQuery = nom de la Part qui reste "cliquable" (prompt), sinon la PrimaryPart.
+function ArtKit.PlaceCustom(model: Model, groundCFrame: CFrame, anchored: boolean?)
+	local primary = model.PrimaryPart
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.Anchored = anchored ~= false
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = d == primary
+		end
+	end
+	model:PivotTo(groundCFrame)
+end
+
+return ArtKit

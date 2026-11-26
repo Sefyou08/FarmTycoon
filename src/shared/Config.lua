@@ -1329,6 +1329,85 @@ Config.Cosmetics = {
 }
 
 --------------------------------------------------------------------------
+-- DIRECTION ARTISTIQUE (phase 10)
+--   Éclairage par lieu, décor de la ferme, images (Decals) facultatives, mascotte.
+--   Les valeurs d'éclairage sont appliquées côté client selon l'endroit où se trouve
+--   le joueur (ferme, zone d'expédition, donjon), avec une transition douce.
+--------------------------------------------------------------------------
+local rgb3 = Color3.fromRGB
+Config.Art = {
+	-- Éclairage : Lighting + Atmosphere + ColorCorrection
+	Lighting = {
+		Farm = {
+			ClockTime = 14.3, Brightness = 2.6, Ambient = rgb3(120, 105, 90), OutdoorAmbient = rgb3(165, 145, 120),
+			FogColor = rgb3(220, 205, 180), Density = 0.28, Haze = 1.2, AtmosphereColor = rgb3(255, 230, 200), Decay = rgb3(255, 200, 150),
+			Tint = rgb3(255, 244, 228), Saturation = 0.18, Contrast = 0.06, Bloom = 0.35,
+		},
+		Forest = {
+			ClockTime = 16.5, Brightness = 2, Ambient = rgb3(70, 95, 60), OutdoorAmbient = rgb3(110, 140, 95),
+			FogColor = rgb3(150, 190, 140), Density = 0.42, Haze = 2, AtmosphereColor = rgb3(190, 230, 170), Decay = rgb3(120, 170, 90),
+			Tint = rgb3(230, 255, 225), Saturation = 0.15, Contrast = 0.08, Bloom = 0.5,
+		},
+		Mountain = {
+			ClockTime = 12, Brightness = 3, Ambient = rgb3(130, 145, 170), OutdoorAmbient = rgb3(180, 200, 230),
+			FogColor = rgb3(225, 235, 250), Density = 0.45, Haze = 2.5, AtmosphereColor = rgb3(220, 235, 255), Decay = rgb3(170, 200, 240),
+			Tint = rgb3(235, 245, 255), Saturation = 0, Contrast = 0.05, Bloom = 0.45,
+		},
+		Desert = {
+			ClockTime = 13, Brightness = 3.4, Ambient = rgb3(150, 120, 80), OutdoorAmbient = rgb3(210, 170, 110),
+			FogColor = rgb3(240, 205, 150), Density = 0.38, Haze = 3, AtmosphereColor = rgb3(255, 215, 160), Decay = rgb3(240, 170, 90),
+			Tint = rgb3(255, 238, 210), Saturation = 0.12, Contrast = 0.08, Bloom = 0.4,
+		},
+		Volcano = {
+			ClockTime = 19.2, Brightness = 1.3, Ambient = rgb3(110, 50, 35), OutdoorAmbient = rgb3(130, 60, 40),
+			FogColor = rgb3(90, 40, 30), Density = 0.5, Haze = 2.5, AtmosphereColor = rgb3(200, 90, 50), Decay = rgb3(255, 90, 30),
+			Tint = rgb3(255, 220, 200), Saturation = 0.2, Contrast = 0.15, Bloom = 0.7,
+		},
+		Dungeon = {
+			ClockTime = 0, Brightness = 1, Ambient = rgb3(90, 70, 110), OutdoorAmbient = rgb3(80, 60, 100),
+			FogColor = rgb3(40, 25, 55), Density = 0.4, Haze = 1.5, AtmosphereColor = rgb3(120, 80, 160), Decay = rgb3(160, 60, 200),
+			Tint = rgb3(235, 225, 255), Saturation = 0.15, Contrast = 0.18, Bloom = 0.8,
+		},
+	},
+	TransitionTime = 1.5, -- secondes de transition entre deux éclairages
+
+	-- Musiques d'ambiance (SoundId Roblox, 0 = pas de musique). Voir README : « Images et sons ».
+	Music = { Farm = 0, Forest = 0, Mountain = 0, Desert = 0, Volcano = 0, Dungeon = 0 },
+	MusicVolume = 0.35,
+
+	-- Décor de la ferme
+	Farm = {
+		Seed = 2024, -- graine du hasard (même décor sur tous les serveurs)
+		GroundSize = 1700, -- côté du terrain d'herbe (studs)
+		StreamX = -90, -- ruisseau nord-sud entre la 1re et la 2e colonne de parcelles
+		StreamWidth = 8,
+		MainPathWidth = 14,
+		BranchPathWidth = 8,
+		Trees = 140, Flowers = 220, Bushes = 60, Rocks = 30,
+		MountainRing = { Radius = 760, Count = 16 },
+		GrassColor = rgb3(110, 180, 70),
+		PathColor = rgb3(205, 170, 115),
+	},
+
+	-- IMAGES FACULTATIVES (Decals / Textures). 0 = pas d'image : le motif est fait en 3D (Parts).
+	-- Quand tu mets un ID, l'image remplace le motif 3D sur les surfaces (répétée en mosaïque).
+	-- Liste complète, tailles et étapes : README, section « Images et sons ».
+	Decals = {
+		Stars = 0, Hearts = 0, Diamonds = 0, Pearls = 0, Flowers = 0, Flames = 0, Clouds = 0,
+		Checker = 0, Stripes = 0, Glitter = 0, Unicorn = 0, Mascot = 0,
+		MascotLogo = 0, -- logo du jeu sur le panneau du spawn
+	},
+
+	-- Mascotte originale du jeu
+	Mascot = {
+		Name = "Biscotte",
+		Description = "un chaton fermier tout rond, avec un chapeau de paille et une salopette verte",
+		Fur = rgb3(255, 196, 120), Belly = rgb3(255, 240, 215), Overalls = rgb3(70, 160, 90),
+		Hat = rgb3(240, 205, 110), HatBand = rgb3(220, 70, 70), Nose = rgb3(255, 130, 150),
+	},
+}
+
+--------------------------------------------------------------------------
 -- SAUVEGARDE
 --------------------------------------------------------------------------
 Config.Data = {
