@@ -2,9 +2,9 @@
 	HUD.lua
 	=======
 	Interface principale toujours visible :
-	  - compteur de Coins (en haut, animé quand la valeur change)
-	  - compteur de Rebirths
-	  - bouton "Ma ferme" (téléportation, cooldown vérifié par le serveur)
+	  - compteurs de Coins (animé) et de Rebirths, en haut au centre
+	  - colonne de boutons à gauche (🏠 Ma ferme, 🎒 Inventaire, ...)
+	Les autres écrans ajoutent leurs boutons avec HUD.AddButton().
 ]]
 
 local Players = game:GetService("Players")
@@ -19,8 +19,11 @@ local HUD = {}
 
 local player = Players.LocalPlayer
 
+HUD.Screen = nil :: ScreenGui?
+
 local coinsLabel: TextLabel
 local rebirthsLabel: TextLabel
+local leftColumn: Frame
 local coinsDisplayValue = Instance.new("NumberValue") -- valeur animée affichée
 
 local function buildCounter(parent: Instance, name: string, icon: string, color: Color3, order: number): TextLabel
@@ -54,9 +57,8 @@ local function buildCounter(parent: Instance, name: string, icon: string, color:
 end
 
 local function setCoins(value: number)
-	-- Petite animation de compteur qui défile
+	-- Petite animation de compteur qui défile + "pop" du cadre
 	TweenService:Create(coinsDisplayValue, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Value = value }):Play()
-
 	local frame = coinsLabel.Parent :: Frame
 	frame.Size = UDim2.fromOffset(200, 48)
 	TweenService:Create(frame, TweenInfo.new(0.2, Enum.EasingStyle.Back), { Size = UDim2.fromOffset(190, 44) }):Play()
@@ -66,12 +68,27 @@ local function setRebirths(value: number)
 	rebirthsLabel.Text = Format.Number(value)
 end
 
+-- Ajoute un bouton dans la colonne de gauche.
+function HUD.AddButton(name: string, text: string, color: Color3, order: number, onClick: () -> ()): TextButton
+	local button = Theme.Button({
+		Name = name,
+		Size = UDim2.fromOffset(150, 44),
+		BackgroundColor3 = color,
+		Text = text,
+		LayoutOrder = order,
+		Parent = leftColumn,
+	})
+	button.Activated:Connect(onClick)
+	return button
+end
+
 function HUD.Init(StateController)
 	local screen = Instance.new("ScreenGui")
 	screen.Name = "FarmHUD"
 	screen.ResetOnSpawn = false
 	screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	screen.Parent = player:WaitForChild("PlayerGui")
+	HUD.Screen = screen
 
 	-- Compteurs en haut au centre
 	local top = Instance.new("Frame")
@@ -97,32 +114,24 @@ function HUD.Init(StateController)
 		coinsLabel.Text = Format.Number(value)
 	end)
 
-	-- Boutons à gauche
-	local homeButton = Instance.new("TextButton")
-	homeButton.Name = "HomeButton"
-	homeButton.AnchorPoint = Vector2.new(0, 0.5)
-	homeButton.Position = UDim2.new(0, 12, 0.5, 0)
-	homeButton.Size = UDim2.fromOffset(130, 44)
-	homeButton.BackgroundColor3 = Theme.Colors.Button
-	homeButton.Font = Theme.Font
-	homeButton.TextScaled = true
-	homeButton.TextColor3 = Theme.Colors.Text
-	homeButton.Text = "🏠 Ma ferme"
-	homeButton.AutoButtonColor = true
-	homeButton.Parent = screen
-	Theme.Corner(homeButton, 12)
-	Theme.Stroke(homeButton, 2)
+	-- Colonne de boutons à gauche
+	leftColumn = Instance.new("Frame")
+	leftColumn.Name = "LeftButtons"
+	leftColumn.AnchorPoint = Vector2.new(0, 0.5)
+	leftColumn.Position = UDim2.new(0, 12, 0.5, 0)
+	leftColumn.Size = UDim2.fromOffset(150, 300)
+	leftColumn.BackgroundTransparency = 1
+	leftColumn.Parent = screen
 
-	local padding = Instance.new("UIPadding")
-	padding.PaddingTop = UDim.new(0, 6)
-	padding.PaddingBottom = UDim.new(0, 6)
-	padding.PaddingLeft = UDim.new(0, 8)
-	padding.PaddingRight = UDim.new(0, 8)
-	padding.Parent = homeButton
+	local columnLayout = Instance.new("UIListLayout")
+	columnLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	columnLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	columnLayout.Padding = UDim.new(0, 8)
+	columnLayout.Parent = leftColumn
 
 	local teleportRemote: RemoteEvent = Remotes.Get("RequestTeleportHome")
-	homeButton.Activated:Connect(function()
-		-- Le client se contente de DEMANDER ; le serveur décide.
+	HUD.AddButton("HomeButton", "🏠 Ma ferme", Theme.Colors.Button, 1, function()
+		-- Le client se contente de DEMANDER ; le serveur décide (cooldown).
 		teleportRemote:FireServer()
 	end)
 

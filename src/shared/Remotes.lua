@@ -22,11 +22,13 @@ Remotes.EventNames = {
 	"Notify", -- Serveur -> Client : afficher une notification (texte, type)
 	"StateChanged", -- Serveur -> Client : une valeur des données du joueur a changé (clé, valeur)
 	"RequestTeleportHome", -- Client -> Serveur : "téléporte-moi à ma parcelle"
+	"SelectSeed", -- Client -> Serveur : choisit la graine à planter (seedId)
 }
 
 -- RemoteFunctions (requête + réponse)
 Remotes.FunctionNames = {
 	"GetState", -- Client -> Serveur : renvoie l'état complet du joueur (ou nil si pas encore chargé)
+	"BuySeed", -- Client -> Serveur : (seedId, quantité) -> (ok, message)
 }
 
 local folder: Folder? = nil

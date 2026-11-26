@@ -19,3 +19,16 @@ Tout l'équilibrage est dans `src/shared/Config.lua`.
 ## Sauvegarde dans Studio
 Publie la place, puis **Game Settings → Security → Enable Studio Access to API Services**.
 Sans ça, le jeu tourne en « mode mock » (données en mémoire, perdues à l'arrêt).
+
+## Avancement
+- [x] Phase 1 : setup Rojo, parcelles, argent, sauvegarde
+- [x] Phase 2 : planter, pousse (3 stades), récolte, vente
+- [ ] Phase 3 : boutique tournante, rareté, mutations
+- [ ] Phase 4 : améliorations tycoon, rebirth
+- [ ] Phase 5 : familiers, UI finale, monétisation
+
+## Boucle de jeu (Phase 2)
+1. Stand **🌱 GRAINES** (à gauche du spawn) : acheter des graines.
+2. Barre du bas : choisir la graine, puis **E** sur une case de terre de ta parcelle.
+3. La plante passe par 3 stades (minuteur au-dessus) puis affiche « Prêt ! » : **E** pour récolter.
+4. Stand **💰 VENTE** (à droite du spawn) : tout vendre contre des Coins.

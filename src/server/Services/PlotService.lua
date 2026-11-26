@@ -44,6 +44,21 @@ export type Plot = {
 local plots: { Plot } = {} -- liste ordonnée par Id
 local plotByPlayer: { [Player]: Plot } = {}
 
+-- Callbacks des autres services (FarmService, etc.).
+-- (Pas de BindableEvent : il COPIE les tables, on perdrait la référence à la parcelle.)
+local assignedCallbacks: { (Player, Plot) -> () } = {}
+local releasedCallbacks: { (Player, Plot) -> () } = {}
+
+-- callback(player, plot) : appelé quand un joueur reçoit une parcelle
+function PlotService:OnPlotAssigned(callback: (Player, Plot) -> ())
+	table.insert(assignedCallbacks, callback)
+end
+
+-- callback(player, plot) : appelé (synchroniquement) juste AVANT la libération d'une parcelle
+function PlotService:OnPlotReleased(callback: (Player, Plot) -> ())
+	table.insert(releasedCallbacks, callback)
+end
+
 --------------------------------------------------------------------------
 -- Construction de la map
 --------------------------------------------------------------------------
@@ -231,6 +246,7 @@ local function buildDebugCoinPad(plot: Plot)
 	prompt.HoldDuration = 0
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("OwnerOnly", true) -- le client le masque sur les parcelles des autres
 	prompt.Parent = pad
 
 	prompt.Triggered:Connect(function(player: Player)
@@ -260,6 +276,10 @@ function PlotService:GetPlot(player: Player): Plot?
 	return plotByPlayer[player]
 end
 
+function PlotService:GetAllPlots(): { Plot }
+	return plots
+end
+
 function PlotService:TeleportHome(player: Player)
 	local plot = plotByPlayer[player]
 	local character = player.Character
@@ -281,6 +301,9 @@ local function assignPlot(player: Player)
 			plotByPlayer[player] = plot
 			player:SetAttribute("PlotId", plot.Id)
 			print(("[PlotService] Parcelle %d attribuée à %s"):format(plot.Id, player.Name))
+			for _, callback in assignedCallbacks do
+				task.spawn(callback, player, plot)
+			end
 			return
 		end
 	end
@@ -295,11 +318,16 @@ local function releasePlot(player: Player)
 	if not plot then
 		return
 	end
+	for _, callback in releasedCallbacks do
+		local ok, err = pcall(callback, player, plot) -- ex. FarmService retire les plantes affichées
+		if not ok then
+			warn("[PlotService] Erreur dans un callback de libération : " .. tostring(err))
+		end
+	end
 	plotByPlayer[player] = nil
 	plot.Owner = nil
 	plot.Model:SetAttribute("OwnerUserId", 0)
 	plot.OwnerLabel.Text = PlotConfig.FreeLabel
-	-- (Phase 2 : on videra aussi les plantes de la parcelle ici)
 	print(("[PlotService] Parcelle %d libérée (départ de %s)"):format(plot.Id, player.Name))
 end
 

@@ -17,6 +17,8 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local StateController = {}
 
 local data: { [string]: any }? = nil
+-- Valeurs reçues AVANT l'état complet (ex. SelectedSeed, qui n'est pas dans la sauvegarde)
+local pending: { [string]: any } = {}
 local changedEvent = Instance.new("BindableEvent")
 StateController.Changed = changedEvent.Event
 
@@ -32,6 +34,8 @@ function StateController.Init()
 	Remotes.Get("StateChanged").OnClientEvent:Connect(function(key: string, value: any)
 		if data then
 			data[key] = value
+		else
+			pending[key] = value
 		end
 		changedEvent:Fire(key, value)
 	end)
@@ -44,6 +48,13 @@ function StateController.Init()
 				return getState:InvokeServer()
 			end)
 			if ok and type(result) == "table" then
+				-- L'état complet est plus récent : on ne garde que les clés qu'il ne contient pas
+				for key, value in pending do
+					if result[key] == nil then
+						result[key] = value
+					end
+				end
+				pending = {}
 				data = result
 				changedEvent:Fire("*", result)
 				break

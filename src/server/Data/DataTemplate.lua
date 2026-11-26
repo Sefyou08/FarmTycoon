@@ -23,8 +23,10 @@ return {
 	Coins = Config.Currency.StartingCoins,
 	Rebirths = 0,
 
-	Inventory = {}, -- (phase 2) produits récoltés : { [cropId] = { [mutationId] = quantité } }
-	Seeds = {}, -- (phase 2) graines possédées : { [seedId] = quantité }
+	Inventory = {}, -- produits récoltés : { [cropId] = { [variante] = quantité } } (variante "Normal" ou mutation en phase 3)
+	Seeds = {}, -- graines possédées : { [cropId] = quantité }
+	Plants = {}, -- plantes en terre : { ["indexCase"] = { CropId, PlantedAt, ReadyAt } } (os.time, continue de pousser hors ligne)
+	StarterPackGiven = false, -- pack de graines de départ déjà donné ?
 	Upgrades = {}, -- (phase 4) améliorations débloquées : { [upgradeId] = niveau }
 	Pets = {}, -- (phase 5) liste des familiers possédés : { { Id = "...", PetType = "..." } }
 	EquippedPets = {}, -- (phase 5) liste des Id équipés
