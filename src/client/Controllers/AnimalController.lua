@@ -16,6 +16,7 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -137,6 +138,21 @@ end
 -- Promenade
 --------------------------------------------------------------------------
 
+-- Hauteur du sol sous un point (rayon vertical qui ignore les animaux et les joueurs)
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+local function groundHeight(position: Vector3, fallback: number): number
+	local exclude = CollectionService:GetTagged(ANIMAL_TAG)
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(exclude, other.Character)
+		end
+	end
+	rayParams.FilterDescendantsInstances = exclude
+	local hit = Workspace:Raycast(Vector3.new(position.X, fallback + 12, position.Z), Vector3.new(0, -40, 0), rayParams)
+	return if hit then hit.Position.Y else fallback
+end
+
 -- Boucle de promenade d'UN animal : pause, puis marche vers un point au hasard.
 local function wander(model: Model)
 	if wandering[model] then
@@ -169,14 +185,22 @@ local function wander(model: Model)
 			local angle = math.random() * math.pi * 2
 			local distance = math.random() * radius
 			local target = Vector3.new(center.X + math.cos(angle) * distance, from.Position.Y, center.Z + math.sin(angle) * distance)
+			-- Le pivot est sous les pieds : on suit le VRAI sol à destination (bosses, Terrain...)
+			local groundY = groundHeight(target, from.Position.Y)
+			target = Vector3.new(target.X, groundY, target.Z)
 			local travel = (target - from.Position).Magnitude
 			if travel < 0.5 then
 				continue
 			end
 
 			-- On se tourne vers la destination (la tête est vers -Z = LookVector), puis on avance
-			local goal = CFrame.lookAt(target, target + (target - from.Position).Unit)
-			driver.Value = CFrame.lookAt(from.Position, target)
+			-- (direction à plat : l'animal reste droit même si le sol monte ou descend)
+			local flat = Vector3.new(target.X - from.Position.X, 0, target.Z - from.Position.Z)
+			if flat.Magnitude < 0.1 then
+				continue
+			end
+			local goal = CFrame.lookAt(target, target + flat.Unit)
+			driver.Value = CFrame.lookAt(from.Position, from.Position + flat.Unit)
 			local tween = TweenService:Create(driver, TweenInfo.new(travel / WALK_SPEED, Enum.EasingStyle.Linear), { Value = goal })
 			walking[model] = true
 			tween:Play()

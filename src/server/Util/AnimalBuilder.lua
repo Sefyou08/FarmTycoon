@@ -469,6 +469,9 @@ function AnimalBuilder.Build(speciesId: string, variantId: string, groundCFrame:
 		end
 		custom:SetAttribute("Variant", variantId)
 		ArtKit.SnapToGround(custom, groundCFrame)
+		if body then
+			body.PivotOffset = body.CFrame:ToObjectSpace(groundCFrame)
+		end
 		return custom
 	end
 
@@ -500,8 +503,9 @@ function AnimalBuilder.Build(speciesId: string, variantId: string, groundCFrame:
 		end
 	end
 	model:SetAttribute("Variant", variantId)
-	-- Pattes bien posées SUR le sol (la pièce la plus basse touche le sol)
+	-- Pattes bien posées SUR le sol (la pièce la plus basse touche le sol), pivot sous les pieds
 	ArtKit.SnapToGround(model, groundCFrame)
+	body.PivotOffset = body.CFrame:ToObjectSpace(groundCFrame)
 	return model
 end
 

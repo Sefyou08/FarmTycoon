@@ -394,6 +394,21 @@ local function spawnWild(info: ZoneInfo, multipliers: { [string]: number }?)
 		return
 	end
 
+	-- Hauteur RÉELLE du sol à cet endroit (Terrain ou sol en Parts) : la créature est posée dessus
+	local exclude = {}
+	for _, other in info.Wilds do
+		if other.Model then
+			table.insert(exclude, other.Model)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = exclude
+	local hit = Workspace:Raycast(position + Vector3.new(0, 60, 0), Vector3.new(0, -140, 0), params)
+	if hit then
+		position = Vector3.new(position.X, hit.Position.Y, position.Z)
+	end
+
 	local mutationId = rollMutation()
 	local groundCFrame = CFrame.new(position) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 	local model, body = CreatureBuilder.Build(creatureId, mutationId, groundCFrame)
