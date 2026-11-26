@@ -56,12 +56,13 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 ## 3. La parcelle
 
 - 6 parcelles par serveur (Max Players = 6), attribuées automatiquement, libérées au départ.
-- **Grande parcelle** avec des zones : cultures devant, enclos sur les côtés, bâtiments au fond,
-  socles d'exposition sur les bords (phase 6).
+- **Grande parcelle** pour les cultures, les enclos, les bâtiments et les
+  socles d'exposition (phase 6). Depuis la phase 5b, tout se place librement avec le mode
+  construction.
 - **Agrandissement par étapes**, payé en Coins avec un prix croissant (bouton tycoon sur la
   parcelle). Chaque étape débloque de nouveaux emplacements (enclos, bâtiments, socles).
 - Emplacement prévu pour un **Developer Product** qui débloque un agrandissement avec de l'argent
-  réel : **désactivé**, activé en phase 8.
+  réel : **désactivé**, activé en phase 9.
 
 | Niveau | Taille (studs) | Prix |
 |---|---|---|
@@ -79,20 +80,21 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 1 | Setup Rojo, parcelles, argent, sauvegarde | ✅ fait |
 | 2 | Planter, pousse en 3 stades, récolte, vente, boutique de graines | ✅ fait |
 | 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | ✅ fait |
-| 4 | Bâtiments de transformation (machines, recettes, files de production) + vitesse de marche et sprint | ✅ fait |
-| 5 | Expéditions (portail, zones, créatures sauvages, capture) | 🧪 codée, à tester |
-| 6 | Collection et exposition (socles, Coins/s, Index, classement) | à faire |
-| 7 | Progression (boutique tournante, plantes rares et mutations, collecteurs, rebirth, monture) | à faire |
-| 8 | Monétisation (Game Passes, Developer Products, IDs factices) et finitions de l'UI | à faire |
-| 9 | Décor (terrain, arbres, éclairage) + bâtiments et stands thématiques animés | à faire |
+| 4 | Bâtiments de transformation + vitesse de marche et sprint | ✅ fait |
+| 5 | Expéditions (portail, zones, créatures sauvages, capture) | ✅ fait |
+| 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | ⏳ en cours |
+| 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) | à faire |
+| 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | à faire |
+| 8 | Donjon (ennemis, boss, combat simple, récompenses rares) | à faire |
+| 9 | Monétisation (Game Passes, Developer Products, IDs factices) | à faire |
+| 10 | Direction artistique complète (créatures, animaux, zones, ferme, bâtiments) | à faire |
 
 ### Phase 3 : Animaux de ferme
-- **Enclos** construits sur sa parcelle (boutons tycoon, prix croissant). Un enclos accueille
-  **une seule espèce**, jusqu'à 4 animaux.
+- **Enclos** construits sur sa parcelle, prix croissant. Un enclos accueille **une seule espèce**,
+  jusqu'à 4 animaux.
 - **Animaux achetés** au stand 🐄 ANIMAUX (prix croissant d'une espèce à l'autre), avec une chance
   d'obtenir une **variante rare**. L'animal va automatiquement dans un enclos de son espèce qui a de
-  la place, sinon dans un enclos vide. Plus tard, ils pourront aussi être capturés en expédition
-  (phase 5).
+  la place, sinon dans un enclos vide.
 - **Nourrir** : chaque enclos a une mangeoire. On y met des récoltes acceptées par l'espèce, ce
   qui donne des « rations ». Chaque ressource produite consomme des rations : sans nourriture,
   pas de production.
@@ -107,71 +109,132 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 - Chaque bâtiment a des **recettes** (dans Config), une **file d'attente de production**, et des
   **améliorations** : niveau, vitesse, nombre d'emplacements de production.
 - Les produits transformés se vendent **beaucoup plus cher** que les ressources de base.
-- Exemples : laiterie (lait → beurre, crème), fromagerie (lait → fromage), filature
-  (laine → fil → tissu), boulangerie (œufs + blé → gâteau, pain), etc.
 - La variante de la ressource (Doré, etc.) se transmet au produit, avec son multiplicateur.
 
 ### Phase 5 : Expéditions
-- Un **portail** sur la map envoie vers des zones séparées : Forêt, Montagne, Désert, puis
-  d'autres zones à débloquer.
+- Un **portail** sur la map envoie vers des zones : Forêt, Montagne, Désert, Volcan.
 - Des **créatures sauvages** originales apparaissent avec une rareté : Commune, Rare, Épique,
-  Légendaire, Mythique, **Secrète** (très faible chance, annoncée à tout le serveur quand
-  quelqu'un en attrape une).
-- **Capture** avec un mini-jeu simple : filet ou lasso, et une barre de timing.
-- **Mutations** des créatures (Dorée, Arc-en-ciel, Géante…), qui multiplient leur valeur.
-- Choix : les zones sont des **zones lointaines de la même place** (pas des places séparées
-  avec TeleportService), comme dans la plupart des simulateurs Roblox : la sauvegarde, la parcelle
-  et le serveur restent les mêmes, et c'est plus simple à tester dans Studio.
-- Les créatures capturées vont dans la **collection** (sac de créatures, 100 max). En attendant
-  les socles de la phase 6, on peut les **vendre** depuis la fenêtre de collection.
-- Anti-triche de la capture : le serveur génère les paramètres du mini-jeu (vitesse, position des
-  zones vertes), recalcule la position du curseur à chaque clic, vérifie que le temps envoyé est
-  plausible, puis fait **un dernier tirage de chance** selon la rareté. Même un tricheur parfait ne
-  peut donc pas garantir une Secrète.
+  Légendaire, Mythique, **Secrète** (très faible chance, annoncée à tout le serveur).
+- **Capture** avec un mini-jeu : lasso et barre de timing.
+- **Mutations** des créatures (Dorée, Géante, Arc-en-ciel, Spectrale), qui multiplient leur valeur.
+- Les zones sont des **zones lointaines de la même place** (pas de TeleportService) : même
+  sauvegarde, même serveur, plus simple à tester dans Studio.
+- Les créatures capturées vont dans la **collection** (100 max) ; on peut les vendre en
+  attendant les socles de la phase 6.
+- Anti-triche : le serveur génère les paramètres du mini-jeu, recalcule la position du curseur à
+  chaque clic, vérifie que le temps envoyé est plausible, puis fait un dernier tirage selon la
+  rareté.
+
+### Phase 5b : Mode construction + champs
+1. **Plus de champs**
+   - Un **champ** = un bloc de 6 cases de terre (3 × 2). Le joueur commence avec 1 champ déjà
+     débloqué.
+   - Chaque nouveau champ s'achète dans le menu de construction. Ses cases arrivent
+     **verrouillées** et se débloquent une par une (E sur la case), avec un **prix croissant**
+     calculé sur le nombre total de cases déjà débloquées.
+   - Les 18 cases suivantes (3 champs) sont disponibles dès le niveau 1 de la parcelle ; chaque
+     agrandissement permet d'acheter 2 champs de plus.
+2. **Mode construction**
+   - Bouton **« 🔨 Construire »** : ouvre le menu de construction (champs, enclos, bâtiments, et
+     plus tard socles) et la liste des éléments **rangés**.
+   - On choisit un élément, puis son emplacement : **aperçu transparent** (vert = valide,
+     rouge = invalide), **R** ou le bouton ↻ pour tourner d'un quart de tour, **clic** (ou le
+     bouton ✔ sur mobile) pour valider. L'achat n'est payé qu'à la validation.
+   - En mode construction, cliquer sur un élément déjà posé le sélectionne : on peut le
+     **déplacer** ou le **ranger** (il disparaît de la parcelle et va dans « Rangés »).
+   - Le **serveur vérifie tout** : c'est bien sa parcelle, l'élément est dans les limites du niveau
+     actuel, il ne chevauche aucun autre élément ni la zone d'entrée (spawn et boutons), la
+     rotation est un quart de tour, et le joueur a les Coins.
+   - Les positions (X, Z, rotation, posé/rangé) sont **sauvegardées** dans les données de chaque
+     élément.
+   - **Rien n'est perdu** quand on déplace ou range : les plantes, les animaux, la nourriture, la
+     production et les files des bâtiments sont dans les données, seuls les visuels sont
+     reconstruits. Un élément rangé continue de produire, mais on ne peut pas l'utiliser.
+   - Mobile : toucher l'écran place l'aperçu à cet endroit, puis boutons ↻ / ✔ / ✖ à l'écran.
+   - Les anciennes sauvegardes sont converties : les enclos et bâtiments gardent leur position
+     d'avant, les 6 premières cases deviennent le 1er champ.
 
 ### Phase 6 : Collection et exposition
-- **Socles d'exposition** sur la base : chaque créature exposée génère des Coins/seconde selon sa
-  rareté et sa mutation.
+- **Socles d'exposition** placés avec le mode construction : chaque créature exposée génère des
+  Coins/seconde selon sa rareté et sa mutation.
 - Les autres joueurs peuvent **visiter** et voir la collection : nom, rareté, effet brillant pour
   les rares.
 - **Index / Collection** : créatures découvertes et manquantes, avec une récompense pour chaque
   zone complétée.
 - **Classement** des collections les plus rares.
 
-### Phase 7 : Progression
-- Boutique de graines **tournante** (stock rare renouvelé toutes les 5 min, compte à rebours).
-- Plantes de rareté Rare, Épique et Légendaire, et **mutations de plantes** à la récolte.
-- Cases de terre supplémentaires et **collecteurs automatiques** (récolte et ramassage).
-- **Monture** (cheval) pour se déplacer plus vite sur la map.
-- **Rebirth** : on remet à zéro coins et améliorations contre un multiplicateur de revenus
-  permanent.
+### Phase 7 : Progression, ressources rares, consommables et aides
+- **Progression** : boutique de graines **tournante** (stock rare renouvelé toutes les 5 min,
+  compte à rebours), plantes Rares / Épiques / Légendaires et **mutations de plantes** à la
+  récolte, **monture** (cheval) pour aller plus vite, **rebirth** (remise à zéro contre un
+  multiplicateur de revenus permanent).
+- **Ressources rares** : chaque production d'un animal a une petite chance de donner une ressource
+  d'une **rareté supérieure** à celle de l'animal (une poule normale peut rarement pondre un Œuf
+  Doré ; un lapin Légendaire peut donner de la Fourrure Mythique). Plus l'animal est rare, plus la
+  chance est élevée. Chances dans Config.
+- **Recettes rares** : certains bâtiments débloquent des recettes Rares, Épiques, Légendaires et
+  Mythiques qui demandent des ingrédients rares.
+- Les produits rares se **vendent très cher** OU se **consomment**.
+- **Consommables et boosts** : manger un produit donne un boost temporaire (vitesse, XP, gain de
+  Coins, chance de capture en expédition, dégâts / vie au donjon). Plus le produit est rare, plus
+  le boost est fort et long. Affichage des boosts actifs avec un minuteur.
+- **XP et niveau joueur** (pas encore dans le jeu) : on gagne de l'XP en récoltant, produisant,
+  fabriquant et capturant ; le niveau débloque du contenu et des récompenses.
+- **Aides automatiques** achetables et améliorables avec des Coins :
+  - un **fermier PNJ** qui plante et récolte tout seul ;
+  - un **soigneur PNJ** qui nourrit les animaux et ramasse la production.
 
-### Phase 8 : Monétisation et UI
-- Game Passes (x2 Coins, collecteur VIP, emplacements en plus…), Developer Products (packs de
-  Coins, agrandissement de parcelle). IDs factices dans Config, `ProcessReceipt` idempotent
-  (reçus enregistrés dans la sauvegarde).
-- Finitions de l'interface.
+### Phase 8 : Donjon
+- Un **portail de donjon** vers des donjons avec des **ennemis** et des **boss**.
+- **Combat simple** : attaque, esquive.
+- **Récompenses rares** : graines, œufs de créatures, ingrédients mythiques.
+- Les **boosts** des consommables s'appliquent au donjon et en expédition.
 
-### Phase 9 : Décor et visuels thématiques
-- Terrain (herbe), arbres, clôtures, chemins, éclairage, à la place du Baseplate gris.
-- **Bâtiments thématiques** en style cartoon / low-poly, construits en Parts et formes simples
-  (cylindres, boules, wedges), à la place des blocs avec un nom au-dessus :
+### Phase 9 : Monétisation
+- Game Passes et Developer Products, avec des **IDs factices** dans Config et un `ProcessReceipt`
+  idempotent (reçus enregistrés dans la sauvegarde).
+- Exemples : version **premium des aides automatiques**, **agrandissement de parcelle** accéléré
+  (emplacement déjà prévu : `PlotService:GrantExpansion`), **boosts**, **emplacements en plus**,
+  packs de Coins, x2 Coins.
+
+### Phase 10 : Direction artistique complète
+Le gameplay est là ; il faut maintenant une vraie identité visuelle.
+- **Créatures d'expédition** : refaire entièrement leurs modèles (aujourd'hui des boules
+  empilées). Des créatures originales avec une vraie silhouette d'animal ou de créature, en style
+  **cartoon mignon et lisible** (dans l'esprit des jeux de monstres à collectionner, mais 100 %
+  inventées, aucun personnage existant) :
+  - corps à la forme travaillée (wedges, cylindres, parts arrondies combinés), pattes, queue,
+    oreilles, cornes, ailes ou nageoires selon la créature, **yeux expressifs** ;
+  - palette cohérente avec la zone : Forêt verts et bruns, Montagne blancs et bleus glacés,
+    Désert ocres et dorés, Volcan noirs et rouges / orangés ;
+  - petites **animations** : respiration, marche, sauts, queue qui bouge ;
+  - plus la créature est rare, plus elle est impressionnante (taille, détails, particules).
+- **Animaux de la ferme** : même travail ; ils doivent vraiment ressembler à une vache, une
+  poule, un mouton, un cheval, etc., en cartoon.
+- **Zones d'expédition** avec une vraie identité :
+  - Forêt : grands arbres, champignons, rivière, lucioles ;
+  - Montagne : neige, sapins, rochers, flocons ;
+  - Désert : dunes, cactus, ruines, légère tempête de sable ;
+  - Volcan : roches noires, coulées de lave lumineuses, fumée, braises ;
+  - éclairage et brouillard différents par zone, et une musique d'ambiance par zone si possible.
+- **Ferme** : terrain herbe, montagnes en arrière-plan, ruisseau avec un pont, chemins, arbres,
+  fleurs, clôtures, éclairage chaud (à la place du Baseplate gris).
+- **Bâtiments thématiques** en cartoon / low-poly, en Parts et formes simples :
   - **Boulangerie** : façade avec auvent rayé, vitrine avec baguettes, croissants et pains, une
-    baguette ou un croissant géant sur le toit, un four visible.
+    baguette ou un croissant géant sur le toit, un four visible ;
   - **Laiterie** : une bouteille de lait géante, une vache stylisée reliée à la bouteille par un
-    tuyau, du lait qui « coule » (animation) quand la production tourne.
-  - **Fromagerie** : une grosse meule de fromage à trous, une machine avec une roue animée
-    pendant la production.
-  - **Filature** : un rouet géant qui tourne, des pelotes de laine colorées.
-  - **Atelier de couture** : une machine à coudre géante, des rouleaux de tissu.
-  - **Stands** (graines, vente, animaux) décorés dans le même style : caisses de légumes et
-    sachets de graines, balance et sacs de pièces, bottes de foin et barrière d'enclos.
-- **Animations** (roues qui tournent, lait qui coule, fumée) actives **uniquement quand le bâtiment
-  produit** (la file n'est pas vide), comme la fumée de cheminée actuelle.
-- Technique : animations calculées **côté client** (aucun trafic réseau). Le serveur pose
-  seulement un attribut `Working` sur le bâtiment, et le client fait tourner les parts taguées.
-  Chaque visuel est isolé dans une fonction par bâtiment, pour pouvoir remplacer plus tard par un
-  vrai modèle 3D sans toucher au gameplay.
+    tuyau, du lait qui « coule » quand la production tourne ;
+  - **Fromagerie** : une grosse meule de fromage à trous, une machine avec une roue animée ;
+  - **Filature** : un rouet géant qui tourne, des pelotes de laine colorées ;
+  - **Atelier de couture** : une machine à coudre géante, des rouleaux de tissu ;
+  - **Stands** (graines, vente, animaux) dans le même style : caisses de légumes et sachets de
+    graines, balance et sacs de pièces, bottes de foin et barrière d'enclos.
+- **Animations** (roues, lait qui coule, fumée) actives **uniquement quand le bâtiment produit**.
+  Elles sont calculées côté client : le serveur pose seulement un attribut `Working`.
+- **Organisation du code des modèles** : une fonction de construction par créature, animal et
+  bâtiment, derrière une interface commune. On pourra ainsi remplacer un modèle généré par un vrai
+  modèle 3D (MeshPart importé, rangé dans ReplicatedStorage) **un par un**, sans toucher au
+  gameplay.
 
 ---
 
@@ -273,3 +336,15 @@ par capture. En cas d'échec, la créature s'enfuit.
 
 ### 5.6 Déplacement
 Vitesse de marche 24 (au lieu de 16), sprint à 32 en maintenant Maj (bouton sur mobile).
+
+### 5.7 Champs et mode construction (phase 5b)
+- Champ : 3 × 2 cases, emprise 24 × 16 studs. 1 champ offert (6 cases débloquées).
+- Prix des champs (du 2e au 10e) : 400, 1 500, 4 000, 10 000, 25 000, 60 000, 150 000, 350 000,
+  800 000. Leurs cases arrivent verrouillées.
+- Déblocage d'une case : 60 × 1,12^(cases déjà débloquées − 6) Coins (case 7 : 60, case 24 : ~410,
+  case 60 : ~24 500).
+- Nombre max d'éléments selon le niveau de parcelle (1 → 4) : champs 4 / 6 / 8 / 10, enclos
+  2 / 4 / 6 / 8 ; bâtiments selon leur niveau de parcelle requis.
+- Emprises : enclos 22 × 26 (mangeoire et caisse devant), bâtiment = sa taille + 2 × 4.
+- Zone interdite : la bande d'entrée (les 10 premiers studs de profondeur : spawn, boutons
+  d'agrandissement et de test). Placement sur une grille de 1 stud, rotation par quarts de tour.
