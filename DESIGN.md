@@ -79,12 +79,12 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 1 | Setup Rojo, parcelles, argent, sauvegarde | ✅ fait |
 | 2 | Planter, pousse en 3 stades, récolte, vente, boutique de graines | ✅ fait |
 | 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | ✅ fait |
-| 4 | Bâtiments de transformation (machines, recettes, files de production) + vitesse de marche et sprint | 🧪 codée, à tester |
-| 5 | Expéditions (portail, zones, créatures sauvages, capture) | à faire |
+| 4 | Bâtiments de transformation (machines, recettes, files de production) + vitesse de marche et sprint | ✅ fait |
+| 5 | Expéditions (portail, zones, créatures sauvages, capture) | ⏳ en cours |
 | 6 | Collection et exposition (socles, Coins/s, Index, classement) | à faire |
 | 7 | Progression (boutique tournante, plantes rares et mutations, collecteurs, rebirth, monture) | à faire |
 | 8 | Monétisation (Game Passes, Developer Products, IDs factices) et finitions de l'UI | à faire |
-| 9 | Décor (terrain, arbres, clôtures, chemins, éclairage) | à faire |
+| 9 | Décor (terrain, arbres, éclairage) + bâtiments et stands thématiques animés | à faire |
 
 ### Phase 3 : Animaux de ferme
 - **Enclos** construits sur sa parcelle (boutons tycoon, prix croissant). Un enclos accueille
@@ -119,6 +119,15 @@ plus d'animaux et de bâtiments, et à partir en expédition.
   quelqu'un en attrape une).
 - **Capture** avec un mini-jeu simple : filet ou lasso, et une barre de timing.
 - **Mutations** des créatures (Dorée, Arc-en-ciel, Géante…), qui multiplient leur valeur.
+- Choix : les zones sont des **zones lointaines de la même place** (pas des places séparées
+  avec TeleportService), comme dans la plupart des simulateurs Roblox : la sauvegarde, la parcelle
+  et le serveur restent les mêmes, et c'est plus simple à tester dans Studio.
+- Les créatures capturées vont dans la **collection** (sac de créatures, 100 max). En attendant
+  les socles de la phase 6, on peut les **vendre** depuis la fenêtre de collection.
+- Anti-triche de la capture : le serveur génère les paramètres du mini-jeu (vitesse, position des
+  zones vertes), recalcule la position du curseur à chaque clic, vérifie que le temps envoyé est
+  plausible, puis fait **un dernier tirage de chance** selon la rareté. Même un tricheur parfait ne
+  peut donc pas garantir une Secrète.
 
 ### Phase 6 : Collection et exposition
 - **Socles d'exposition** sur la base : chaque créature exposée génère des Coins/seconde selon sa
@@ -143,8 +152,26 @@ plus d'animaux et de bâtiments, et à partir en expédition.
   (reçus enregistrés dans la sauvegarde).
 - Finitions de l'interface.
 
-### Phase 9 : Décor
+### Phase 9 : Décor et visuels thématiques
 - Terrain (herbe), arbres, clôtures, chemins, éclairage, à la place du Baseplate gris.
+- **Bâtiments thématiques** en style cartoon / low-poly, construits en Parts et formes simples
+  (cylindres, boules, wedges), à la place des blocs avec un nom au-dessus :
+  - **Boulangerie** : façade avec auvent rayé, vitrine avec baguettes, croissants et pains, une
+    baguette ou un croissant géant sur le toit, un four visible.
+  - **Laiterie** : une bouteille de lait géante, une vache stylisée reliée à la bouteille par un
+    tuyau, du lait qui « coule » (animation) quand la production tourne.
+  - **Fromagerie** : une grosse meule de fromage à trous, une machine avec une roue animée
+    pendant la production.
+  - **Filature** : un rouet géant qui tourne, des pelotes de laine colorées.
+  - **Atelier de couture** : une machine à coudre géante, des rouleaux de tissu.
+  - **Stands** (graines, vente, animaux) décorés dans le même style : caisses de légumes et
+    sachets de graines, balance et sacs de pièces, bottes de foin et barrière d'enclos.
+- **Animations** (roues qui tournent, lait qui coule, fumée) actives **uniquement quand le bâtiment
+  produit** (la file n'est pas vide), comme la fumée de cheminée actuelle.
+- Technique : animations calculées **côté client** (aucun trafic réseau). Le serveur pose
+  seulement un attribut `Working` sur le bâtiment, et le client fait tourner les parts taguées.
+  Chaque visuel est isolé dans une fonction par bâtiment, pour pouvoir remplacer plus tard par un
+  vrai modèle 3D sans toucher au gameplay.
 
 ---
 
@@ -215,9 +242,34 @@ Améliorations (communes à tous les bâtiments, prix = prix du bâtiment × mul
 
 Stock de produits finis : 40 par bâtiment. Production hors ligne : 8 h max.
 
+### 5.5 Créatures (phase 5)
+4 zones, 7 créatures originales par zone (28 au total) :
+
+| Zone | Prix d'accès | Valeur x | Créatures (de Commune à Secrète) |
+|---|---|---|---|
+| 🌲 Forêt | gratuit | x1 | Mousselin, Glandinet, Champiloup, Lucifeuille, Cerfeuillu, Racinor, Murmure-des-Bois |
+| ⛰️ Montagne | 25 000 | x4 | Caillouteux, Flocon, Bouquetonnerre, Givrelle, Grizzlune, Aquilorage, Yétinou |
+| 🏜️ Désert | 100 000 | x15 | Dunelle, Scorpinou, Cactouille, Mirageon, Sphinxou, Pharaonix, Oasien |
+| 🌋 Volcan | 400 000 | x50 | Braisou, Cendrou, Magmoche, Salamandrix, Pyrodrake, Volcanosaure, Cœur-de-Lave |
+
+| Rareté | Apparition | Valeur de base | Clics réussis | Largeur zone verte | Vitesse | Chance finale | Annonce |
+|---|---|---|---|---|---|---|---|
+| Commune | 60 % | 100 | 1 | 30 % | lente | 100 % | — |
+| Rare | 25 % | 400 | 2 | 24 % | | 90 % | — |
+| Épique | 10 % | 1 500 | 2 | 18 % | | 75 % | — |
+| Légendaire | 4 % | 6 000 | 3 | 15 % | | 55 % | — |
+| Mythique | 0,9 % | 25 000 | 3 | 12 % | | 40 % | bannière serveur |
+| Secrète | 0,1 % | 120 000 | 4 | 10 % | très rapide | 30 % | chat + bannière |
+
+Valeur d'une créature = valeur de base × multiplicateur de zone × mutation. 2 ratés autorisés
+par capture. En cas d'échec, la créature s'enfuit.
+
+| Mutation | Chance | Valeur | Effet visuel |
+|---|---|---|---|
+| Dorée | 6 % | x2 | couleur or brillante |
+| Géante | 4 % | x3 | taille x2 |
+| Arc-en-ciel | 2 % | x5 | couleurs animées |
+| Spectrale | 0,5 % | x10 | translucide et lumineuse |
+
 ### 5.6 Déplacement
 Vitesse de marche 24 (au lieu de 16), sprint à 32 en maintenant Maj (bouton sur mobile).
-
-### 5.5 Créatures (phase 5, provisoire)
-Raretés : Commune, Rare, Épique, Légendaire, Mythique, Secrète (de la plus fréquente à la plus
-rare). Les chances et les revenus exposés seront fixés en phase 5, dans Config.
