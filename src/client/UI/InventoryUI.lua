@@ -5,7 +5,8 @@
 	quantité, valeur estimée, et remplissage (ex. 12 / 300). La vente se fait au
 	stand 💰 VENTE.
 	La valeur affichée n'est qu'une estimation : le serveur calcule le vrai prix.
-	Les objets consommables (Config.Consumables) ont un bouton 🍴 Manger (boost temporaire).
+	Les objets consommables (Config.Consumables) ont un bouton 🍴 Manger (boost temporaire),
+	les œufs de créatures (Config.Eggs) un bouton 🐣 Couver.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,21 +24,24 @@ local list: ScrollingFrame
 local summary: TextLabel
 local hudButton: TextButton?
 local notify: (string, string) -> ()
-local consumeRemote: RemoteFunction
 local busy = false
 
-local function eat(itemId: string, variant: string)
+local function invokeItem(remoteName: string, itemId: string, variant: string)
 	if busy then
 		return
 	end
 	busy = true
 	local ok, success, message = pcall(function()
-		return consumeRemote:InvokeServer(itemId, variant)
+		return Remotes.Get(remoteName):InvokeServer(itemId, variant)
 	end)
 	busy = false
 	if ok then
 		notify(message or "", if success then "Success" else "Error")
 	end
+end
+
+local function eat(itemId: string, variant: string)
+	invokeItem("Consume", itemId, variant)
 end
 
 local function rebuild(inventory: { [string]: { [string]: number } }?)
@@ -91,6 +95,20 @@ local function rebuild(inventory: { [string]: { [string]: number } }?)
 							eat(itemId, variant)
 						end)
 					end
+					-- Œufs de créatures : mise en couveuse
+					if Config.Eggs[itemId] then
+						local hatchButton = Theme.Button({
+							AnchorPoint = Vector2.new(0.5, 0.5),
+							Position = UDim2.new(0.62, 0, 0.5, 0),
+							Size = UDim2.fromOffset(80, 32),
+							BackgroundColor3 = Color3.fromRGB(150, 110, 220),
+							Text = "🐣 Couver",
+							Parent = row,
+						})
+						hatchButton.Activated:Connect(function()
+							invokeItem("Hatch", itemId, variant)
+						end)
+					end
 					Theme.Label({
 						AnchorPoint = Vector2.new(1, 0),
 						Size = UDim2.new(0.4, -10, 1, -10),
@@ -123,7 +141,6 @@ end
 
 function InventoryUI.Init(screen: ScreenGui, HUD, StateController, notifyFn: (string, string) -> ())
 	notify = notifyFn
-	consumeRemote = Remotes.Get("Consume")
 	local content
 	window, content = Theme.Window(screen, "Inventory", "🎒 Inventaire", Vector2.new(480, 400))
 

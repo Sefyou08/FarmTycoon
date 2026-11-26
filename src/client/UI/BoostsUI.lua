@@ -2,7 +2,7 @@
 	BoostsUI.lua
 	============
 	Affiche les boosts actifs (consommables) en haut à droite, avec leur bonus et
-	un compte à rebours. Les boosts sont décidés par le serveur (data.Boosts) ;
+	un compte à rebours, ainsi que les œufs en train d'éclore (🐣). Les boosts sont décidés par le serveur (data.Boosts) ;
 	le client ne fait que les afficher.
 ]]
 
@@ -27,6 +27,29 @@ local function render()
 	local boosts = StateController.Get("Boosts") or {}
 	local now = Workspace:GetServerTimeNow()
 	local order = 0
+	-- Œufs en couveuse
+	for _, entry in StateController.Get("Hatching") or {} do
+		local egg = Config.Eggs[entry.Egg]
+		if egg then
+			order += 1
+			local remaining = math.max(0, (entry.ReadyAt or 0) - now)
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.fromOffset(200, 32)
+			frame.LayoutOrder = 100 + order
+			frame.BackgroundColor3 = Theme.Colors.Panel
+			frame.BackgroundTransparency = 0.15
+			frame.Parent = container
+			Theme.Corner(frame, 8)
+			Theme.Stroke(frame, 2, Color3.fromRGB(150, 110, 220))
+			Theme.Label({
+				Size = UDim2.new(1, -12, 1, -8),
+				Position = UDim2.fromOffset(6, 4),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Text = if remaining > 0 then ("🐣 %s  ⏳ %s"):format(egg.DisplayName, Format.Time(math.ceil(remaining))) else ("🐣 %s : éclosion !"):format(egg.DisplayName),
+				Parent = frame,
+			})
+		end
+	end
 	for boostType, boost in boosts do
 		local info = Config.Boosts.Types[boostType]
 		local remaining = (boost.EndsAt or 0) - now
@@ -67,7 +90,7 @@ function BoostsUI.Init(screen: ScreenGui, stateController)
 
 	-- Rafraîchi chaque seconde (compte à rebours), et dès qu'un boost change
 	StateController.Changed:Connect(function(key)
-		if key == "*" or key == "Boosts" then
+		if key == "*" or key == "Boosts" or key == "Hatching" then
 			render()
 		end
 	end)

@@ -390,6 +390,7 @@ Config.Stands = {
 	SeedShopPosition = Vector3.new(-30, 0, 0),
 	SellStandPosition = Vector3.new(30, 0, 0),
 	AnimalShopPosition = Vector3.new(0, 0, -24),
+	DungeonPortalPosition = Vector3.new(-62, 0, 0), -- portail rouge des donjons (phase 8)
 	MaxDistance = 16, -- distance max pour acheter / vendre (vérifiée par le serveur)
 }
 
@@ -642,12 +643,15 @@ Config.Zones = {
 --   Prestige  : points de prestige (vitrine, meilleure prise, classement)
 --   Announce  : "Server" = bannière, "Chat" = chat + bannière, "Global" = TOUS les serveurs
 --   SpawnAlert: "Zone" = prévient les joueurs de la zone à l'apparition, "Server" = tout le serveur
---   Capture (mini-jeu, tout est réglable ici) :
---     Hits      = clics réussis à enchaîner
---     Width     = largeur de la zone verte (fraction de la barre, 0 à 1)
---     Speed     = allers par seconde du curseur (plus petit = plus lent)
---     MaxMisses = ratés autorisés
---     Chance    = tirage final après le mini-jeu réussi (0 à 1)
+--   Capture : DEUX MODES, choisis par le joueur au début de chaque capture
+--     Safe (🎯 Sûr)    : 100 % de chance finale, mini-jeu un peu plus dur
+--     Fast (⚡ Rapide) : mini-jeu un peu plus facile, chance finale plus faible
+--     Pour chaque mode :
+--       Hits      = clics réussis à enchaîner
+--       Width     = largeur de la zone verte (fraction de la barre, 0 à 1)
+--       Speed     = allers par seconde du curseur (plus petit = plus lent)
+--       MaxMisses = ratés autorisés
+--       Chance    = tirage final après le mini-jeu réussi (0 à 1)
 --   Visual (en attendant les vrais modèles de la phase 10) :
 --     Scale     = taille du modèle (Commune = 1)
 --     Vivid     = couleurs plus saturées et lumineuses
@@ -660,49 +664,70 @@ Config.CreatureRarities = {
 		DisplayName = "Commune", Order = 1, Color = Color3.fromRGB(200, 200, 200),
 		Weight = 60, BaseValue = 100,
 		Income = 1, Prestige = 1,
-		Capture = { Hits = 1, Width = 0.30, Speed = 0.8, MaxMisses = 2, Chance = 1.0 },
+		Capture = {
+			Safe = { Hits = 1, Width = 0.26, Speed = 0.85, MaxMisses = 2, Chance = 1 }, -- 🎯 Sûr
+			Fast = { Hits = 1, Width = 0.32, Speed = 0.78, MaxMisses = 2, Chance = 0.97 }, -- ⚡ Rapide
+		},
 		Visual = { Scale = 1, Vivid = false, Particles = 0, Light = 0, Beacon = false },
 	},
 	Rare = {
 		DisplayName = "Rare", Order = 2, Color = Color3.fromRGB(70, 150, 255),
 		Weight = 25, BaseValue = 400,
 		Income = 4, Prestige = 5,
-		Capture = { Hits = 2, Width = 0.26, Speed = 0.85, MaxMisses = 2, Chance = 0.95 },
+		Capture = {
+			Safe = { Hits = 2, Width = 0.23, Speed = 0.9, MaxMisses = 2, Chance = 1 }, -- 🎯 Sûr
+			Fast = { Hits = 2, Width = 0.28, Speed = 0.82, MaxMisses = 2, Chance = 0.92 }, -- ⚡ Rapide
+		},
 		Visual = { Scale = 1.05, Vivid = false, Particles = 0, Light = 0, Beacon = false },
 	},
 	Epic = {
 		DisplayName = "Épique", Order = 3, Color = Color3.fromRGB(170, 80, 240),
 		Weight = 10, BaseValue = 1500,
 		Income = 15, Prestige = 25,
-		Capture = { Hits = 2, Width = 0.23, Speed = 0.9, MaxMisses = 2, Chance = 0.9 },
+		Capture = {
+			Safe = { Hits = 3, Width = 0.21, Speed = 0.9, MaxMisses = 2, Chance = 1 }, -- 🎯 Sûr
+			Fast = { Hits = 2, Width = 0.25, Speed = 0.86, MaxMisses = 2, Chance = 0.87 }, -- ⚡ Rapide
+		},
 		Visual = { Scale = 1.2, Vivid = true, Particles = 3, Light = 8, Beacon = false },
 	},
 	Legendary = {
 		DisplayName = "Légendaire", Order = 4, Color = Color3.fromRGB(255, 180, 30),
 		Weight = 4, BaseValue = 6000,
 		Income = 60, Prestige = 100,
-		Capture = { Hits = 3, Width = 0.20, Speed = 0.95, MaxMisses = 2, Chance = 0.85 },
+		Capture = {
+			Safe = { Hits = 4, Width = 0.19, Speed = 0.95, MaxMisses = 2, Chance = 1 }, -- 🎯 Sûr
+			Fast = { Hits = 3, Width = 0.22, Speed = 0.9, MaxMisses = 2, Chance = 0.8 }, -- ⚡ Rapide
+		},
 		Visual = { Scale = 1.5, Vivid = true, Particles = 8, Light = 12, Beacon = false },
 	},
 	Mythic = {
 		DisplayName = "Mythique", Order = 5, Color = Color3.fromRGB(255, 70, 120),
 		Weight = 0.9, BaseValue = 25000, Announce = "Server", SpawnAlert = "Zone",
 		Income = 250, Prestige = 500,
-		Capture = { Hits = 3, Width = 0.18, Speed = 1.0, MaxMisses = 3, Chance = 0.8 },
+		Capture = {
+			Safe = { Hits = 4, Width = 0.17, Speed = 1.0, MaxMisses = 3, Chance = 1 }, -- 🎯 Sûr
+			Fast = { Hits = 3, Width = 0.20, Speed = 0.95, MaxMisses = 3, Chance = 0.75 }, -- ⚡ Rapide
+		},
 		Visual = { Scale = 1.8, Vivid = true, Particles = 15, Light = 16, Beacon = true },
 	},
 	Secret = {
 		DisplayName = "Secrète", Order = 6, Color = Color3.fromRGB(20, 255, 200),
 		Weight = 0.1, BaseValue = 120000, Announce = "Chat", SpawnAlert = "Server",
 		Income = 1200, Prestige = 2500,
-		Capture = { Hits = 4, Width = 0.16, Speed = 1.05, MaxMisses = 3, Chance = 0.75 },
+		Capture = {
+			Safe = { Hits = 5, Width = 0.15, Speed = 1.05, MaxMisses = 3, Chance = 1 }, -- 🎯 Sûr
+			Fast = { Hits = 4, Width = 0.18, Speed = 1.0, MaxMisses = 3, Chance = 0.75 }, -- ⚡ Rapide
+		},
 		Visual = { Scale = 2.1, Vivid = true, Particles = 25, Light = 20, Beacon = true },
 	},
 	Divine = {
 		DisplayName = "Divine", Order = 7, Color = Color3.fromRGB(255, 235, 120),
 		Weight = 0.001, BaseValue = 1500000, Announce = "Global", SpawnAlert = "Server", Divine = true,
 		Income = 10000, Prestige = 25000,
-		Capture = { Hits = 5, Width = 0.14, Speed = 1.1, MaxMisses = 3, Chance = 0.6 },
+		Capture = {
+			Safe = { Hits = 6, Width = 0.13, Speed = 1.1, MaxMisses = 3, Chance = 1 }, -- 🎯 Sûr
+			Fast = { Hits = 5, Width = 0.16, Speed = 1.05, MaxMisses = 3, Chance = 0.75 }, -- ⚡ Rapide
+		},
 		Visual = { Scale = 2.6, Vivid = true, Particles = 40, Light = 26, Beacon = true },
 	},
 }
@@ -901,6 +926,134 @@ Config.Helpers = {
 			{ Price = 600000, Interval = 10, Pens = 8 },
 		},
 	},
+}
+
+--------------------------------------------------------------------------
+-- DONJONS (phase 8)
+--------------------------------------------------------------------------
+-- Combat : PV et dégâts du joueur selon son niveau, x (1 + boost "Combat")
+Config.Combat = {
+	PlayerBaseHealth = 100,
+	HealthPerLevel = 6,
+	BaseDamage = 20,
+	DamagePerLevel = 3,
+	AttackRange = 9, -- portée de l'attaque (studs, + la taille de l'ennemi)
+	AttackCooldown = 0.45, -- secondes entre deux attaques
+	DodgeCooldown = 1.5, -- secondes entre deux esquives
+	DodgeInvulnerability = 0.5, -- secondes d'invulnérabilité pendant l'esquive
+	DodgeSpeed = 70, -- vitesse du bond d'esquive (client)
+	RunTimeout = 600, -- un donjon doit être fini en 10 min
+	WaveDelay = 3, -- secondes de pause entre deux vagues
+	EndDelay = 5, -- secondes avant le retour à la ferme (victoire / défaite)
+	ArenaSize = 110, -- côté d'une arène (studs)
+	ArenaOrigin = Vector3.new(0, 0, -1800), -- position de la 1re arène (loin de la map)
+	ArenaSpacing = 300, -- écart entre deux arènes (une par joueur en donjon)
+}
+
+-- Ennemis (créatures originales, modèles en Parts)
+--   HP, Damage, Speed (studs/s), AttackRange, WindUp (s d'avertissement avant le coup, en rouge),
+--   AttackCooldown, Size, Body ("Ball" | "Block"), Color, Accent, XP (gagnée en le battant)
+--   Boss : SlamDamage / SlamRadius / SlamWindup / SlamInterval = attaque de zone (cercle rouge au sol)
+Config.Enemies = {
+	Ronceux = { DisplayName = "Ronceux", HP = 70, Damage = 8, Speed = 9, AttackRange = 5, WindUp = 0.7, AttackCooldown = 1.4, Size = 2.6, Body = "Ball", Color = Color3.fromRGB(90, 130, 50), Accent = Color3.fromRGB(120, 70, 40), XP = 8 },
+	Champitox = { DisplayName = "Champitox", HP = 45, Damage = 11, Speed = 12, AttackRange = 4.5, WindUp = 0.6, AttackCooldown = 1.2, Size = 2.1, Body = "Ball", Color = Color3.fromRGB(170, 60, 200), Accent = Color3.fromRGB(240, 240, 240), XP = 8 },
+	Givrelin = { DisplayName = "Givrelin", HP = 120, Damage = 15, Speed = 11, AttackRange = 5, WindUp = 0.65, AttackCooldown = 1.3, Size = 2.4, Body = "Ball", Color = Color3.fromRGB(170, 220, 255), Accent = Color3.fromRGB(80, 140, 230), XP = 14 },
+	Cognebloc = { DisplayName = "Cognebloc", HP = 260, Damage = 26, Speed = 7, AttackRange = 6, WindUp = 0.9, AttackCooldown = 1.8, Size = 4, Body = "Block", Color = Color3.fromRGB(200, 230, 255), Accent = Color3.fromRGB(110, 150, 200), XP = 22 },
+	Scarabix = { DisplayName = "Scarabix", HP = 200, Damage = 22, Speed = 13, AttackRange = 5, WindUp = 0.6, AttackCooldown = 1.2, Size = 2.6, Body = "Block", Color = Color3.fromRGB(60, 130, 140), Accent = Color3.fromRGB(230, 190, 80), XP = 24 },
+	Ventsableux = { DisplayName = "Ventsableux", HP = 240, Damage = 28, Speed = 10, AttackRange = 6, WindUp = 0.75, AttackCooldown = 1.5, Size = 3, Body = "Ball", Color = Color3.fromRGB(230, 200, 140), Accent = Color3.fromRGB(180, 130, 70), XP = 28 },
+	Braisard = { DisplayName = "Braisard", HP = 380, Damage = 36, Speed = 13, AttackRange = 5, WindUp = 0.6, AttackCooldown = 1.2, Size = 2.8, Body = "Block", Color = Color3.fromRGB(220, 60, 30), Accent = Color3.fromRGB(255, 200, 60), XP = 40 },
+	Magmolosse = { DisplayName = "Magmolosse", HP = 700, Damage = 50, Speed = 7, AttackRange = 7, WindUp = 1, AttackCooldown = 1.8, Size = 4.6, Body = "Block", Color = Color3.fromRGB(50, 30, 30), Accent = Color3.fromRGB(255, 110, 20), XP = 55 },
+
+	-- Boss
+	VieuxChene = { DisplayName = "Vieux Chêne Grognon", Boss = true, HP = 1200, Damage = 20, Speed = 6, AttackRange = 8, WindUp = 0.9, AttackCooldown = 1.8, Size = 8, Body = "Block", Color = Color3.fromRGB(110, 80, 50), Accent = Color3.fromRGB(80, 170, 60), XP = 150, SlamDamage = 35, SlamRadius = 14, SlamWindup = 1.3, SlamInterval = 7 },
+	ReineGivre = { DisplayName = "Reine du Givre", Boss = true, HP = 3200, Damage = 34, Speed = 7, AttackRange = 8, WindUp = 0.85, AttackCooldown = 1.6, Size = 8, Body = "Ball", Color = Color3.fromRGB(200, 235, 255), Accent = Color3.fromRGB(120, 90, 255), XP = 350, SlamDamage = 55, SlamRadius = 16, SlamWindup = 1.25, SlamInterval = 6.5 },
+	GardienDunes = { DisplayName = "Gardien des Dunes", Boss = true, HP = 6500, Damage = 48, Speed = 8, AttackRange = 9, WindUp = 0.8, AttackCooldown = 1.5, Size = 9, Body = "Block", Color = Color3.fromRGB(220, 180, 90), Accent = Color3.fromRGB(60, 90, 200), XP = 700, SlamDamage = 80, SlamRadius = 17, SlamWindup = 1.2, SlamInterval = 6 },
+	TitanLave = { DisplayName = "Titan de Lave", Boss = true, HP = 13000, Damage = 70, Speed = 8, AttackRange = 10, WindUp = 0.8, AttackCooldown = 1.4, Size = 10, Body = "Block", Color = Color3.fromRGB(40, 25, 25), Accent = Color3.fromRGB(255, 120, 20), XP = 1400, SlamDamage = 110, SlamRadius = 18, SlamWindup = 1.15, SlamInterval = 5.5 },
+}
+
+-- Donjons : vagues d'ennemis puis un boss, récompenses à la victoire
+--   RequiredLevel : niveau du joueur requis
+--   Waves : liste de vagues (ids de Config.Enemies), puis Boss
+--   Rewards.Coins = { min, max } ; Rewards.XP ; FirstClearBonus = Coins en plus à la 1re victoire
+--   Rewards.Loot : tirages indépendants { Kind = "Seeds" | "Item", Id, Variant?, Amount = { min, max }, Chance }
+Config.Dungeons = {
+	RootCave = {
+		DisplayName = "Grotte des Racines", Icon = "🌳", Order = 1, RequiredLevel = 8,
+		FloorColor = Color3.fromRGB(80, 60, 40), WallColor = Color3.fromRGB(60, 90, 50),
+		Waves = { { "Ronceux", "Ronceux", "Champitox" }, { "Ronceux", "Champitox", "Champitox", "Ronceux" } },
+		Boss = "VieuxChene",
+		Rewards = {
+			Coins = { 3000, 6000 }, XP = 200, FirstClearBonus = 10000,
+			Loot = {
+				{ Kind = "Seeds", Id = "Strawberry", Amount = { 2, 4 }, Chance = 0.6 },
+				{ Kind = "Seeds", Id = "Watermelon", Amount = { 1, 2 }, Chance = 0.25 },
+				{ Kind = "Item", Id = "ForestEgg", Amount = { 1, 1 }, Chance = 0.35 },
+				{ Kind = "Item", Id = "Egg", Variant = "Legendary", Amount = { 1, 2 }, Chance = 0.1 },
+				{ Kind = "Item", Id = "Wheat", Variant = "Mythic", Amount = { 2, 4 }, Chance = 0.05 },
+			},
+		},
+	},
+	FrostMine = {
+		DisplayName = "Mine de Givre", Icon = "❄️", Order = 2, RequiredLevel = 14,
+		FloorColor = Color3.fromRGB(150, 170, 190), WallColor = Color3.fromRGB(220, 235, 250),
+		Waves = { { "Givrelin", "Givrelin", "Givrelin" }, { "Givrelin", "Cognebloc", "Givrelin" }, { "Cognebloc", "Cognebloc", "Givrelin", "Givrelin" } },
+		Boss = "ReineGivre",
+		Rewards = {
+			Coins = { 15000, 30000 }, XP = 500, FirstClearBonus = 50000,
+			Loot = {
+				{ Kind = "Seeds", Id = "Blueberry", Amount = { 3, 5 }, Chance = 0.6 },
+				{ Kind = "Seeds", Id = "Dragonfruit", Amount = { 1, 2 }, Chance = 0.3 },
+				{ Kind = "Item", Id = "MountainEgg", Amount = { 1, 1 }, Chance = 0.35 },
+				{ Kind = "Item", Id = "Wool", Variant = "Mythic", Amount = { 2, 3 }, Chance = 0.08 },
+				{ Kind = "Item", Id = "Milk", Variant = "Legendary", Amount = { 2, 3 }, Chance = 0.12 },
+			},
+		},
+	},
+	SandTemple = {
+		DisplayName = "Temple Ensablé", Icon = "🏛️", Order = 3, RequiredLevel = 20,
+		FloorColor = Color3.fromRGB(220, 190, 130), WallColor = Color3.fromRGB(180, 140, 80),
+		Waves = { { "Scarabix", "Scarabix", "Ventsableux" }, { "Ventsableux", "Scarabix", "Ventsableux", "Scarabix" }, { "Ventsableux", "Ventsableux", "Scarabix", "Scarabix", "Scarabix" } },
+		Boss = "GardienDunes",
+		Rewards = {
+			Coins = { 60000, 120000 }, XP = 1200, FirstClearBonus = 200000,
+			Loot = {
+				{ Kind = "Seeds", Id = "StarFlower", Amount = { 1, 2 }, Chance = 0.35 },
+				{ Kind = "Item", Id = "DesertEgg", Amount = { 1, 1 }, Chance = 0.35 },
+				{ Kind = "Item", Id = "Milk", Variant = "Mythic", Amount = { 2, 3 }, Chance = 0.1 },
+				{ Kind = "Item", Id = "Truffle", Variant = "Legendary", Amount = { 1, 2 }, Chance = 0.15 },
+			},
+		},
+	},
+	LavaForge = {
+		DisplayName = "Forge Volcanique", Icon = "🌋", Order = 4, RequiredLevel = 28,
+		FloorColor = Color3.fromRGB(45, 35, 35), WallColor = Color3.fromRGB(90, 30, 20),
+		Waves = { { "Braisard", "Braisard", "Braisard" }, { "Braisard", "Magmolosse", "Braisard" }, { "Magmolosse", "Braisard", "Magmolosse", "Braisard" } },
+		Boss = "TitanLave",
+		Rewards = {
+			Coins = { 250000, 500000 }, XP = 3000, FirstClearBonus = 800000,
+			Loot = {
+				{ Kind = "Seeds", Id = "MoonPumpkin", Amount = { 1, 2 }, Chance = 0.4 },
+				{ Kind = "Item", Id = "VolcanoEgg", Amount = { 1, 1 }, Chance = 0.35 },
+				{ Kind = "Item", Id = "Truffle", Variant = "Mythic", Amount = { 1, 2 }, Chance = 0.1 },
+				{ Kind = "Item", Id = "Milk", Variant = "Mythic", Amount = { 3, 5 }, Chance = 0.12 },
+			},
+		},
+	},
+}
+
+-- ŒUFS DE CRÉATURES (récompenses de donjon) : on les fait couver depuis le sac (🐣),
+-- ils éclosent après HatchTime secondes et donnent une créature de leur zone.
+Config.Eggs = {
+	ForestEgg = { DisplayName = "Œuf de la Forêt", Icon = "🥚", Order = 1, SellPrice = 800, Zone = "Forest", HatchTime = 60 },
+	MountainEgg = { DisplayName = "Œuf de la Montagne", Icon = "🥚", Order = 2, SellPrice = 3000, Zone = "Mountain", HatchTime = 120 },
+	DesertEgg = { DisplayName = "Œuf du Désert", Icon = "🥚", Order = 3, SellPrice = 10000, Zone = "Desert", HatchTime = 240 },
+	VolcanoEgg = { DisplayName = "Œuf du Volcan", Icon = "🥚", Order = 4, SellPrice = 35000, Zone = "Volcano", HatchTime = 480 },
+}
+
+Config.EggSettings = {
+	Incubators = 3, -- œufs qui peuvent couver en même temps
+	-- Un œuf donne plus souvent des raretés hautes qu'une capture : poids d'apparition multipliés
+	RarityWeightMultiplier = { Common = 1, Rare = 1.5, Epic = 3, Legendary = 5, Mythic = 8, Secret = 10, Divine = 10 },
 }
 
 --------------------------------------------------------------------------

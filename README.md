@@ -30,8 +30,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - [x] Phase 5 : expéditions, créatures, capture
 - [x] Phase 5b : mode construction + champs
 - [x] Phase 6 : collection, exposition, vitrine, Index, classement
-- [ ] Phase 7 : progression, ressources rares, consommables, aides PNJ (à tester)
-- [ ] Phase 8 : donjon
+- [x] Phase 7 : progression, ressources rares, consommables, aides PNJ
+- [ ] Phase 8 : donjon + œufs de créatures (à tester)
 - [ ] Phase 9 : monétisation
 - [ ] Phase 10 : direction artistique
 
@@ -57,3 +57,6 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 17. **Stock rare** de la boutique de graines : renouvelé toutes les 5 min (compte à rebours).
 18. **🍴** dans le sac : manger un produit donne un boost (vitesse, XP, Coins, capture).
 19. **🧑‍🌾 Aides** : fermier et soigneur PNJ. **🐴 Monture** : monter sur ton cheval. **⭐ Rebirth** : renaître contre un multiplicateur de Coins.
+20. **Capture** : choisis 🎯 Sûr (100 % de réussite finale, un peu plus dur) ou ⚡ Rapide (un peu plus facile, moins sûr).
+21. **Portail rouge ⚔️ DONJONS** (à gauche du spawn) : vagues d'ennemis puis un boss. ⚔️ Attaque (clic / F), 💨 Esquive (Q) quand un ennemi devient rouge.
+22. **🐣 Couver** dans le sac : fais éclore les œufs gagnés au donjon pour obtenir des créatures.

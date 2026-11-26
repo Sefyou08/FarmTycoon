@@ -5,6 +5,7 @@
 	  - les récoltes (Config.Crops)
 	  - les ressources animales (Config.Resources)
 	  - les produits transformés (Config.Products)
+	  - les œufs de créatures (Config.Eggs), récompenses de donjon
 	Chaque objet existe en plusieurs VARIANTES (Config.Variants : Normal, Gold...),
 	qui multiplient sa valeur de vente.
 	Partagé client/serveur.
@@ -14,8 +15,8 @@ local Config = require(script.Parent.Config)
 
 local ItemUtil = {}
 
--- Ordre d'affichage : récoltes, puis ressources, puis produits transformés
-local CATEGORIES = { Config.Crops, Config.Resources, Config.Products }
+-- Ordre d'affichage : récoltes, ressources, produits transformés, puis œufs de créatures
+local CATEGORIES = { Config.Crops, Config.Resources, Config.Products, Config.Eggs }
 
 local sortedIds: { string }? = nil
 

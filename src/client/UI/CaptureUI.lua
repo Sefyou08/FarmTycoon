@@ -2,6 +2,9 @@
 	CaptureUI.lua
 	=============
 	Mini-jeu de capture (lasso + barre de timing).
+	  • D'abord, le joueur choisit son MODE : 🎯 Sûr (100 % de chance finale, un peu
+	    plus dur) ou ⚡ Rapide (un peu plus facile, chance finale plus faible). Le serveur
+	    envoie les valeurs de chaque mode, puis génère le mini-jeu du mode choisi.
 	  • Le serveur envoie les paramètres (CaptureStart) : vitesse du curseur,
 	    largeur et positions des zones vertes, nombre de réussites nécessaires.
 	  • Un curseur fait des allers-retours ; le joueur clique "LANCER !" (ou Espace,
@@ -34,6 +37,9 @@ local bar: Frame
 local zoneFrame: Frame
 local cursor: Frame
 local throwButton: TextButton
+local cancelButton: TextButton
+local modeFrame: Frame
+local modeButtons: { [string]: TextButton } = {}
 
 local session: { [string]: any }? = nil
 local hits, misses = 0, 0
@@ -75,7 +81,7 @@ local function createLasso(model: Model?)
 end
 
 local function updateZone()
-	if not session then
+	if not session or not session.Centers then
 		return
 	end
 	local center = session.Centers[hits + 1] or session.Centers[#session.Centers]
@@ -98,7 +104,7 @@ local function close(message: string?, kind: string?)
 end
 
 local function throw()
-	if not session or waiting then
+	if not session or waiting or not session.Start then
 		return
 	end
 	local now = Workspace:GetServerTimeNow()
@@ -134,13 +140,35 @@ local function throw()
 	end
 end
 
-local function onCaptureStart(data: { [string]: any })
-	session = data
-	hits, misses = 0, 0
-	titleLabel.Text = ('🪢 Capture : %s <font color="#%s">[%s]</font>'):format(data.Label, data.RarityColor:ToHex(), data.RarityName)
-	panel.Visible = true
+-- Affiche le mini-jeu (après le choix du mode)
+local function showBar(visible: boolean)
+	bar.Visible = visible
+	throwButton.Visible = visible
+	modeFrame.Visible = not visible
+end
+
+local function chooseMode(modeId: string)
+	if not session or waiting or session.Start then
+		return
+	end
+	waiting = true
+	local sessionId = session.SessionId
+	local ok, response = pcall(function()
+		return actionRemote:InvokeServer("Mode", sessionId, modeId)
+	end)
+	waiting = false
+	if not session or session.SessionId ~= sessionId then
+		return
+	end
+	if not ok or type(response) ~= "table" or response.Result ~= "Started" then
+		close("Impossible de démarrer la capture.", "Error")
+		return
+	end
+	for key, value in response do
+		session[key] = value
+	end
+	showBar(true)
 	updateZone()
-	createLasso(data.Model)
 
 	-- Espace lance le lasso pendant la capture (et ne fait plus sauter le personnage)
 	ContextActionService:BindAction(THROW_ACTION, function(_, inputState)
@@ -149,6 +177,34 @@ local function onCaptureStart(data: { [string]: any })
 		end
 		return Enum.ContextActionResult.Sink
 	end, false, Enum.KeyCode.Space)
+end
+
+local MODE_TEXT = {
+	Safe = "🎯 SÛR",
+	Fast = "⚡ RAPIDE",
+}
+
+local function onCaptureStart(data: { [string]: any })
+	session = data
+	hits, misses = 0, 0
+	titleLabel.Text = ('🪢 Capture : %s <font color="#%s">[%s]</font>'):format(data.Label, data.RarityColor:ToHex(), data.RarityName)
+	statusLabel.Text = "Choisis ton mode de capture :"
+	-- Boutons de mode avec leurs vraies valeurs (envoyées par le serveur)
+	for modeId, button in modeButtons do
+		local mode = data.Modes and data.Modes[modeId]
+		if mode then
+			button.Text = ("%s\n%d réussite(s) • zone %d %% • %d ratés • chance %d %%"):format(
+				MODE_TEXT[modeId],
+				mode.Hits,
+				math.floor(mode.Width * 100 + 0.5),
+				mode.MaxMisses,
+				math.floor(mode.Chance * 100 + 0.5)
+			)
+		end
+	end
+	showBar(false)
+	panel.Visible = true
+	createLasso(data.Model)
 end
 
 function CaptureUI.Init(screen: ScreenGui, notifyFn: (string, string) -> ())
@@ -193,6 +249,27 @@ function CaptureUI.Init(screen: ScreenGui, notifyFn: (string, string) -> ())
 	cursor.ZIndex = 2
 	cursor.Parent = bar
 
+	-- Choix du mode (au début de chaque capture)
+	modeFrame = Instance.new("Frame")
+	modeFrame.Position = UDim2.fromOffset(12, 62)
+	modeFrame.Size = UDim2.new(1, -24, 0, 54)
+	modeFrame.BackgroundTransparency = 1
+	modeFrame.Visible = false
+	modeFrame.Parent = panel
+	for i, modeId in { "Safe", "Fast" } do
+		local button = Theme.Button({
+			Position = UDim2.new((i - 1) * 0.5, if i == 1 then 0 else 4, 0, 0),
+			Size = UDim2.new(0.5, -4, 1, 0),
+			BackgroundColor3 = if modeId == "Safe" then Color3.fromRGB(60, 150, 90) else Color3.fromRGB(230, 150, 40),
+			Text = MODE_TEXT[modeId],
+			Parent = modeFrame,
+		})
+		button.Activated:Connect(function()
+			chooseMode(modeId)
+		end)
+		modeButtons[modeId] = button
+	end
+
 	throwButton = Theme.Button({
 		Position = UDim2.new(0.5, -170, 0, 108),
 		Size = UDim2.fromOffset(220, 48),
@@ -202,14 +279,14 @@ function CaptureUI.Init(screen: ScreenGui, notifyFn: (string, string) -> ())
 	})
 	throwButton.Activated:Connect(throw)
 
-	local cancel = Theme.Button({
+	cancelButton = Theme.Button({
 		Position = UDim2.new(0.5, 60, 0, 108),
 		Size = UDim2.fromOffset(110, 48),
 		BackgroundColor3 = Color3.fromRGB(200, 60, 60),
 		Text = "Abandonner",
 		Parent = panel,
 	})
-	cancel.Activated:Connect(function()
+	cancelButton.Activated:Connect(function()
 		if session then
 			local sessionId = session.SessionId
 			task.spawn(function()
@@ -223,7 +300,7 @@ function CaptureUI.Init(screen: ScreenGui, notifyFn: (string, string) -> ())
 
 	-- Curseur : même formule que le serveur (CreatureUtil.CursorPosition)
 	RunService.RenderStepped:Connect(function()
-		if session then
+		if session and session.Start then
 			local now = Workspace:GetServerTimeNow()
 			local position = if now < session.Start then 0 else CreatureUtil.CursorPosition(session.Start, session.Speed, now)
 			cursor.Position = UDim2.fromScale(position, 0)

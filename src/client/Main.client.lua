@@ -30,6 +30,7 @@ local IndexUI = require(UI:WaitForChild("IndexUI"))
 local VisitUI = require(UI:WaitForChild("VisitUI"))
 local BoostsUI = require(UI:WaitForChild("BoostsUI"))
 local ProgressionUI = require(UI:WaitForChild("ProgressionUI"))
+local DungeonUI = require(UI:WaitForChild("DungeonUI"))
 
 Notifications.Init()
 HUD.Init(StateController)
@@ -46,6 +47,7 @@ IndexUI.Init(HUD.Screen, HUD, StateController, Notifications.Show)
 VisitUI.Init(HUD.Screen, HUD)
 BoostsUI.Init(HUD.Screen, StateController)
 ProgressionUI.Init(HUD.Screen, HUD, StateController, Notifications.Show)
+DungeonUI.Init(HUD.Screen, StateController, Notifications.Show)
 
 PromptController.Init()
 PlantTimers.Init()
@@ -53,4 +55,4 @@ AnimalController.Init()
 MovementController.Init(HUD)
 StateController.Init() -- en dernier : l'UI écoute déjà Changed quand l'état arrive
 
-print("[FarmTycoon] Client démarré ✅ (Phase 7)")
+print("[FarmTycoon] Client démarré ✅ (Phase 8)")

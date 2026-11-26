@@ -16,12 +16,15 @@
 	    retenter cette créature ; elle ne s'enfuit que si personne d'autre n'essaie.
 	    Les très rares (Visual.Beacon) ont une colonne de lumière visible de loin et une
 	    alerte à l'apparition (SpawnAlert) : ça crée une course.
+	  • MODE DE CAPTURE : au début, le joueur choisit 🎯 Sûr (100 % de chance finale,
+	    mini-jeu un peu plus dur) ou ⚡ Rapide (mini-jeu un peu plus facile, chance finale
+	    plus faible). Valeurs par rareté : Config.CreatureRarities[x].Capture.Safe / .Fast.
 	  • CAPTURE : le joueur utilise le prompt "Capturer". Le serveur crée une session
 	    (vitesse du curseur, positions des zones vertes) et l'envoie au client
 	    (CaptureStart). À chaque clic, le client envoie le temps serveur estimé ;
 	    le serveur recalcule la position du curseur (CreatureUtil.CursorPosition),
 	    vérifie que le temps est plausible, compte réussites et ratés, puis fait un
-	    tirage final (Capture.Chance) : même un client truqué ne garantit rien.
+	    tirage final (chance du mode choisi) : même un client truqué ne garantit rien.
 	  • Les créatures capturées vont dans data.Creatures (collection, Config.Expeditions.MaxCreatures).
 	    Première capture d'une espèce -> data.CreatureIndex (Index de la phase 6).
 	  • Vente d'une créature depuis la collection (SellCreature).
@@ -72,6 +75,8 @@ type Session = {
 	Id: string,
 	Player: Player,
 	Wild: Wild,
+	Mode: string?, -- "Safe" | "Fast" (nil tant que le joueur n'a pas choisi)
+	Chance: number,
 	Start: number,
 	Speed: number,
 	Width: number,
@@ -289,14 +294,18 @@ end
 -- Créatures sauvages
 --------------------------------------------------------------------------
 
-local function rollRarity(): string
+-- multipliers (optionnel) : { [rarityId] = facteur } pour favoriser les raretés hautes (œufs)
+local function rollRarity(multipliers: { [string]: number }?): string
+	local function weightOf(id: string): number
+		return Config.CreatureRarities[id].Weight * (if multipliers then (multipliers[id] or 1) else 1)
+	end
 	local total = 0
-	for _, rarity in Config.CreatureRarities do
-		total += rarity.Weight
+	for id in Config.CreatureRarities do
+		total += weightOf(id)
 	end
 	local roll = rng:NextNumber(0, total)
 	for _, id in CreatureUtil.SortedRarities() do
-		roll -= Config.CreatureRarities[id].Weight
+		roll -= weightOf(id)
 		if roll <= 0 then
 			return id
 		end
@@ -319,8 +328,8 @@ local function rollMutation(): string
 end
 
 -- Choisit une créature de la zone avec la rareté tirée (ou la plus proche en dessous)
-local function pickCreature(zoneId: string): string?
-	local rarityId = rollRarity()
+local function pickCreature(zoneId: string, multipliers: { [string]: number }?): string?
+	local rarityId = rollRarity(multipliers)
 	local rarityOrder = CreatureUtil.GetRarity(rarityId).Order
 	local candidates = CreatureUtil.CreaturesInZone(zoneId)
 	for order = rarityOrder, 1, -1 do
@@ -528,6 +537,25 @@ local function giveCreature(player: Player, creatureId: string, mutationId: stri
 	return true
 end
 
+-- API pour les œufs (EggService) : tirage d'une créature de zone, mutation, et ajout à la collection
+function ExpeditionService:PickCreature(zoneId: string, multipliers: { [string]: number }?): string?
+	return pickCreature(zoneId, multipliers)
+end
+
+function ExpeditionService:RollMutation(): string
+	return rollMutation()
+end
+
+-- Ajoute une créature à la collection (Index, annonces, XP). Renvoie false si la collection est pleine.
+function ExpeditionService:GiveCreature(player: Player, creatureId: string, mutationId: string): boolean
+	if not giveCreature(player, creatureId, mutationId) then
+		return false
+	end
+	announce(player, creatureId, mutationId)
+	XPService:AddXP(player, Config.Progression.XP.Capture[Config.Creatures[creatureId].Rarity] or 10)
+	return true
+end
+
 -- Termine une session. outcome : "Captured" | "Escaped" | "Cancelled" | "Timeout" | "Stolen"
 local function endSession(session: Session, outcome: string, fromServer: boolean): string
 	local player = session.Player
@@ -611,25 +639,21 @@ startCapture = function(player: Player, wild: Wild)
 
 	local def = Config.Creatures[wild.CreatureId]
 	local rarity = CreatureUtil.GetRarity(def.Rarity)
-	local capture = rarity.Capture
-	local width = capture.Width * ExpeditionService:GetCaptureWidthMultiplier(player)
-
-	-- Paramètres générés par le serveur
-	local centers = {}
-	for i = 1, capture.Hits do
-		centers[i] = rng:NextNumber(width / 2 + 0.05, 1 - width / 2 - 0.05)
-	end
 	local now = Workspace:GetServerTimeNow()
+
+	-- Session "en attente du choix de mode" : les paramètres seront générés au choix
 	local session: Session = {
 		Id = HttpService:GenerateGUID(false),
 		Player = player,
 		Wild = wild,
-		Start = now + 0.5, -- petit délai pour que l'interface apparaisse
-		Speed = capture.Speed,
-		Width = width,
-		Centers = centers,
-		HitsNeeded = capture.Hits,
-		MaxMisses = capture.MaxMisses or 2,
+		Mode = nil,
+		Chance = 1,
+		Start = math.huge,
+		Speed = 1,
+		Width = 0.2,
+		Centers = {},
+		HitsNeeded = 1,
+		MaxMisses = 2,
 		Hits = 0,
 		Misses = 0,
 		LastHit = now,
@@ -646,19 +670,63 @@ startCapture = function(player: Player, wild: Wild)
 	wild.Sessions[player] = session
 	wild.Model:SetAttribute("Frozen", true) -- la créature arrête de marcher
 
+	-- Le client affiche le choix du mode (avec les vraies valeurs, boosts compris)
+	local widthMultiplier = ExpeditionService:GetCaptureWidthMultiplier(player)
+	local chanceBonus = ExpeditionService:GetCaptureChanceBonus(player)
+	local modes = {}
+	for modeId, mode in rarity.Capture do
+		modes[modeId] = {
+			Hits = mode.Hits,
+			Width = mode.Width * widthMultiplier,
+			Speed = mode.Speed,
+			MaxMisses = mode.MaxMisses,
+			Chance = math.min(1, mode.Chance + chanceBonus),
+		}
+	end
 	Remotes.Get("CaptureStart"):FireClient(player, {
 		SessionId = session.Id,
+		Label = CreatureUtil.Label(wild.CreatureId, wild.Mutation),
+		RarityName = rarity.DisplayName,
+		RarityColor = rarity.Color,
+		Model = wild.Model,
+		Modes = modes,
+	})
+end
+
+-- Le joueur choisit son mode : le serveur génère les paramètres du mini-jeu
+local function chooseMode(session: Session, modeId: any): { [string]: any }
+	local rarity = CreatureUtil.GetRarity(Config.Creatures[session.Wild.CreatureId].Rarity)
+	local mode = type(modeId) == "string" and rarity.Capture[modeId]
+	if session.Mode or not mode then
+		return { Result = "Invalid" }
+	end
+	local player = session.Player
+	local width = mode.Width * ExpeditionService:GetCaptureWidthMultiplier(player)
+	local centers = {}
+	for i = 1, mode.Hits do
+		centers[i] = rng:NextNumber(width / 2 + 0.05, 1 - width / 2 - 0.05)
+	end
+	local now = Workspace:GetServerTimeNow()
+	session.Mode = modeId
+	session.Chance = math.min(1, mode.Chance + ExpeditionService:GetCaptureChanceBonus(player))
+	session.Start = now + 0.5 -- petit délai pour que la barre apparaisse
+	session.Speed = mode.Speed
+	session.Width = width
+	session.Centers = centers
+	session.HitsNeeded = mode.Hits
+	session.MaxMisses = mode.MaxMisses
+	session.LastHit = now
+	session.Expires = now + Exp.CaptureTimeout -- le chrono repart au choix du mode
+	return {
+		Result = "Started",
 		Start = session.Start,
 		Speed = session.Speed,
 		Width = session.Width,
 		Centers = centers,
 		HitsNeeded = session.HitsNeeded,
 		MaxMisses = session.MaxMisses,
-		Label = CreatureUtil.Label(wild.CreatureId, wild.Mutation),
-		RarityName = rarity.DisplayName,
-		RarityColor = rarity.Color,
-		Model = wild.Model,
-	})
+		Chance = session.Chance,
+	}
 end
 
 local function onCaptureAction(player: Player, action: any, sessionId: any, claimedTime: any): { [string]: any }
@@ -670,7 +738,10 @@ local function onCaptureAction(player: Player, action: any, sessionId: any, clai
 	if action == "Cancel" then
 		return { Result = "Ended", Outcome = "Cancelled", Message = endSession(session, "Cancelled", false) }
 	end
-	if action ~= "Hit" or not RemoteGuard.IsValidNumber(claimedTime) then
+	if action == "Mode" then
+		return chooseMode(session, claimedTime) -- 3e argument = id du mode
+	end
+	if action ~= "Hit" or not session.Mode or not RemoteGuard.IsValidNumber(claimedTime) then
 		return { Result = "Invalid" }
 	end
 
@@ -690,9 +761,8 @@ local function onCaptureAction(player: Player, action: any, sessionId: any, clai
 		session.Hits += 1
 		if session.Hits >= session.HitsNeeded then
 			-- Tirage final selon la rareté
-			local chance = CreatureUtil.GetRarity(Config.Creatures[session.Wild.CreatureId].Rarity).Capture.Chance
-			chance = math.min(1, chance + ExpeditionService:GetCaptureChanceBonus(player))
-			local outcome = if rng:NextNumber() <= chance then "Captured" else "Escaped"
+			-- Tirage final selon le mode choisi (Sûr = 100 %)
+			local outcome = if rng:NextNumber() <= session.Chance then "Captured" else "Escaped"
 			return { Result = "Ended", Outcome = outcome, Message = endSession(session, outcome, false) }
 		end
 		return { Result = "Hit", Hits = session.Hits, Misses = session.Misses }

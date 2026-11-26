@@ -84,9 +84,9 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 5 | Expéditions (portail, zones, créatures sauvages, capture) | ✅ fait |
 | 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | ✅ fait |
 | 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) + vitrine de prestige + rareté Divine | ✅ fait |
-| 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | 🧪 codée, à tester |
-| 8 | Donjon (ennemis, boss, combat simple, récompenses rares) | à faire |
-| 9 | Monétisation (Game Passes, Developer Products, IDs factices) + personnalisation cosmétique | à faire |
+| 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | ✅ fait |
+| 8 | Donjon (ennemis, boss, combat simple, récompenses rares) + œufs de créatures | 🧪 codée, à tester |
+| 9 | Monétisation (Game Passes, Developer Products, IDs factices) + roue quotidienne + personnalisation cosmétique | à faire |
 | 10 | Direction artistique complète (créatures, animaux, zones, ferme, bâtiments) | à faire |
 
 ### Phase 3 : Animaux de ferme
@@ -197,22 +197,53 @@ plus d'animaux et de bâtiments, et à partir en expédition.
   - un **soigneur PNJ** qui nourrit les animaux et ramasse la production.
 
 ### Phase 8 : Donjon
-- Un **portail de donjon** vers des donjons avec des **ennemis** et des **boss**.
-- **Combat simple** : attaque, esquive.
-- **Récompenses rares** : graines, œufs de créatures, ingrédients mythiques.
-- Les **boosts** des consommables s'appliquent au donjon et en expédition.
+- Un **portail rouge ⚔️ DONJONS** près du spawn ; 4 donjons débloqués par le niveau du joueur.
+- Parties **solo**, dans une **arène réservée** au joueur (loin de la map) : vagues d'ennemis,
+  puis un **boss**.
+- **Combat simple**, entièrement décidé par le serveur :
+  - **PV propres au donjon** (pas la vie Roblox), selon le niveau, x boost ⚔️ Combat ;
+  - **⚔️ Attaque** (clic gauche, F ou bouton) : le serveur frappe l'ennemi le plus proche à portée ;
+  - **💨 Esquive** (Q ou bouton) : bond + invulnérabilité courte ;
+  - les ennemis deviennent **rouges** avant de frapper (le temps d'esquiver) ; les boss font une
+    **attaque de zone** annoncée par un **cercle rouge** au sol.
+- **Récompenses** : Coins, XP, bonus de 1re victoire, et butin aléatoire (graines rares, **œufs de
+  créatures**, ingrédients Légendaires et Mythiques). Sac plein : le butin est converti en Coins.
+- **Œufs de créatures** : 🐣 Couver depuis le sac (3 couveuses), éclosion après un délai (même hors
+  ligne) ; ils donnent une créature de leur zone avec des **raretés hautes favorisées**.
+- Les **boosts** des consommables s'appliquent au donjon (Combat) et en expédition (Capture).
 
 ### Phase 9 : Monétisation
 - Game Passes et Developer Products, avec des **IDs factices** dans Config et un `ProcessReceipt`
   idempotent (reçus enregistrés dans la sauvegarde).
-- Exemples : version **premium des aides automatiques**, **agrandissement de parcelle** accéléré
-  (emplacement déjà prévu : `PlotService:GrantExpansion`), **boosts**, **emplacements en plus**,
-  packs de Coins, x2 Coins.
+- **Principes** : petits prix, **chances toujours affichées** pour tout achat au résultat aléatoire
+  (règle Roblox), et un jeu qui reste **agréable et complet pour les joueurs gratuits**. Tout est
+  décidé et validé **côté serveur**.
+- **Achats en Robux** (Developer Products / Game Passes) :
+  - **agrandissement de parcelle** plus rapide (emplacement déjà prévu : `PlotService:GrantExpansion`) ;
+  - **accélération** de la pousse des plantes, de l'éclosion des œufs, de la production des
+    animaux et des bâtiments ;
+  - **boosts** : vitesse, Coins, XP, chance de capture, force au donjon ;
+  - **version premium des aides automatiques** (emplacement prévu : `HelperService:GetSpeedMultiplier`) ;
+  - **emplacements en plus** (inventaire, collection, couveuses...), packs de Coins, x2 Coins.
+- **🎡 Roue quotidienne** :
+  - s'affiche **à la connexion**, et via un bouton **🎡 Roue** dans le HUD ;
+  - **1 tour gratuit toutes les 24 h**, avec un compte à rebours ; le délai est **sauvegardé** ;
+  - récompenses : Coins, graines (dont des rares), boosts, XP, rations, et **rarement** un œuf ou
+    une créature ;
+  - récompense **ultra rare (0,1 %)** : un **animal de ferme EXCLUSIF à la roue**, impossible à
+    obtenir autrement, vraiment beau (design original, couleurs vives, aura et particules uniques),
+    qui produit une **ressource exclusive de grande valeur** ; son obtention est **annoncée sur
+    tous les serveurs** (AnnouncementService, portée "Global") ;
+  - **animation avec suspense** (la roue ralentit, le résultat est décidé AVANT par le serveur et
+    l'animation s'arrête dessus) ;
+  - **chances affichées** dans la fenêtre de la roue ;
+  - **tours supplémentaires achetables en Robux**.
 - **Personnalisation cosmétique** :
   - **uniquement cosmétique**, aucun avantage de gameplay (pas de pay-to-win) ;
   - skins d'enclos (clôtures en bois, pierre, bonbon, or, néon…), sols de parcelle, couleurs et
     motifs des bâtiments, panneau de parcelle personnalisé, effets autour de la vitrine
     (particules, lumières), traces de pas, titres affichés au-dessus du joueur ;
+  - **champs** (bordures, terre, décorations) et **animaux** (skins, couleurs, accessoires) ;
   - petits prix en Robux (environ **25 à 150 Robux**), et certains cosmétiques **débloquables en
     jouant** (succès, Index complété, niveaux) pour que les joueurs gratuits puissent aussi se
     distinguer ;
@@ -346,19 +377,35 @@ Stock de produits finis : 40 par bâtiment. Production hors ligne : 8 h max.
 | 🏜️ Désert | 100 000 | x15 | Dunelle, Scorpinou, Cactouille, Mirageon, Sphinxou, Pharaonix, Oasien, ✨ Solarion |
 | 🌋 Volcan | 400 000 | x50 | Braisou, Cendrou, Magmoche, Salamandrix, Pyrodrake, Volcanosaure, Cœur-de-Lave, ✨ Ignaros |
 
-| Rareté | Apparition | Valeur de base | Clics réussis | Zone verte | Vitesse curseur | Ratés permis | Chance finale | Taille | Annonce |
-|---|---|---|---|---|---|---|---|---|---|
-| Commune | 60 % | 100 | 1 | 30 % | 0,8 | 2 | 100 % | x1 | — |
-| Rare | 25 % | 400 | 2 | 26 % | 0,85 | 2 | 95 % | x1,05 | — |
-| Épique | 10 % | 1 500 | 2 | 23 % | 0,9 | 2 | 90 % | x1,2 | — |
-| Légendaire | 4 % | 6 000 | 3 | 20 % | 0,95 | 2 | 85 % | x1,5 | — |
-| Mythique | 0,9 % | 25 000 | 3 | 18 % | 1,0 | 3 | 80 % | x1,8 | bannière serveur |
-| Secrète | 0,1 % | 120 000 | 4 | 16 % | 1,05 | 3 | 75 % | x2,1 | chat + bannière |
-| Divine | 0,001 % | 1 500 000 | 5 | 14 % | 1,1 | 3 | 60 % | x2,6 | tous les serveurs |
+| Rareté | Apparition | Valeur de base | Taille | Annonce |
+|---|---|---|---|---|
+| Commune | 60 % | 100 | x1 | — |
+| Rare | 25 % | 400 | x1,05 | — |
+| Épique | 10 % | 1 500 | x1,2 | — |
+| Légendaire | 4 % | 6 000 | x1,5 | — |
+| Mythique | 0,9 % | 25 000 | x1,8 | bannière serveur |
+| Secrète | 0,1 % | 120 000 | x2,1 | chat + bannière |
+| Divine | 0,001 % | 1 500 000 | x2,6 | tous les serveurs |
+
+**Modes de capture** : au début de chaque capture, le joueur choisit **🎯 Sûr** (100 % de chance
+finale, mini-jeu un peu plus dur) ou **⚡ Rapide** (mini-jeu un peu plus facile, chance finale plus
+faible). L'écart de difficulté reste léger. Format : réussites / zone verte / vitesse du curseur /
+ratés permis / chance finale.
+
+| Rareté | 🎯 Sûr | ⚡ Rapide |
+|---|---|---|
+| Commune | 1 / 26 % / 0,85 / 2 / 100 % | 1 / 32 % / 0,78 / 2 / 97 % |
+| Rare | 2 / 23 % / 0,9 / 2 / 100 % | 2 / 28 % / 0,82 / 2 / 92 % |
+| Épique | 3 / 21 % / 0,9 / 2 / 100 % | 2 / 25 % / 0,86 / 2 / 87 % |
+| Légendaire | 4 / 19 % / 0,95 / 2 / 100 % | 3 / 22 % / 0,9 / 2 / 80 % |
+| Mythique | 4 / 17 % / 1,0 / 3 / 100 % | 3 / 20 % / 0,95 / 3 / 75 % |
+| Secrète | 5 / 15 % / 1,05 / 3 / 100 % | 4 / 18 % / 1,0 / 3 / 75 % |
+| Divine | 6 / 13 % / 1,1 / 3 / 100 % | 5 / 16 % / 1,05 / 3 / 75 % |
 
 La difficulté vient du **nombre de réussites à enchaîner** et d'une zone verte un peu plus petite,
-pas d'une vitesse impossible. Tout est réglable par rareté dans `Config.CreatureRarities[x].Capture`
-(et l'apparence dans `.Visual`).
+pas d'une vitesse impossible. Tout est réglable par rareté et par mode dans
+`Config.CreatureRarities[x].Capture.Safe / .Fast` (et l'apparence dans `.Visual`). Le boost
+« Capture » élargit la zone verte et augmente la chance finale du mode Rapide.
 
 **Captures partagées (course)** : les créatures sauvages sont les mêmes pour tous les joueurs de la
 zone. Plusieurs joueurs peuvent tenter la même en même temps ; le **premier qui réussit la gagne**.
@@ -441,3 +488,21 @@ inventaire. Gardé : créatures, Index, zones, socles (rangés), niveau / XP, ai
 | 3 | 60 000 / 10 s / 8 | 100 000 / 20 s / 4 |
 | 4 | 150 000 / 7 s / 12 | 250 000 / 15 s / 6 |
 | 5 | 400 000 / 5 s / 18 | 600 000 / 10 s / 8 |
+
+### 5.9 Donjons et œufs (phase 8)
+**Joueur** : PV = (100 + 6 × niveau) × boost Combat ; dégâts = (20 + 3 × niveau) × boost Combat ;
+dégâts reçus ÷ boost Combat. Attaque toutes les 0,45 s (portée 9), esquive toutes les 1,5 s
+(0,5 s d'invulnérabilité). 10 min max par donjon.
+
+| Donjon | Niveau | Vagues | Boss (PV) | Coins | XP | 1re victoire | Butin possible |
+|---|---|---|---|---|---|---|---|
+| 🌳 Grotte des Racines | 8 | 2 | Vieux Chêne Grognon (1 200) | 3 000 – 6 000 | 200 | +10 000 | Fraises, Pastèques, Œuf de la Forêt, Œufs Légendaires, Blé Mythique |
+| ❄️ Mine de Givre | 14 | 3 | Reine du Givre (3 200) | 15 000 – 30 000 | 500 | +50 000 | Myrtilles, Fruits du dragon, Œuf de la Montagne, Laine Mythique, Lait Légendaire |
+| 🏛️ Temple Ensablé | 20 | 3 | Gardien des Dunes (6 500) | 60 000 – 120 000 | 1 200 | +200 000 | Fleurs étoilées, Œuf du Désert, Lait Mythique, Truffes Légendaires |
+| 🌋 Forge Volcanique | 28 | 3 | Titan de Lave (13 000) | 250 000 – 500 000 | 3 000 | +800 000 | Citrouilles lunaires, Œuf du Volcan, Truffes Mythiques, Lait Mythique |
+
+Ennemis : Ronceux, Champitox, Givrelin, Cognebloc, Scarabix, Ventsableux, Braisard, Magmolosse
+(créatures originales). Toutes les valeurs : `Config.Combat`, `Config.Enemies`, `Config.Dungeons`.
+
+**Œufs** : Forêt 1 min, Montagne 2 min, Désert 4 min, Volcan 8 min d'éclosion. Poids d'apparition
+multipliés : Rare x1,5, Épique x3, Légendaire x5, Mythique x8, Secrète et Divine x10.

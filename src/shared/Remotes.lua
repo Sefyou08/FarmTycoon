@@ -29,6 +29,9 @@ Remotes.EventNames = {
 	"RequestVisit", -- Client -> Serveur : (userId) se téléporter sur la parcelle d'un autre joueur
 	"ShopStock", -- Serveur -> Client : stock tournant de graines rares { EndsAt, Stock = { [cropId] = restant } }
 	"ToggleMount", -- Client -> Serveur : monter / descendre du cheval
+	"DungeonAttack", -- Client -> Serveur : attaque (le serveur choisit la cible et les dégâts)
+	"DungeonDodge", -- Client -> Serveur : esquive (invulnérabilité courte, cooldown serveur)
+	"DungeonState", -- Serveur -> Client : état du donjon (PV, vague, boss, résultat)
 }
 
 -- RemoteFunctions (requête + réponse)
@@ -46,6 +49,8 @@ Remotes.FunctionNames = {
 	"Consume", -- Client -> Serveur : (itemId, variante) manger un consommable -> (ok, message)
 	"Rebirth", -- Client -> Serveur : () renaître -> (ok, message)
 	"HelperAction", -- Client -> Serveur : (helperId) acheter / améliorer une aide PNJ -> (ok, message)
+	"DungeonAction", -- Client -> Serveur : ("Enter", dungeonId) | ("Leave") -> (ok, message)
+	"Hatch", -- Client -> Serveur : (eggId, variante) mettre un œuf à couver -> (ok, message)
 }
 
 local folder: Folder? = nil
