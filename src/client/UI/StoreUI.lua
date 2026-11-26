@@ -30,6 +30,7 @@ local PRODUCT_ORDER = {
 	"CoinsSmall", "CoinsMedium", "CoinsLarge",
 	"PlotExpansion", "HatchNow", "WheelSpin", "WheelSpins5",
 	"GrowthBoost", "ProductionBoost", "CoinsBoost", "XPBoost", "SpeedBoost", "CaptureBoost", "CombatBoost",
+	"XPBoost2h", "CoinsBoost2h", "ProductionBoost2h", "GrowthBoost2h",
 }
 local PASS_ORDER = { "DoubleCoins", "PremiumHelpers", "BigBackpack", "ExtraIncubators", "BigCollection" }
 

@@ -228,6 +228,19 @@ local function buildPortal(cframe: CFrame, color: Color3, parent: Instance, titl
 	swirl.Size = NumberSequence.new(0.4, 0)
 	swirl.Parent = disc
 
+	-- Disque lumineux au sol devant le portail (zone d'interaction)
+	makePart({
+		Name = "InteractRing",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.2, 8, 8),
+		CFrame = cframe * CFrame.new(0, 0.12, -5) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = color,
+		Material = Enum.Material.Neon,
+		Transparency = 0.25,
+		CanCollide = false,
+		CanQuery = false,
+		Parent = parent,
+	})
 	local anchor = makePart({
 		Name = "PortalPrompt",
 		Size = Vector3.new(1, 1, 1),

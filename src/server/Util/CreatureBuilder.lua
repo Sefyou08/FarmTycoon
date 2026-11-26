@@ -916,6 +916,7 @@ function CreatureBuilder.Build(creatureId: string, mutationId: string, groundCFr
 	if custom then
 		custom.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 		ArtKit.PlaceCustom(custom, groundCFrame)
+		ArtKit.SnapToGround(custom, groundCFrame)
 		local body = custom.PrimaryPart :: BasePart
 		addRarityEffects(body, rarity, def.Accent)
 		applyScale(custom, groundCFrame, rarity, mutation)
@@ -951,6 +952,10 @@ function CreatureBuilder.Build(creatureId: string, mutationId: string, groundCFr
 		divineHalo(ctx)
 	end
 	linkHead(ctx)
+	-- Pattes bien posées SUR le sol (sauf les créatures qui volent)
+	if not model:GetAttribute("Flyer") then
+		ArtKit.SnapToGround(model, groundCFrame)
+	end
 	local body = addHitbox(model, groundCFrame)
 
 	-- Lueur (créatures "Glow", et mutations Spectrale / Dorée)

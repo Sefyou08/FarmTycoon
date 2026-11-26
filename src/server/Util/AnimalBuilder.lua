@@ -468,6 +468,7 @@ function AnimalBuilder.Build(speciesId: string, variantId: string, groundCFrame:
 			variantEffects(body, variant)
 		end
 		custom:SetAttribute("Variant", variantId)
+		ArtKit.SnapToGround(custom, groundCFrame)
 		return custom
 	end
 
@@ -499,6 +500,8 @@ function AnimalBuilder.Build(speciesId: string, variantId: string, groundCFrame:
 		end
 	end
 	model:SetAttribute("Variant", variantId)
+	-- Pattes bien posées SUR le sol (la pièce la plus basse touche le sol)
+	ArtKit.SnapToGround(model, groundCFrame)
 	return model
 end
 

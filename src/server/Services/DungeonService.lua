@@ -712,6 +712,7 @@ local function buildPortal()
 	label.Text = "⚔️ DONJONS"
 	label.Parent = gui
 
+	makePart({ Name = "InteractRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 8, 8), CFrame = cframe * CFrame.new(0, 0.12, -5) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(255, 70, 70), Material = Enum.Material.Neon, Transparency = 0.25, CanCollide = false, CanQuery = false, Parent = folder })
 	local anchor = makePart({ Name = "PortalPrompt", Size = Vector3.one, CFrame = cframe * CFrame.new(0, 3, -1), Transparency = 1, CanCollide = false, CanQuery = false, Parent = folder })
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Entrer dans un donjon"

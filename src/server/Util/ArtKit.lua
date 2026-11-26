@@ -187,6 +187,22 @@ function ArtKit.Particles(parent: Instance, props: { [string]: any }): ParticleE
 	return emitter
 end
 
+-- Pose un modèle bien SUR le sol : la pièce la plus basse touche groundCFrame (+ lift).
+-- Corrige les pattes / sabots qui s'enfonçaient. groundCFrame doit être droit (axe Y vers le haut).
+function ArtKit.SnapToGround(model: Model, groundCFrame: CFrame, lift: number?)
+	local primary = model.PrimaryPart
+	local pivot = model:GetPivot()
+	model.PrimaryPart = nil
+	model.WorldPivot = CFrame.new(pivot.Position) * groundCFrame.Rotation -- boîte alignée sur le sol
+	local cf, size = model:GetBoundingBox()
+	model.PrimaryPart = primary
+	local bottom = groundCFrame:PointToObjectSpace(cf.Position).Y - size.Y / 2
+	local delta = (lift or 0.02) - bottom
+	if math.abs(delta) > 0.005 then
+		model:PivotTo(model:GetPivot() + groundCFrame.UpVector * delta)
+	end
+end
+
 --------------------------------------------------------------------------
 -- Bibliothèque de modèles de remplacement
 --------------------------------------------------------------------------

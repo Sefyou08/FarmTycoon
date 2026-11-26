@@ -481,6 +481,7 @@ Config.Plots = {
 		{ Width = 158, Depth = 142, Price = 100000 },
 	},
 	ExpandInteractDistance = 10,
+	GateWidth = 16, -- ouverture de la clôture à l'entrée de la parcelle
 
 	GroundColor = Color3.fromRGB(150, 205, 100), -- sol de parcelle par défaut (plus clair que le terrain)
 	BorderColor = Color3.fromRGB(110, 75, 45),
@@ -488,6 +489,25 @@ Config.Plots = {
 
 	FreeLabel = "Parcelle libre",
 	OwnerLabelFormat = "Ferme de %s", -- %s = DisplayName du joueur
+}
+
+--------------------------------------------------------------------------
+-- BOUTONS AU SOL (style tycoon), dans la bande d'entrée de chaque parcelle
+--   X, Z : position locale (X = gauche/droite, Z = profondeur depuis l'entrée ; Z < 10)
+--   Product : clé de Config.Monetization.Products (achat Robux)
+--------------------------------------------------------------------------
+Config.TycoonPads = {
+	Size = 4.6, -- côté d'un bouton (studs)
+	Height = 1.2, -- hauteur du socle du bouton (bien visible au-dessus du sol)
+	ExpandCoins = { X = -43, Z = 4 }, -- 💰 agrandir avec les Coins
+	ExpandRobux = { X = -36.5, Z = 4, Product = "PlotExpansion" }, -- 💎 agrandir avec des Robux
+	Boosts = {
+		{ X = -30, Z = 4, Product = "GrowthBoost2h" },
+		{ X = 24.5, Z = 4, Product = "ProductionBoost2h" },
+		{ X = 31, Z = 4, Product = "XPBoost2h" },
+		{ X = 37.5, Z = 4, Product = "CoinsBoost2h" },
+	},
+	TouchCooldown = 4, -- secondes entre deux fenêtres d'achat en marchant sur un bouton
 }
 
 --------------------------------------------------------------------------
@@ -963,7 +983,7 @@ Config.Consumables = {
 Config.Boosts = {
 	VariantPowerBonus = 0.5, -- +50 % de puissance par rang de variante (Doré = x1,5, Arc-en-ciel = x2...)
 	VariantDurationBonus = 0.5,
-	MaxDuration = 3600, -- un boost ne peut pas dépasser 1 h (en cumulant)
+	MaxDuration = 6 * 3600, -- un boost ne peut pas dépasser 6 h (en cumulant, ex. plusieurs achats de 2 h)
 	Types = {
 		Speed = { Icon = "🏃", DisplayName = "Vitesse" },
 		XP = { Icon = "⭐", DisplayName = "XP" },
@@ -1196,6 +1216,11 @@ Config.Monetization = {
 		CaptureBoost = { Id = 0, Price = 39, Icon = "🪢", Name = "Capture +25 % (30 min)", Description = "Zone verte plus large et meilleure chance finale.", Kind = "Boost", Boost = "Capture", Power = 0.25, Duration = 1800 },
 		CombatBoost = { Id = 0, Price = 39, Icon = "⚔️", Name = "Force +50 % (30 min)", Description = "Plus de PV et de dégâts au donjon.", Kind = "Boost", Boost = "Combat", Power = 0.5, Duration = 1800 },
 		HatchNow = { Id = 0, Price = 25, Icon = "🐣", Name = "Éclosion immédiate", Description = "Tous tes œufs en couveuse éclosent tout de suite.", Kind = "HatchNow" },
+		-- Boosts longs (2 h) : vendus aussi sur les boutons au sol autour de la base
+		XPBoost2h = { Id = 0, Price = 79, Icon = "⚡", Name = "XP x2 (2 h)", Description = "XP x2 pendant 2 heures.", Kind = "Boost", Boost = "XP", Power = 1, Duration = 7200 },
+		CoinsBoost2h = { Id = 0, Price = 129, Icon = "💰", Name = "Coins x2 (2 h)", Description = "Gains de Coins x2 pendant 2 heures.", Kind = "Boost", Boost = "Coins", Power = 1, Duration = 7200 },
+		ProductionBoost2h = { Id = 0, Price = 129, Icon = "🏭", Name = "Production x2 (2 h)", Description = "Animaux et bâtiments 2x plus rapides pendant 2 heures.", Kind = "Boost", Boost = "Production", Power = 1, Duration = 7200 },
+		GrowthBoost2h = { Id = 0, Price = 99, Icon = "🌱", Name = "Pousse x2 (2 h)", Description = "Plantes 2x plus rapides pendant 2 heures.", Kind = "Boost", Boost = "Growth", Power = 1, Duration = 7200 },
 		WheelSpin = { Id = 0, Price = 19, Icon = "🎡", Name = "1 tour de roue", Description = "Un tour de roue en plus.", Kind = "WheelSpins", Amount = 1 },
 		WheelSpins5 = { Id = 0, Price = 79, Icon = "🎡", Name = "5 tours de roue", Description = "Cinq tours de roue en plus.", Kind = "WheelSpins", Amount = 5 },
 	},
@@ -1255,6 +1280,7 @@ Config.CosmeticCategories = {
 	{ Id = "Title", Icon = "🏷️", DisplayName = "Titre" },
 	{ Id = "AnimalHat", Icon = "🎩", DisplayName = "Chapeaux des animaux" },
 	{ Id = "MountSkin", Icon = "🐴", DisplayName = "Selle de monture" },
+	{ Id = "PlotFence", Icon = "🧱", DisplayName = "Clôture de parcelle" },
 }
 
 Config.Cosmetics = {
@@ -1267,8 +1293,8 @@ Config.Cosmetics = {
 	PenGold = { Category = "PenSkin", Name = "Or", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(255, 200, 50), Material = Enum.Material.Foil },
 
 	-- Sol de parcelle
-	FloorGrass = { Category = "PlotFloor", Name = "Gazon", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(150, 205, 100), Material = Enum.Material.Grass },
-	FloorMeadow = { Category = "PlotFloor", Name = "Prairie fleurie", Unlock = { Kind = "Level", Level = 10 }, Color = rgb2(130, 190, 90), Material = Enum.Material.LeafyGrass },
+	FloorGrass = { Category = "PlotFloor", Name = "Vert prairie", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(150, 205, 100), Material = Enum.Material.SmoothPlastic },
+	FloorMeadow = { Category = "PlotFloor", Name = "Prairie fleurie", Unlock = { Kind = "Level", Level = 10 }, Color = rgb2(130, 190, 90), Material = Enum.Material.SmoothPlastic, Pattern = "Flowers" },
 	FloorSand = { Category = "PlotFloor", Name = "Sable doré", Unlock = { Kind = "Coins", Price = 50000 }, Color = rgb2(230, 205, 140), Material = Enum.Material.Sand },
 	FloorSnow = { Category = "PlotFloor", Name = "Neige", Unlock = { Kind = "Index", Zone = "Mountain" }, Color = rgb2(240, 245, 255), Material = Enum.Material.Snow },
 	FloorLava = { Category = "PlotFloor", Name = "Roche volcanique", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(50, 35, 35), Material = Enum.Material.Basalt },
@@ -1329,6 +1355,19 @@ Config.Cosmetics = {
 	SaddleGold = { Category = "MountSkin", Name = "Harnais doré", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Saddle = rgb2(255, 200, 50), Harness = rgb2(255, 240, 150), Neon = true },
 	SaddleStars = { Category = "MountSkin", Name = "Selle étoilée", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, Saddle = rgb2(30, 30, 70), Harness = rgb2(150, 220, 255), Neon = true, Sparkles = true, Pattern = "Stars" },
 
+	-- Clôture autour de la parcelle entière (Style : "Rail" barrières | "Picket" piquets |
+	--   "Wall" muret | "Panel" panneaux décorés d'un motif). Color = barres / panneaux, Post = poteaux, Cap = boules
+	FenceWood = { Category = "PlotFence", Name = "Barrière en bois", Default = true, Unlock = { Kind = "Free" }, Style = "Rail", Color = rgb2(165, 115, 70), Post = rgb2(110, 75, 45), Cap = rgb2(110, 75, 45), Material = Enum.Material.WoodPlanks },
+	FencePicket = { Category = "PlotFence", Name = "Piquets blancs", Unlock = { Kind = "Coins", Price = 30000 }, Style = "Picket", Color = rgb2(250, 250, 245), Post = rgb2(240, 240, 235), Cap = rgb2(240, 240, 235), Material = Enum.Material.WoodPlanks },
+	FenceStone = { Category = "PlotFence", Name = "Muret de pierre", Unlock = { Kind = "Level", Level = 12 }, Style = "Wall", Color = rgb2(150, 150, 155), Post = rgb2(120, 120, 125), Cap = rgb2(180, 180, 185), Material = Enum.Material.Cobblestone },
+	FenceStars = { Category = "PlotFence", Name = "Nuit étoilée", Unlock = { Kind = "Level", Level = 25 }, Style = "Panel", Color = rgb2(40, 45, 95), Post = rgb2(25, 25, 60), Cap = rgb2(255, 220, 90), Material = Enum.Material.SmoothPlastic, Pattern = "Stars" },
+	FenceMascot = { Category = "PlotFence", Name = "Biscotte", Unlock = { Kind = "Index", Zone = "Forest" }, Style = "Panel", Color = rgb2(255, 240, 215), Post = rgb2(70, 160, 90), Cap = rgb2(240, 205, 110), Material = Enum.Material.WoodPlanks, Pattern = "Mascot" },
+	FenceCandy = { Category = "PlotFence", Name = "Sucre d'orge", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Style = "Rail", Color = rgb2(255, 140, 190), Post = rgb2(255, 255, 255), Cap = rgb2(230, 50, 80), Material = Enum.Material.SmoothPlastic },
+	FenceHearts = { Category = "PlotFence", Name = "Cœurs", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Style = "Panel", Color = rgb2(255, 215, 230), Post = rgb2(230, 90, 140), Cap = rgb2(255, 120, 170), Material = Enum.Material.SmoothPlastic, Pattern = "Hearts" },
+	FenceNeon = { Category = "PlotFence", Name = "Néon", Unlock = { Kind = "Robux", Price = 79, ProductId = 0 }, Style = "Rail", Color = rgb2(80, 230, 255), Post = rgb2(30, 30, 50), Cap = rgb2(255, 80, 220), Material = Enum.Material.Neon },
+	FenceGold = { Category = "PlotFence", Name = "Grille dorée", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Style = "Picket", Color = rgb2(255, 205, 60), Post = rgb2(255, 190, 40), Cap = rgb2(255, 240, 150), Material = Enum.Material.Foil },
+	FenceDiamonds = { Category = "PlotFence", Name = "Diamants", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, Style = "Panel", Color = rgb2(220, 240, 255), Post = rgb2(120, 200, 255), Cap = rgb2(160, 230, 255), Material = Enum.Material.Glass, Pattern = "Diamonds" },
+
 	------------------------------------------------------------------
 	-- MOTIFS ET DÉCORATIONS (phase 10) : Pattern = Stars | Hearts | Diamonds | Pearls |
 	--   Flowers | Flames | Clouds | Checker | Stripes | Glitter | Unicorn | Mascot
@@ -1356,7 +1395,7 @@ Config.Cosmetics = {
 	PenFlames = { Category = "PenSkin", Name = "Flammes", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(40, 30, 30), Material = Enum.Material.Basalt, Pattern = "Flames" },
 
 	-- Sols de parcelle (motifs semés sur le sol)
-	FloorFlowers = { Category = "PlotFloor", Name = "Champ de fleurs", Unlock = { Kind = "Level", Level = 18 }, Color = rgb2(115, 185, 80), Material = Enum.Material.Grass, Pattern = "Flowers" },
+	FloorFlowers = { Category = "PlotFloor", Name = "Champ de fleurs", Unlock = { Kind = "Level", Level = 18 }, Color = rgb2(115, 185, 80), Material = Enum.Material.SmoothPlastic, Pattern = "Flowers" },
 	FloorChecker = { Category = "PlotFloor", Name = "Damier", Unlock = { Kind = "Coins", Price = 90000 }, Color = rgb2(235, 235, 235), Material = Enum.Material.SmoothPlastic, Pattern = "Checker", PatternColor = rgb2(60, 60, 70) },
 	FloorStars = { Category = "PlotFloor", Name = "Ciel étoilé", Unlock = { Kind = "Level", Level = 28 }, Color = rgb2(35, 35, 80), Material = Enum.Material.SmoothPlastic, Pattern = "Stars" },
 	FloorClouds = { Category = "PlotFloor", Name = "Nuages", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(150, 205, 255), Material = Enum.Material.SmoothPlastic, Pattern = "Clouds" },

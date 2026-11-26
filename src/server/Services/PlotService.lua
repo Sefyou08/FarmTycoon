@@ -39,6 +39,8 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local FarmScenery = require(script.Parent.Parent.Util.FarmScenery)
 local PatternBuilder = require(script.Parent.Parent.Util.PatternBuilder)
+local FenceBuilder = require(script.Parent.Parent.Util.FenceBuilder)
+local TycoonPad = require(script.Parent.Parent.Util.TycoonPad)
 local DataService = require(script.Parent.DataService)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
@@ -61,6 +63,10 @@ export type Plot = {
 	Borders: Folder,
 	ExpandPad: Part,
 	ExpandPrompt: ProximityPrompt,
+	ExpandPadModel: Model,
+	ExpandRobuxPad: Model,
+	ExpandDetail: TextLabel,
+	BoostPads: { Model },
 }
 
 local plots: { Plot } = {} -- liste ordonnée par Id
@@ -143,60 +149,32 @@ local function applyLevel(plot: Plot, level: number)
 	plot.Base.Size = Vector3.new(size.Width, height, size.Depth)
 	plot.Base.CFrame = plot.CFrame * CFrame.new(0, 0, size.Depth / 2)
 
-	-- Bordures basses (on peut marcher par-dessus), recréées à chaque niveau
+	-- Clôture continue autour de la parcelle (cosmétique "Clôture de parcelle"), recréée à chaque niveau
 	plot.Borders:ClearAllChildren()
-	local borderHeight, thickness = 0.6, 1
-	local y = height / 2 + borderHeight / 2
-	local halfW = size.Width / 2
-	local sides = {
-		{ Vector3.new(size.Width, borderHeight, thickness), Vector3.new(0, y, 0) }, -- entrée
-		{ Vector3.new(size.Width, borderHeight, thickness), Vector3.new(0, y, size.Depth) }, -- fond
-		{ Vector3.new(thickness, borderHeight, size.Depth), Vector3.new(-halfW, y, size.Depth / 2) },
-		{ Vector3.new(thickness, borderHeight, size.Depth), Vector3.new(halfW, y, size.Depth / 2) },
-	}
-	for i, side in sides do
-		makePart({
-			Name = "Border" .. i,
-			Size = side[1],
-			CFrame = plot.CFrame * CFrame.new(side[2]),
-			Color = PlotConfig.BorderColor,
-			Material = Enum.Material.WoodPlanks,
-			Parent = plot.Borders,
-		})
-		-- Petits poteaux arrondis tous les 12 studs (phase 10)
-		local length = math.max(side[1].X, side[1].Z)
-		local alongX = side[1].X > side[1].Z
-		local count = math.floor(length / 12)
-		for j = 0, count do
-			local offset = -length / 2 + j * (length / count)
-			local local_ = side[2] + (if alongX then Vector3.new(offset, 0.4, 0) else Vector3.new(0, 0.4, offset))
-			makePart({
-				Name = "BorderPost",
-				Shape = Enum.PartType.Cylinder,
-				Size = Vector3.new(1.6, 1.1, 1.1),
-				CFrame = plot.CFrame * CFrame.new(local_) * CFrame.Angles(0, 0, math.rad(90)),
-				Color = PlotConfig.BorderColor:Lerp(Color3.new(0, 0, 0), 0.15),
-				Material = Enum.Material.Wood,
-				CanCollide = false,
-				Parent = plot.Borders,
-			})
-		end
-	end
+	local owner = plot.Owner and DataService:GetData(plot.Owner)
+	local fenceStyle = CosmeticUtil.Equipped(owner, "PlotFence") or Config.Cosmetics.FenceWood
+	FenceBuilder.Build(plot.Borders, plot.CFrame, size.Width, size.Depth, fenceStyle, PlotConfig.GateWidth, height / 2)
 
 	-- Bouton d'agrandissement : visible seulement si la parcelle a un propriétaire et n'est pas au max
 	local canExpand = plot.Owner ~= nil and level < MAX_LEVEL
-	plot.ExpandPad.Transparency = if canExpand then 0.2 else 1
-	plot.ExpandPrompt.Enabled = canExpand
+	TycoonPad.SetVisible(plot.ExpandPadModel, canExpand)
+	TycoonPad.SetVisible(plot.ExpandRobuxPad, canExpand)
 	if level < MAX_LEVEL then
-		plot.ExpandPrompt.ActionText = ("Agrandir : %s Coins"):format(Format.Number(EXPANSIONS[level + 1].Price))
+		local price = Format.Number(EXPANSIONS[level + 1].Price)
+		plot.ExpandPrompt.ActionText = ("Agrandir : %s Coins"):format(price)
 		plot.ExpandPrompt.ObjectText = ("Parcelle niveau %d → %d"):format(level, level + 1)
+		plot.ExpandDetail.Text = ("%s Coins  •  niv. %d → %d"):format(price, level, level + 1)
+	end
+	-- Boutons de boosts Robux : seulement sur une parcelle qui a un propriétaire
+	for _, pad in plot.BoostPads do
+		TycoonPad.SetVisible(pad, plot.Owner ~= nil)
 	end
 
 	-- Cosmétiques du propriétaire : sol et panneau (valeurs par défaut si parcelle libre)
 	local data = plot.Owner and DataService:GetData(plot.Owner)
 	local floor = CosmeticUtil.Equipped(data, "PlotFloor")
 	plot.Base.Color = if floor and floor.Color then floor.Color else PlotConfig.GroundColor
-	plot.Base.Material = if floor and floor.Material then floor.Material else Enum.Material.Grass
+	plot.Base.Material = if floor and floor.Material then floor.Material else Enum.Material.SmoothPlastic
 	local sign = CosmeticUtil.Equipped(data, "SignStyle")
 	for _, child in plot.Model:GetChildren() do
 		if child:IsA("BasePart") and (child.Name == "SignPost" or child.Name == "SignBoard") then
@@ -263,7 +241,7 @@ local function buildPlot(id: number, folder: Folder): Plot
 		Size = Vector3.new(10, PlotConfig.BaseHeight, 10),
 		CFrame = plotCFrame,
 		Color = PlotConfig.GroundColor,
-		Material = Enum.Material.Grass,
+		Material = Enum.Material.SmoothPlastic,
 		Parent = model,
 	})
 	model.PrimaryPart = base
@@ -326,25 +304,51 @@ local function buildPlot(id: number, folder: Folder): Plot
 		Parent = model,
 	})
 
-	-- Bouton tycoon "Agrandir la parcelle" (à gauche de l'entrée)
-	local firstWidth = EXPANSIONS[1].Width
-	local expandPad = makePart({
-		Name = "ExpandPad",
-		Size = Vector3.new(5, 0.4, 5),
-		CFrame = plotCFrame * CFrame.new(-(firstWidth / 2 - 6), PlotConfig.BaseHeight / 2 + 0.2, 4),
+	-- Boutons au sol style tycoon (bande d'entrée) : agrandir (Coins / Robux) et boosts Robux
+	local Pads = Config.TycoonPads
+	local function padGround(spot: { [string]: any }): CFrame
+		return plotCFrame * CFrame.new(spot.X, PlotConfig.BaseHeight / 2, spot.Z)
+	end
+	local expandModel, expandPad, expandPrompt, _, expandDetail = TycoonPad.Build(model, padGround(Pads.ExpandCoins), {
+		Name = "ExpandCoinsPad",
 		Color = Color3.fromRGB(60, 200, 255),
-		Material = Enum.Material.Neon,
-		Transparency = 1,
-		CanCollide = false,
-		Parent = model,
+		Icon = "💰",
+		Title = "Agrandir",
+		Detail = "",
+		ActionText = "Agrandir",
+		Hold = 0.4, -- petit appui long : évite les achats par erreur
 	})
-	local expandPrompt = Instance.new("ProximityPrompt")
-	expandPrompt.HoldDuration = 0.4 -- petit appui long : évite les achats par erreur
+	expandPad.Name = "ExpandPad"
 	expandPrompt.MaxActivationDistance = PlotConfig.ExpandInteractDistance
-	expandPrompt.RequiresLineOfSight = false
-	expandPrompt.Enabled = false
-	expandPrompt:SetAttribute("OwnerOnly", true)
-	expandPrompt.Parent = expandPad
+
+	local function robuxPad(spot: { [string]: any }, color: Color3, name: string): Model
+		local product = Config.Monetization.Products[spot.Product]
+		local price = if product.Id > 0 then ("💎 %d R$"):format(product.Price) else ("💎 %d R$ (bientôt)"):format(product.Price)
+		local pad, top, prompt = TycoonPad.Build(model, padGround(spot), {
+			Name = name,
+			Color = color,
+			Icon = product.Icon,
+			Title = product.Name,
+			Detail = price,
+			ActionText = ("Acheter (%d R$)"):format(product.Price),
+			ObjectText = product.Description,
+		})
+		-- Le client ouvre la fenêtre d'achat Roblox (prompt ou en marchant dessus)
+		prompt:SetAttribute("RobuxProduct", spot.Product)
+		top:SetAttribute("RobuxProduct", spot.Product)
+		if product.Kind == "Boost" then
+			top:SetAttribute("BoostType", product.Boost)
+			top:SetAttribute("PriceText", price)
+		end
+		return pad
+	end
+	local expandRobux = robuxPad(Pads.ExpandRobux, Color3.fromRGB(170, 90, 255), "ExpandRobuxPad")
+	local boostColors = { Growth = Color3.fromRGB(90, 210, 90), Production = Color3.fromRGB(255, 150, 50), XP = Color3.fromRGB(90, 170, 255), Coins = Color3.fromRGB(255, 205, 50) }
+	local boostPads = {}
+	for i, spot in Pads.Boosts do
+		local product = Config.Monetization.Products[spot.Product]
+		table.insert(boostPads, robuxPad(spot, boostColors[product.Boost] or Color3.fromRGB(255, 120, 200), "BoostPad" .. i))
+	end
 
 	model.Parent = folder
 
@@ -360,6 +364,10 @@ local function buildPlot(id: number, folder: Folder): Plot
 		Borders = borders,
 		ExpandPad = expandPad,
 		ExpandPrompt = expandPrompt,
+		ExpandPadModel = expandModel,
+		ExpandRobuxPad = expandRobux,
+		ExpandDetail = expandDetail,
+		BoostPads = boostPads,
 	}
 	applyLevel(plot, 1)
 	return plot

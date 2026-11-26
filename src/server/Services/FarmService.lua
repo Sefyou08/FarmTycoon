@@ -259,6 +259,8 @@ local function renderTile(farm: Farm, tile: Tile, now: number)
 		tile.Part.Color = FarmConfig.LockedSoilColor
 		tile.Part.Transparency = 0.35
 		if tile.Index == field.Unlocked + 1 then
+			tile.Part.Color = Color3.fromRGB(255, 210, 80) -- prochaine case à débloquer : bien visible
+			tile.Part.Transparency = 0.1
 			tile.Prompt.ActionText = ("Débloquer : %s Coins"):format(Format.Number(FarmService:GetTileUnlockPrice(farm.Data)))
 			tile.Prompt.ObjectText = "Case verrouillée"
 			tile.Prompt.HoldDuration = 0.3
@@ -533,17 +535,51 @@ local function buildFieldVisual(farm: Farm, fieldId: string)
 	model:SetAttribute("PlaceType", "Field")
 	model:SetAttribute("PlaceId", fieldId)
 
-	-- Bordure de terre retournée sous le champ (repère visuel de l'emprise)
+	-- Jardinière surélevée : cadre en planches de la couleur du cosmétique "Bordures des champs",
+	-- terre à l'intérieur, poteaux d'angle ; bien visible au-dessus du sol
 	local footprint = FarmConfig.FieldFootprint
 	local style = CosmeticUtil.Equipped(farm.Data, "FieldStyle") -- cosmétique "Bordures des champs"
+	local frameColor = if style and style.Color then style.Color else Color3.fromRGB(150, 100, 60)
+	local frameMaterial = if style and style.Material then style.Material else Enum.Material.WoodPlanks
+	local fw, fd = footprint.X - 0.5, footprint.Y - 0.5
 	makePart({
 		Name = "Border",
-		Size = Vector3.new(footprint.X - 0.5, 0.2, footprint.Y - 0.5),
-		CFrame = origin * CFrame.new(0, 0.1, 0),
-		Color = if style and style.Color then style.Color else Color3.fromRGB(85, 60, 35),
-		Material = if style and style.Material then style.Material else Enum.Material.Ground,
+		Size = Vector3.new(fw - 1, 0.8, fd - 1),
+		CFrame = origin * CFrame.new(0, 0.4, 0),
+		Color = Color3.fromRGB(85, 60, 35),
+		Material = Enum.Material.Ground,
 		Parent = model,
 	})
+	for _, side in {
+		{ Vector3.new(fw, 1.4, 0.6), Vector3.new(0, 0.7, -fd / 2 + 0.3) },
+		{ Vector3.new(fw, 1.4, 0.6), Vector3.new(0, 0.7, fd / 2 - 0.3) },
+		{ Vector3.new(0.6, 1.4, fd), Vector3.new(-fw / 2 + 0.3, 0.7, 0) },
+		{ Vector3.new(0.6, 1.4, fd), Vector3.new(fw / 2 - 0.3, 0.7, 0) },
+	} do
+		makePart({ Name = "Frame", Size = side[1], CFrame = origin * CFrame.new(side[2]), Color = frameColor, Material = frameMaterial, CanCollide = false, Parent = model })
+	end
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			makePart({ Name = "FramePost", Size = Vector3.new(0.9, 1.8, 0.9), CFrame = origin * CFrame.new(sx * (fw / 2 - 0.3), 0.9, sz * (fd / 2 - 0.3)), Color = frameColor:Lerp(Color3.new(0, 0, 0), 0.25), Material = frameMaterial, CanCollide = false, Parent = model })
+		end
+	end
+	-- Petit panneau "🌱 Champ" au-dessus (repère pour les nouveaux joueurs)
+	local signAnchor = makePart({ Name = "FieldSign", Size = Vector3.one, CFrame = origin * CFrame.new(0, 2, 0), Transparency = 1, CanCollide = false, CanQuery = false, Parent = model })
+	local signGui = Instance.new("BillboardGui")
+	signGui.Size = UDim2.fromScale(6, 1.4)
+	signGui.StudsOffsetWorldSpace = Vector3.new(0, 4, 0)
+	signGui.MaxDistance = 55
+	signGui.LightInfluence = 0
+	signGui.Parent = signAnchor
+	local signLabel = Instance.new("TextLabel")
+	signLabel.Size = UDim2.fromScale(1, 1)
+	signLabel.BackgroundTransparency = 1
+	signLabel.Font = Enum.Font.FredokaOne
+	signLabel.TextScaled = true
+	signLabel.TextColor3 = Color3.fromRGB(200, 255, 150)
+	signLabel.TextStrokeTransparency = 0.2
+	signLabel.Text = "🌱 Champ : E sur la terre"
+	signLabel.Parent = signGui
 
 	local columns, rows = FarmConfig.FieldColumns, FarmConfig.FieldRows
 	local step = FarmConfig.TileSize + FarmConfig.TileGap
@@ -556,8 +592,8 @@ local function buildFieldVisual(farm: Farm, fieldId: string)
 
 		local part = makePart({
 			Name = "Tile_" .. index,
-			Size = Vector3.new(FarmConfig.TileSize, 0.4, FarmConfig.TileSize),
-			CFrame = origin * CFrame.new(localX, 0.4, localZ),
+			Size = Vector3.new(FarmConfig.TileSize, 0.5, FarmConfig.TileSize),
+			CFrame = origin * CFrame.new(localX, 1.05, localZ), -- case en relief au-dessus de la terre
 			Color = FarmConfig.SoilColor,
 			Material = Enum.Material.Ground,
 			Parent = model,

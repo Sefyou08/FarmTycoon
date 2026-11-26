@@ -209,6 +209,11 @@ function StandBuilder.Build(options: StandOptions): (Model, Part, ProximityPromp
 	end
 	model.Name = options.Name
 
+	-- Zone d'interaction : disque lumineux au sol devant le comptoir (où se placer pour E)
+	local spot = base * CFrame.new(0, 0, -6.5)
+	ArtKit.Disc(model, "InteractRing", 0.2, 7, spot * CFrame.new(0, 0.12, 0) * CFrame.Angles(0, 0, math.rad(90)), options.Color, Enum.Material.Neon, { Transparency = 0.25 })
+	ArtKit.Disc(model, "InteractRingInner", 0.22, 5.6, spot * CFrame.new(0, 0.13, 0) * CFrame.Angles(0, 0, math.rad(90)), ArtKit.Lighter(options.Color, 0.6), Enum.Material.SmoothPlastic)
+
 	-- Panneau d'infos flottant (lisible de loin)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromScale(12, 3)

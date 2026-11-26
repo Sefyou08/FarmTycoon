@@ -71,8 +71,6 @@ end
 
 local function buildTerrain()
 	local terrain = Workspace.Terrain
-	terrain:SetMaterialColor(Enum.Material.Grass, Art.GrassColor)
-	terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(95, 165, 65))
 	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(130, 125, 135))
 	terrain:SetMaterialColor(Enum.Material.Snow, Color3.fromRGB(245, 250, 255))
 	terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(225, 200, 150))
@@ -86,39 +84,37 @@ local function buildTerrain()
 		terrain.Decoration = false
 	end)
 
-	-- Sol d'herbe : dessus à y = 0
+	-- Sol : PAS d'herbe. Le Terrain (terre) est caché 1 stud sous le sol ; le sol visible est fait
+	-- de grandes Parts lisses vertes (dessus à y = 0), coupées seulement par le ruisseau.
 	local size = Art.GroundSize
-	terrain:FillBlock(CFrame.new(0, -6, 0), Vector3.new(size, 12, size), Enum.Material.Grass)
+	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(120, 95, 65))
+	terrain:FillBlock(CFrame.new(0, -7, 0), Vector3.new(size, 12, size), Enum.Material.Ground)
 
-	-- Sous les parcelles : terre (pas d'herbe) ; le sol de chaque parcelle est une Part au-dessus
-	for column = 0, Plots.Columns - 1 do
-		local x = (column - (Plots.Columns - 1) / 2) * Plots.SpacingX
-		for _, side in { -1, 1 } do
-			local z = side * (Plots.FrontOffsetZ + maxExp.Depth / 2)
-			terrain:FillBlock(CFrame.new(x, -2, z), Vector3.new(maxExp.Width + 4, 4, maxExp.Depth + 4), Enum.Material.Ground)
-		end
-	end
-	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(120, 90, 60))
-
-	-- Ruisseau nord-sud (creusé puis rempli d'eau), berges de sable
-	local length = Config.Art.Farm.MountainRing.Radius * 2
 	local sx, width = Art.StreamX, Art.StreamWidth
-	terrain:FillBlock(CFrame.new(sx, -6, 0), Vector3.new(width + 6, 4, length), Enum.Material.Sand)
-	terrain:FillBlock(CFrame.new(sx, -2.5, 0), Vector3.new(width, 5, length), Enum.Material.Air)
-	terrain:FillBlock(CFrame.new(sx, -3.25, 0), Vector3.new(width, 3.5, length), Enum.Material.Water)
-	-- Étang au sud
-	terrain:FillCylinder(CFrame.new(POND - Vector3.new(0, 5, 0)), 4, 34, Enum.Material.Sand)
-	terrain:FillCylinder(CFrame.new(POND - Vector3.new(0, 2.5, 0)), 5, 30, Enum.Material.Air)
-	terrain:FillCylinder(CFrame.new(POND - Vector3.new(0, 3.25, 0)), 3.5, 30, Enum.Material.Water)
+	local gap = width / 2 + 1.5
+	local west = (-size / 2 + (sx - gap)) / 2
+	local east = ((sx + gap) + size / 2) / 2
+	for _, info in { { west, (sx - gap) + size / 2 }, { east, size / 2 - (sx + gap) } } do
+		ArtKit.Block(folder, "FarmGround", Vector3.new(info[2], 2, size), CFrame.new(info[1], -1, 0), Art.GrassColor, Enum.Material.SmoothPlastic, { CanCollide = true, CanQuery = true, CastShadow = false })
+	end
 
-	-- Montagnes : grosse boule de roche, jupe d'herbe, sommet enneigé
+	-- Ruisseau nord-sud (creusé puis rempli d'eau), berges de sable, dans la fente entre les deux sols
+	local length = Config.Art.Farm.MountainRing.Radius * 2
+	terrain:FillBlock(CFrame.new(sx, -6, 0), Vector3.new(width + 6, 4, length), Enum.Material.Sand)
+	terrain:FillBlock(CFrame.new(sx, -3, 0), Vector3.new(width, 4, length), Enum.Material.Air)
+	terrain:FillBlock(CFrame.new(sx, -3.6, 0), Vector3.new(width, 2.8, length), Enum.Material.Water)
+	-- Étang au sud : une Part d'eau (pas de trou dans le sol)
+	ArtKit.Disc(folder, "PondRim", 0.5, 66, CFrame.new(POND + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(215, 195, 150), Enum.Material.Sand)
+	ArtKit.Disc(folder, "PondWater", 0.6, 60, CFrame.new(POND + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(70, 170, 225), Enum.Material.Glass, { Transparency = 0.15, Reflectance = 0.3 })
+
+	-- Montagnes : grosse boule de roche, jupe de roche, sommet enneigé
 	local ring = Art.MountainRing
 	for i = 1, ring.Count do
 		local angle = (i / ring.Count) * math.pi * 2 + rng:NextNumber(-0.12, 0.12)
 		local radius = ring.Radius + rng:NextNumber(0, 140)
 		local r = rng:NextNumber(110, 175)
 		local center = Vector3.new(math.cos(angle) * radius, -r * 0.42, math.sin(angle) * radius)
-		terrain:FillBall(center + Vector3.new(0, -r * 0.35, 0), r * 1.05, Enum.Material.Grass)
+		terrain:FillBall(center + Vector3.new(0, -r * 0.35, 0), r * 1.05, Enum.Material.Rock)
 		terrain:FillBall(center, r, Enum.Material.Rock)
 		terrain:FillBall(center + Vector3.new(rng:NextNumber(-0.5, 0.5) * r, -r * 0.2, rng:NextNumber(-0.3, 0.3) * r), r * 0.7, Enum.Material.Rock)
 		local peak = center.Y + r
@@ -351,7 +347,7 @@ local function buildVegetation()
 	-- Roseaux et nénuphars sur l'étang
 	for i = 1, 10 do
 		local a = i / 10 * math.pi * 2
-		ArtKit.Disc(folder, "LilyPad", 0.1, rng:NextNumber(1.5, 2.5), CFrame.new(POND + Vector3.new(math.cos(a) * 18, -1.2, math.sin(a) * 14)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(70, 160, 70))
+		ArtKit.Disc(folder, "LilyPad", 0.1, rng:NextNumber(1.5, 2.5), CFrame.new(POND + Vector3.new(math.cos(a) * 18, 0.6, math.sin(a) * 14)) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(70, 160, 70))
 		local reed = POND + Vector3.new(math.cos(a) * 29, 0, math.sin(a) * 29)
 		for j = 1, 3 do
 			ArtKit.Block(folder, "Reed", Vector3.new(0.2, 3, 0.2), CFrame.new(reed + Vector3.new(j * 0.5, 1.5, 0)) * CFrame.Angles(0, 0, math.rad(rng:NextNumber(-10, 10))), Color3.fromRGB(110, 150, 60))

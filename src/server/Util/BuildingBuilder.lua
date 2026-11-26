@@ -165,6 +165,9 @@ local function house(model: Model, origin: CFrame, opts: { [string]: any }, refs
 	ArtKit.Block(model, "DoorFrame", Vector3.new(3.6, 5.4, 0.2), center * CFrame.new(0, FOUNDATION + 2.7, frontZ - 0.05), trim, Enum.Material.Wood)
 	ArtKit.Ball(model, "DoorKnob", 0.35, center * CFrame.new(1, FOUNDATION + 2.4, frontZ - 0.35), Color3.fromRGB(255, 210, 80), Enum.Material.Metal)
 	ArtKit.Block(model, "Doorstep", Vector3.new(3.6, 0.3, 1), center * CFrame.new(0, 0.15, frontZ - 0.7), Color3.fromRGB(170, 165, 160), Enum.Material.Slate)
+	-- Paillasson lumineux devant la porte : c'est ici qu'on appuie sur E
+	local mat = ArtKit.Block(model, "DoorMat", Vector3.new(4.2, 0.15, 2.4), center * CFrame.new(0, 0.08, frontZ - 2), Color3.fromRGB(255, 205, 80), Enum.Material.Neon, { Transparency = 0.2 })
+	ArtKit.Light(mat, Color3.fromRGB(255, 210, 120), 8, 1)
 
 	-- Fenêtres
 	if w >= 9.5 then

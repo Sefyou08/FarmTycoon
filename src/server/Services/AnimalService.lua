@@ -311,7 +311,8 @@ local function spawnAnimalVisual(state: State, key: string, animal: { [string]: 
 	local distance = math.random() * radius
 	local ground = visual.Center * CFrame.new(math.cos(angle) * distance, 0, math.sin(angle) * distance) * CFrame.Angles(0, math.random() * math.pi * 2, 0)
 
-	local model = buildAnimalModel(pen.Species, animal.Variant, ground)
+	-- Posé sur la paille de l'enclos (légèrement au-dessus du sol de la parcelle)
+	local model = buildAnimalModel(pen.Species, animal.Variant, ground * CFrame.new(0, 0.12, 0))
 	addHat(model, CosmeticUtil.Equipped(state.Data, "AnimalHat"))
 	model:SetAttribute("WanderCenter", visual.Center.Position)
 	model:SetAttribute("WanderRadius", radius)
@@ -492,6 +493,20 @@ local function buildPenVisual(state: State, key: string)
 		Material = Enum.Material.WoodPlanks,
 		Parent = folder,
 	})
+	-- Repères lumineux au sol : mangeoire (jaune) et caisse (verte)
+	for _, info in { { trough, Color3.fromRGB(255, 210, 70) }, { crate, Color3.fromRGB(110, 230, 120) } } do
+		local spot = info[1].CFrame
+		decoPart({
+			Name = "InteractRing",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.1, 4.2, 4.2),
+			CFrame = CFrame.new(spot.Position.X, origin.Position.Y + 0.06, spot.Position.Z) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = info[2],
+			Material = Enum.Material.Neon,
+			Transparency = 0.35,
+			Parent = folder,
+		})
+	end
 
 	-- Panneau d'infos au-dessus de l'enclos
 	local anchor = decoPart({

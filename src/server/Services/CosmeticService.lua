@@ -40,6 +40,7 @@ local FARM_CATEGORIES = {
 	SignStyle = true,
 	ShowcaseFX = true,
 	AnimalHat = true,
+	PlotFence = true,
 }
 
 --------------------------------------------------------------------------

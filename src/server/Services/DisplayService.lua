@@ -202,8 +202,8 @@ local function buildPedestal(state: State, id: string)
 	local base = makePart({
 		Name = "Base",
 		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(1.4, 5.5, 5.5),
-		CFrame = origin * CFrame.new(0, 0.7, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Size = Vector3.new(2.4, 5.5, 5.5), -- socle surélevé : bien visible
+		CFrame = origin * CFrame.new(0, 1.2, 0) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = Color3.fromRGB(200, 200, 210),
 		Material = Enum.Material.Marble,
 		Parent = model,
@@ -211,10 +211,22 @@ local function buildPedestal(state: State, id: string)
 	local ring = makePart({
 		Name = "Ring",
 		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.25, 5.8, 5.8),
-		CFrame = origin * CFrame.new(0, 1.45, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Size = Vector3.new(0.3, 6, 6),
+		CFrame = origin * CFrame.new(0, 2.45, 0) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = ringColor,
 		Material = Enum.Material.Neon,
+		CanCollide = false,
+		Parent = model,
+	})
+	-- Liseré lumineux au pied du socle (repère au sol)
+	makePart({
+		Name = "FootRing",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.2, 6.6, 6.6),
+		CFrame = origin * CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = ringColor,
+		Material = Enum.Material.Neon,
+		Transparency = 0.3,
 		CanCollide = false,
 		Parent = model,
 	})
@@ -236,7 +248,7 @@ local function buildPedestal(state: State, id: string)
 
 	local label = makeBillboard(base, Vector2.new(9, 2.6), Vector3.new(0, 7.5, 0), 70)
 	if entry then
-		local creature = CreatureBuilder.Build(entry.Creature, entry.Mutation, origin * CFrame.new(0, 1.6, 0))
+		local creature = CreatureBuilder.Build(entry.Creature, entry.Mutation, origin * CFrame.new(0, 2.6, 0))
 		creature.Parent = model
 		CollectionService:AddTag(creature, SPIN_TAG)
 		label.Text = ("%s\n💰 %s/s"):format(creatureTitle(entry.Creature, entry.Mutation), Format.Number(CreatureUtil.GetIncome(entry.Creature, entry.Mutation)))
@@ -465,8 +477,8 @@ local function buildShowcase(plot: any)
 		makePart({
 			Name = "ShowcaseBase",
 			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(1.6, 4.5, 4.5),
-			CFrame = ground * CFrame.new(0, 0.8, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Size = Vector3.new(2.6, 4.5, 4.5), -- vitrine surélevée : bien visible depuis l'allée
+			CFrame = ground * CFrame.new(0, 1.3, 0) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = Color3.fromRGB(70, 60, 90),
 			Material = Enum.Material.Marble,
 			Parent = folder,
@@ -474,8 +486,8 @@ local function buildShowcase(plot: any)
 		local ring = makePart({
 			Name = "ShowcaseRing",
 			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.25, 4.8, 4.8),
-			CFrame = ground * CFrame.new(0, 1.65, 0) * CFrame.Angles(0, 0, math.rad(90)),
+			Size = Vector3.new(0.3, 5, 5),
+			CFrame = ground * CFrame.new(0, 2.65, 0) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = Color3.fromRGB(120, 120, 130),
 			Material = Enum.Material.Neon,
 			CanCollide = false,
@@ -488,7 +500,7 @@ local function buildShowcase(plot: any)
 		light.Parent = ring
 		local label = makeBillboard(ring, Vector2.new(8, 2.2), Vector3.new(0, 6.5, 0), 90)
 
-		slots[i] = { Ring = ring, Light = light, Label = label, Top = ground * CFrame.new(0, 1.8, 0), Content = nil }
+		slots[i] = { Ring = ring, Light = light, Label = label, Top = ground * CFrame.new(0, 2.8, 0), Content = nil }
 	end
 	showcaseByPlotId[plot.Id] = slots
 end

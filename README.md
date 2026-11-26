@@ -49,7 +49,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 8. Le **fumier** du cheval sert d'engrais : **E** sur une plante qui pousse.
 9. **E** sur la porte d'un bâtiment : lancer des recettes, récupérer, améliorer.
 10. Stand **💰 VENTE** (à droite du spawn) : tout vendre.
-11. Bouton bleu à l'entrée de ta parcelle : **agrandir** la parcelle.
+11. Boutons au sol à l'entrée de ta parcelle : **💰 Agrandir** (Coins) ou **💎 Agrandir** (Robux, immédiat),
+    et des boosts Robux de 2 h (⚡ XP, 💰 Coins, 🏭 Production, 🌱 Pousse) : marche dessus ou appuie sur E.
 12. **Maj** pour courir.
 13. **Portail violet** derrière le spawn : expéditions et capture de créatures (bouton **📖 Créatures**).
 14. **Socles d'exposition** (🔨 Construire) : expose tes créatures (📖 Créatures → 🏛️ Exposer) pour gagner des Coins/seconde, même hors ligne. ⭐ épingle une créature dans la **vitrine** devant ta parcelle.
@@ -71,7 +72,9 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 
 ## Achats Robux : où mettre les IDs
 - Game Passes : `Config.Monetization.GamePasses.<Nom>.Id`
-- Developer Products : `Config.Monetization.Products.<Nom>.Id`
+- Developer Products : `Config.Monetization.Products.<Nom>.Id` (dont les boosts 2 h des boutons au sol :
+  `XPBoost2h`, `CoinsBoost2h`, `ProductionBoost2h`, `GrowthBoost2h`, et `PlotExpansion` pour 💎 Agrandir).
+  Emplacement des boutons au sol : `Config.TycoonPads`.
 - Cosmétiques payants : `Config.Cosmetics.<Nom>.Unlock.ProductId` (un Developer Product par cosmétique)
 - Un Id à `0` affiche « Bientôt disponible ». `GrantAllPassesInStudio = true` donne tous les passes dans Studio pour tester.
 

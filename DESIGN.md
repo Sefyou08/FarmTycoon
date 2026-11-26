@@ -357,6 +357,17 @@ Le gameplay est là ; il faut maintenant une vraie identité visuelle.
   signalent les actions par `GameEvents`.
 - **❓ Guide** (`GuideUI`) et **récompenses de temps de jeu** (`PlaytimeService`, `Config.Playtime`).
 
+**Lisibilité et boutons tycoon** :
+- Plus aucune herbe : sol de la ferme et de la Forêt en grandes Parts vertes lisses (Terrain caché dessous).
+- Éléments interactifs surélevés et lumineux : jardinières des champs (cadre coloré, case à débloquer
+  dorée, panneau 🌱), socles et vitrine plus hauts avec liseré, disques lumineux devant stands et
+  portails, paillasson lumineux devant les portes, repères sous la mangeoire et la caisse.
+- Clôture continue autour de chaque parcelle (`FenceBuilder`), qui suit l'agrandissement, portail à
+  lanternes ; cosmétique « Clôture de parcelle » (bois, piquets, pierre, bonbon, néon, or, motifs).
+- Animaux et créatures posés exactement sur le sol (`ArtKit.SnapToGround`).
+- Boutons au sol (`TycoonPad`, `Config.TycoonPads`) : 💰 / 💎 Agrandir, boosts Robux de 2 h avec
+  minuteur du boost actif (`PadController`).
+
 ---
 
 ## 5. Équilibrage de base
