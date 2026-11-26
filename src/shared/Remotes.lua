@@ -28,10 +28,10 @@ Remotes.EventNames = {
 	"ChatAnnounce", -- Serveur -> Clients : message système dans le chat (créature Secrète / Divine)
 	"RequestVisit", -- Client -> Serveur : (userId) se téléporter sur la parcelle d'un autre joueur
 	"ShopStock", -- Serveur -> Client : stock tournant de graines rares { EndsAt, Stock = { [cropId] = restant } }
-	"ToggleMount", -- Client -> Serveur : monter / descendre du cheval
 	"DungeonAttack", -- Client -> Serveur : attaque (le serveur choisit la cible et les dégâts)
 	"DungeonDodge", -- Client -> Serveur : esquive (invulnérabilité courte, cooldown serveur)
 	"DungeonState", -- Serveur -> Client : état du donjon (PV, vague, boss, résultat)
+	"DungeonEnemies", -- Serveur -> Client : instantané compact des ennemis + événements (10/s)
 }
 
 -- RemoteFunctions (requête + réponse)
@@ -51,6 +51,7 @@ Remotes.FunctionNames = {
 	"HelperAction", -- Client -> Serveur : (helperId) acheter / améliorer une aide PNJ -> (ok, message)
 	"DungeonAction", -- Client -> Serveur : ("Enter", dungeonId) | ("Leave") -> (ok, message)
 	"Hatch", -- Client -> Serveur : (eggId, variante) mettre un œuf à couver -> (ok, message)
+	"MountAction", -- Client -> Serveur : ("Mount", kind, id) | ("Dismount") | ("List") -> résultat
 }
 
 local folder: Folder? = nil

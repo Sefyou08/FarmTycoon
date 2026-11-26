@@ -51,6 +51,7 @@ local PlotService = require(script.Parent.PlotService)
 local AnnouncementService = require(script.Parent.AnnouncementService)
 local BoostService = require(script.Parent.BoostService)
 local XPService = require(script.Parent.XPService)
+local MovementService = require(script.Parent.MovementService)
 
 local Exp = Config.Expeditions
 
@@ -826,6 +827,7 @@ function ExpeditionService:ReturnHome(player: Player)
 end
 
 local function teleportTo(player: Player, cframe: CFrame)
+	MovementService:Dismount(player) -- on descend de cheval en passant un portail
 	-- Charge la zone autour du point d'arrivée avant de déplacer le joueur (StreamingEnabled)
 	pcall(function()
 		player:RequestStreamAroundAsync(cframe.Position, 5)

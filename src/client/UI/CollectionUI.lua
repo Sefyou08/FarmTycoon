@@ -6,6 +6,7 @@
 	  ⭐       épingler / désépingler dans la vitrine de prestige
 	  🏛️      exposer sur un socle libre / retirer du socle
 	  Vendre  (double clic pour confirmer ; impossible si la créature est exposée)
+	  🐾      (chevaux sauvages) mettre en enclos : il y produit son crin, et reste une monture
 	S'ouvre aussi via le prompt d'un socle (attribut OpenUI = "Collection").
 	Tout est validé par le serveur (DisplayAction, SellCreature).
 ]]
@@ -143,6 +144,19 @@ local function rebuild()
 		display.Activated:Connect(function()
 			invoke(displayRemote, if isDisplayed then "Remove" else "Assign", entry.Id)
 		end)
+
+		if def.Horse then
+			local toPen = Theme.Button({
+				Size = UDim2.fromOffset(40, 40),
+				LayoutOrder = 0,
+				BackgroundColor3 = Color3.fromRGB(150, 100, 60),
+				Text = "🐾",
+				Parent = buttons,
+			})
+			toPen.Activated:Connect(function()
+				invoke(displayRemote, "ToPen", entry.Id)
+			end)
+		end
 
 		local sell = Theme.Button({
 			Size = UDim2.fromOffset(86, 40),

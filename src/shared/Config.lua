@@ -270,6 +270,11 @@ Config.Resources = {
 	Milk = { DisplayName = "Lait", Icon = "🥛", Order = 6, SellPrice = 350 },
 	Manure = { DisplayName = "Fumier", Icon = "💩", Order = 7, SellPrice = 60 },
 	Truffle = { DisplayName = "Truffe", Icon = "🍄", Order = 8, SellPrice = 800, Feminine = true },
+	-- Crins des chevaux sauvages (capturés en expédition, puis mis en enclos)
+	MossMane = { DisplayName = "Crin de mousse", Icon = "🌿", Order = 9, SellPrice = 450 },
+	FrostMane = { DisplayName = "Crin de givre", Icon = "❄️", Order = 10, SellPrice = 1200 },
+	SandMane = { DisplayName = "Crin doré", Icon = "✨", Order = 11, SellPrice = 2500 },
+	EmberMane = { DisplayName = "Crin de braise", Icon = "🔥", Order = 12, SellPrice = 6000 },
 }
 
 --------------------------------------------------------------------------
@@ -344,6 +349,41 @@ Config.Animals = {
 		BodySize = Vector3.new(2.2, 1.8, 3.2), HeadSize = Vector3.new(1.4, 1.3, 1.1), LegHeight = 0.8,
 		Color = Color3.fromRGB(250, 170, 180), HeadColor = Color3.fromRGB(250, 165, 175),
 		Snout = true,
+	},
+
+	-- Chevaux SAUVAGES : pas en vente, obtenus en capturant le cheval de chaque zone
+	-- (NotForSale = true). Ils servent de monture ET produisent un crin rare en enclos.
+	ForestHorse = {
+		DisplayName = "Mousseval", Icon = "🐴", Order = 20, NotForSale = true,
+		Price = 0, Resource = "MossMane", ProductionTime = 120, FeedPerProduct = 10,
+		Diet = { "Carrot", "Wheat" },
+		BodySize = Vector3.new(2, 2.2, 4.4), HeadSize = Vector3.new(1, 1.3, 2), LegHeight = 2.6,
+		Color = Color3.fromRGB(90, 140, 70), HeadColor = Color3.fromRGB(80, 130, 65),
+		Mane = Color3.fromRGB(190, 230, 120),
+	},
+	SnowHorse = {
+		DisplayName = "Givrecrin", Icon = "🐴", Order = 21, NotForSale = true,
+		Price = 0, Resource = "FrostMane", ProductionTime = 150, FeedPerProduct = 20,
+		Diet = { "Blueberry", "Carrot", "Wheat" },
+		BodySize = Vector3.new(2, 2.2, 4.4), HeadSize = Vector3.new(1, 1.3, 2), LegHeight = 2.8,
+		Color = Color3.fromRGB(235, 245, 255), HeadColor = Color3.fromRGB(225, 240, 255),
+		Mane = Color3.fromRGB(120, 200, 255),
+	},
+	SandHorse = {
+		DisplayName = "Sablecrin", Icon = "🐴", Order = 22, NotForSale = true,
+		Price = 0, Resource = "SandMane", ProductionTime = 180, FeedPerProduct = 40,
+		Diet = { "Watermelon", "Corn", "Carrot" },
+		BodySize = Vector3.new(1.9, 2.1, 4.6), HeadSize = Vector3.new(1, 1.3, 2), LegHeight = 2.9,
+		Color = Color3.fromRGB(225, 185, 110), HeadColor = Color3.fromRGB(215, 175, 100),
+		Mane = Color3.fromRGB(255, 240, 170),
+	},
+	LavaHorse = {
+		DisplayName = "Brasecrin", Icon = "🐴", Order = 23, NotForSale = true,
+		Price = 0, Resource = "EmberMane", ProductionTime = 240, FeedPerProduct = 80,
+		Diet = { "Pumpkin", "Dragonfruit", "Corn" },
+		BodySize = Vector3.new(2.1, 2.3, 4.6), HeadSize = Vector3.new(1.05, 1.35, 2.05), LegHeight = 2.8,
+		Color = Color3.fromRGB(45, 30, 30), HeadColor = Color3.fromRGB(55, 35, 30),
+		Mane = Color3.fromRGB(255, 110, 20), Horns = true,
 	},
 }
 
@@ -444,10 +484,26 @@ Config.Movement = {
 	SprintEnabled = true,
 	SprintSpeed = 32, -- vitesse en courant (touche maintenue, ou bouton sur mobile)
 	SprintKeys = { Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift },
-	-- Monture (cheval) : il faut posséder au moins un cheval dans un enclos + le niveau requis
-	MountSpeed = 40,
-	MountSprintSpeed = 48,
-	MountSpecies = "Horse",
+	-- Monture : voir Config.Mounts (vitesse selon le cheval monté)
+}
+
+--------------------------------------------------------------------------
+-- MONTURES (chevaux de ferme et chevaux sauvages capturés)
+--   Species : vitesse de marche, de sprint, saut, et petit texte de description par espèce
+--   (les espèces sont dans Config.Animals ; un cheval sauvage capturé a le champ Horse).
+--------------------------------------------------------------------------
+Config.Mounts = {
+	RiderOffset = 1.1, -- hauteur du personnage au-dessus du dos du cheval
+	VariantSpeedBonus = 0.05, -- +5 % de vitesse par rang de variante (Doré, Arc-en-ciel...)
+	-- Mutation d'un cheval sauvage -> variante (couleur, effets, valeur de sa production)
+	MutationToVariant = { Normal = "Normal", Gold = "Gold", Giant = "Legendary", Rainbow = "Rainbow", Spectral = "Mythic" },
+	Species = {
+		Horse = { Speed = 40, SprintSpeed = 48, JumpPower = 50, Perk = "Fidèle cheval de ferme" },
+		ForestHorse = { Speed = 44, SprintSpeed = 54, JumpPower = 58, Perk = "Agile et équilibré" },
+		SnowHorse = { Speed = 44, SprintSpeed = 54, JumpPower = 80, Perk = "Saute très haut" },
+		SandHorse = { Speed = 52, SprintSpeed = 64, JumpPower = 50, Perk = "Le plus rapide" },
+		LavaHorse = { Speed = 50, SprintSpeed = 62, JumpPower = 65, Perk = "Rapide et puissant" },
+	},
 }
 
 --------------------------------------------------------------------------
@@ -725,7 +781,7 @@ Config.CreatureRarities = {
 		Weight = 0.001, BaseValue = 1500000, Announce = "Global", SpawnAlert = "Server", Divine = true,
 		Income = 10000, Prestige = 25000,
 		Capture = {
-			Safe = { Hits = 6, Width = 0.13, Speed = 1.1, MaxMisses = 3, Chance = 1 }, -- 🎯 Sûr
+			Safe = { Hits = 6, Width = 0.10, Speed = 1.1, MaxMisses = 3, Chance = 1 }, -- 🎯 Sûr
 			Fast = { Hits = 5, Width = 0.16, Speed = 1.05, MaxMisses = 3, Chance = 0.75 }, -- ⚡ Rapide
 		},
 		Visual = { Scale = 2.6, Vivid = true, Particles = 40, Light = 26, Beacon = true },
@@ -792,6 +848,12 @@ Config.Creatures = {
 	Pyrodrake = creature("Volcano", "Legendary", 5, "Pyrodrake", "Block", 3.4, rgb(170, 30, 30), rgb(255, 150, 30), { "Wings", "Horns", "Tail", "Legs" }),
 	Volcanosaure = creature("Volcano", "Mythic", 6, "Volcanosaure", "Block", 4, rgb(50, 35, 35), rgb(255, 80, 20), { "Spikes", "Horns", "Legs", "Glow" }),
 	CoeurDeLave = creature("Volcano", "Secret", 7, "Cœur-de-Lave", "Ball", 2.6, rgb(255, 60, 20), rgb(255, 240, 120), { "Spikes", "Glow" }),
+
+	-- 🐴 Chevaux sauvages (un par zone) : champ Horse = espèce de monture / d'enclos
+	Mousseval = { DisplayName = "Mousseval", Zone = "Forest", Rarity = "Rare", Order = 9, Body = "Block", Size = 2.8, Color = rgb(90, 140, 70), Accent = rgb(190, 230, 120), Features = { "Legs", "Tail", "Ears" }, Horse = "ForestHorse" },
+	Givrecrin = { DisplayName = "Givrecrin", Zone = "Mountain", Rarity = "Epic", Order = 9, Body = "Block", Size = 2.9, Color = rgb(235, 245, 255), Accent = rgb(120, 200, 255), Features = { "Legs", "Tail", "Ears", "Glow" }, Horse = "SnowHorse" },
+	Sablecrin = { DisplayName = "Sablecrin", Zone = "Desert", Rarity = "Epic", Order = 9, Body = "Block", Size = 2.9, Color = rgb(225, 185, 110), Accent = rgb(255, 240, 170), Features = { "Legs", "Tail", "Ears" }, Horse = "SandHorse" },
+	Brasecrin = { DisplayName = "Brasecrin", Zone = "Volcano", Rarity = "Legendary", Order = 9, Body = "Block", Size = 3, Color = rgb(45, 30, 30), Accent = rgb(255, 110, 20), Features = { "Legs", "Tail", "Horns", "Glow" }, Horse = "LavaHorse" },
 
 	-- ✨ Divines (une par zone, bonus de l'Index)
 	Sylvanthe = creature("Forest", "Divine", 8, "Sylvanthe", "Block", 3.4, rgb(200, 255, 190), rgb(255, 240, 140), { "Horns", "Legs", "Wings", "Leaf", "Glow" }, true),
@@ -948,6 +1010,18 @@ Config.Combat = {
 	ArenaSize = 110, -- côté d'une arène (studs)
 	ArenaOrigin = Vector3.new(0, 0, -1800), -- position de la 1re arène (loin de la map)
 	ArenaSpacing = 300, -- écart entre deux arènes (une par joueur en donjon)
+	ComboWindow = 0.8, -- secondes pour enchaîner le coup suivant du combo (3 coups max, visuel)
+}
+
+-- Effets de combat (CLIENT uniquement : purement visuels / sonores)
+-- Les sons sont des sons intégrés à Roblox ; remplace-les par des "rbxassetid://..." si tu veux.
+Config.CombatEffects = {
+	SwingSound = "rbxasset://sounds/swordslash.wav",
+	HitSound = "rbxasset://sounds/swordlunge.wav",
+	EquipSound = "rbxasset://sounds/unsheath.wav",
+	HitParticles = 8, -- particules par coup reçu par un ennemi
+	DeathParticles = 18,
+	MaxDamageNumbers = 8, -- nombres de dégâts affichés en même temps (au-delà : ignorés)
 }
 
 -- Ennemis (créatures originales, modèles en Parts)

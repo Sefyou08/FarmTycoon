@@ -26,6 +26,7 @@ local SERVICE_ORDER = {
 	"PlotService",
 	"FarmService",
 	"AnimalService",
+	"MovementService",
 	"BuildingService",
 	"DisplayService",
 	"PlacementService",
@@ -40,7 +41,6 @@ local SERVICE_ORDER = {
 	"LeaderboardService",
 	"HelperService",
 	"RebirthService",
-	"MovementService",
 }
 
 local services = {}

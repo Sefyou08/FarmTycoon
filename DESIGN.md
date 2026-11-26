@@ -101,7 +101,7 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 - **Production** : elle s'accumule dans la caisse de l'enclos (capacité limitée) et se récupère
   avec E. Elle continue hors ligne (8 h max).
 - **Cheval** : produit du **fumier**, un engrais. Mis sur une plante qui pousse, il réduit le temps
-  restant. Le cheval deviendra aussi une **monture** en phase 7.
+  restant. C'est aussi une **monture** (voir 5.10).
 - Les animaux se promènent dans leur enclos (animation côté client).
 
 ### Phase 4 : Bâtiments de transformation
@@ -211,6 +211,12 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 - **Œufs de créatures** : 🐣 Couver depuis le sac (3 couveuses), éclosion après un délai (même hors
   ligne) ; ils donnent une créature de leur zone avec des **raretés hautes favorisées**.
 - Les **boosts** des consommables s'appliquent au donjon (Combat) et en expédition (Capture).
+- **Performance** : les ennemis n'existent côté serveur que sous forme de données ; le serveur
+  envoie un petit instantané 10 fois par seconde (positions, PV, état, événements), et le
+  **client** crée les modèles, les déplace en douceur et joue toutes les animations.
+- **Animations (client)** : épée en main, combo de 3 coups, trace lumineuse, impact sur l'ennemi
+  (flash, recul, particules, son, nombre de dégâts), roulade d'esquive, ennemis qui marchent,
+  arment leur coup, chargent, meurent ; le boss saute avant son attaque de zone (onde de choc).
 
 ### Phase 9 : Monétisation
 - Game Passes et Developer Products, avec des **IDs factices** dans Config et un `ProcessReceipt`
@@ -244,6 +250,7 @@ plus d'animaux et de bâtiments, et à partir en expédition.
     motifs des bâtiments, panneau de parcelle personnalisé, effets autour de la vitrine
     (particules, lumières), traces de pas, titres affichés au-dessus du joueur ;
   - **champs** (bordures, terre, décorations) et **animaux** (skins, couleurs, accessoires) ;
+  - **montures** : selles, skins, couleurs, accessoires (tête, crinière, harnais) ;
   - petits prix en Robux (environ **25 à 150 Robux**), et certains cosmétiques **débloquables en
     jouant** (succès, Index complété, niveaux) pour que les joueurs gratuits puissent aussi se
     distinguer ;
@@ -400,7 +407,7 @@ ratés permis / chance finale.
 | Légendaire | 4 / 19 % / 0,95 / 2 / 100 % | 3 / 22 % / 0,9 / 2 / 80 % |
 | Mythique | 4 / 17 % / 1,0 / 3 / 100 % | 3 / 20 % / 0,95 / 3 / 75 % |
 | Secrète | 5 / 15 % / 1,05 / 3 / 100 % | 4 / 18 % / 1,0 / 3 / 75 % |
-| Divine | 6 / 13 % / 1,1 / 3 / 100 % | 5 / 16 % / 1,05 / 3 / 75 % |
+| Divine | 6 / 10 % / 1,1 / 3 / 100 % | 5 / 16 % / 1,05 / 3 / 75 % |
 
 La difficulté vient du **nombre de réussites à enchaîner** et d'une zone verte un peu plus petite,
 pas d'une vitesse impossible. Tout est réglable par rareté et par mode dans
@@ -506,3 +513,26 @@ Ennemis : Ronceux, Champitox, Givrelin, Cognebloc, Scarabix, Ventsableux, Braisa
 
 **Œufs** : Forêt 1 min, Montagne 2 min, Désert 4 min, Volcan 8 min d'éclosion. Poids d'apparition
 multipliés : Rare x1,5, Épique x3, Légendaire x5, Mythique x8, Secrète et Divine x10.
+
+### 5.10 Montures et chevaux sauvages
+- **Monture** (niveau 6) : bouton 🐴 → choix du cheval parmi ceux possédés (enclos + chevaux
+  sauvages de la collection). Le personnage est **assis** sur le dos (animation « assis » de
+  Roblox, vue par tous) ; le cheval est soudé sous lui et **animé par les clients** (pattes au pas
+  et au galop, tête, queue). Le personnage garde la physique : direction, sprint, saut, rotation.
+- Descente : bouton 🐴, mort, déconnexion, portail d'expédition ou de donjon. Pas de monture en
+  donjon.
+- La variante du cheval (Doré, Arc-en-ciel, Légendaire, Mythique) se voit sur la monture et donne
+  +5 % de vitesse par rang. Mutation d'un cheval sauvage → variante : Doré → Doré, Géant →
+  Légendaire, Arc-en-ciel → Arc-en-ciel, Spectral → Mythique.
+
+| Cheval | Origine | Rareté | Vitesse / galop | Saut | Particularité | Production en enclos |
+|---|---|---|---|---|---|---|
+| Cheval | stand 🐄 (8 000) | — | 40 / 48 | 50 | Fidèle cheval de ferme | 💩 Fumier |
+| Mousseval | 🌲 Forêt | Rare | 44 / 54 | 58 | Agile et équilibré | 🌿 Crin de mousse (450) |
+| Givrecrin | ⛰️ Montagne | Épique | 44 / 54 | 80 | Saute très haut | ❄️ Crin de givre (1 200) |
+| Sablecrin | 🏜️ Désert | Épique | 52 / 64 | 50 | Le plus rapide | ✨ Crin doré (2 500) |
+| Brasecrin | 🌋 Volcan | Légendaire | 50 / 62 | 65 | Rapide et puissant | 🔥 Crin de braise (6 000) |
+
+Un cheval sauvage capturé reste dans la collection (monture possible) ; le bouton 🐾 le met dans
+un enclos, où il produit son crin et reste une monture. Valeurs : `Config.Mounts`,
+`Config.Animals` (espèces ForestHorse, SnowHorse, SandHorse, LavaHorse), `Config.Creatures`.

@@ -6,8 +6,8 @@
 	  • Pendant un donjon : PV du joueur, vague / boss avec sa barre de vie, et les
 	    boutons ⚔️ Attaquer (clic gauche ou F) et 💨 Esquive (Q), 🚪 Quitter.
 	  • Le client ne fait qu'ENVOYER "j'attaque" / "j'esquive" : le serveur choisit la
-	    cible, calcule les dégâts et gère les cooldowns. Le bond d'esquive et l'effet
-	    de coup d'épée sont purement visuels (locaux).
+	    cible, calcule les dégâts et gère les cooldowns. Le bond d'esquive, les gestes
+	    (CombatAnimator) et les ennemis (DungeonRenderer) sont dessinés par le client.
 ]]
 
 local ContextActionService = game:GetService("ContextActionService")
@@ -15,8 +15,6 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-local Workspace = game:GetService("Workspace")
-local Debris = game:GetService("Debris")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
@@ -24,6 +22,9 @@ local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local CropUtil = require(ReplicatedStorage.Shared.CropUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Theme = require(script.Parent.Theme)
+local Controllers = script.Parent.Parent:WaitForChild("Controllers")
+local DungeonRenderer = require(Controllers:WaitForChild("DungeonRenderer"))
+local CombatAnimator = require(Controllers:WaitForChild("CombatAnimator"))
 
 local DungeonUI = {}
 
@@ -142,26 +143,6 @@ end
 -- Combat
 --------------------------------------------------------------------------
 
--- Effet visuel local : un arc lumineux devant le personnage
-local function swingEffect()
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if not root or not root:IsA("BasePart") then
-		return
-	end
-	local arc = Instance.new("Part")
-	arc.Anchored = true
-	arc.CanCollide = false
-	arc.CanQuery = false
-	arc.CanTouch = false
-	arc.Material = Enum.Material.Neon
-	arc.Color = Color3.fromRGB(255, 240, 180)
-	arc.Transparency = 0.3
-	arc.Size = Vector3.new(7, 0.3, 2)
-	arc.CFrame = root.CFrame * CFrame.new(0, 0, -4) * CFrame.Angles(0, 0, math.rad(20))
-	arc.Parent = Workspace
-	Debris:AddItem(arc, 0.12)
-end
-
 local function attack()
 	if not inDungeon then
 		return
@@ -171,7 +152,7 @@ local function attack()
 		return
 	end
 	lastAttack = now
-	swingEffect()
+	CombatAnimator.Attack() -- geste + trace + son (visuel)
 	Remotes.Get("DungeonAttack"):FireServer()
 end
 
@@ -185,6 +166,7 @@ local function dodge()
 	end
 	lastDodge = now
 	Remotes.Get("DungeonDodge"):FireServer()
+	CombatAnimator.Roll()
 	-- Bond dans la direction de déplacement (ou vers l'avant)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -201,6 +183,10 @@ local function setInDungeon(value: boolean)
 	end
 	inDungeon = value
 	hud.Visible = value
+	CombatAnimator.EquipWeapon(value)
+	if not value then
+		DungeonRenderer.Clear()
+	end
 	if value then
 		ContextActionService:BindAction("DungeonAttack", function(_, inputState)
 			if inputState == Enum.UserInputState.Begin then
@@ -232,18 +218,12 @@ local function onState(state: { [string]: any })
 		return
 	end
 	setInDungeon(state.Active == true)
+	if state.ArenaY then
+		DungeonRenderer.SetArenaY(state.ArenaY)
+	end
 	local hp, maxHp = state.HP or 0, math.max(1, state.MaxHP or 1)
 	hpFill.Size = UDim2.fromScale(math.clamp(hp / maxHp, 0, 1), 1)
 	hpLabel.Text = ("❤️ %d / %d PV"):format(hp, maxHp)
-	if state.Hit then
-		hpFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		task.delay(0.2, function()
-			hpFill.BackgroundColor3 = Color3.fromRGB(80, 200, 100)
-		end)
-	end
-	if state.Dodged then
-		notify("💨 Esquivé !", "Success")
-	end
 
 	if state.IsBoss then
 		waveLabel.Text = ("%s  •  👑 BOSS"):format(state.DungeonName or "")
@@ -366,6 +346,44 @@ function DungeonUI.Init(screen: ScreenGui, stateController, notifyFn: (string, s
 	end)
 
 	Remotes.Get("DungeonState").OnClientEvent:Connect(onState)
+	Remotes.Get("DungeonEnemies").OnClientEvent:Connect(function(list, events)
+		if inDungeon and type(list) == "table" and type(events) == "table" then
+			DungeonRenderer.OnSnapshot(list, events)
+		end
+	end)
+
+	-- Effets quand le JOUEUR est touché / esquive (écran rouge + petite secousse de caméra)
+	local flash = Instance.new("Frame")
+	flash.Name = "HitFlash"
+	flash.Size = UDim2.fromScale(1, 1)
+	flash.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	flash.BackgroundTransparency = 1
+	flash.ZIndex = 0
+	flash.Parent = screen
+	local shakeUntil = 0
+	DungeonRenderer.Init(function(_damage)
+		flash.BackgroundTransparency = 0.7
+		hpFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		shakeUntil = os.clock() + 0.2
+		task.delay(0.15, function()
+			flash.BackgroundTransparency = 1
+			hpFill.BackgroundColor3 = Color3.fromRGB(80, 200, 100)
+		end)
+	end, function()
+		notify("💨 Esquivé !", "Success")
+	end)
+	CombatAnimator.Init()
+	game:GetService("RunService").RenderStepped:Connect(function()
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		if not humanoid then
+			return
+		end
+		if os.clock() < shakeUntil then
+			humanoid.CameraOffset = Vector3.new(math.random() - 0.5, math.random() - 0.5, 0) * 0.6
+		elseif humanoid.CameraOffset ~= Vector3.zero and inDungeon then
+			humanoid.CameraOffset = Vector3.zero
+		end
+	end)
 
 	-- Fermeture de la fenêtre si on s'éloigne du portail
 	task.spawn(function()

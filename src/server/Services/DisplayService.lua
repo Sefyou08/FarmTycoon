@@ -18,6 +18,8 @@
 	  ("Assign", idCréature) -> expose la créature sur le premier socle posé libre
 	  ("Remove", idCréature) -> la retire de son socle
 	  ("Pin", idCréature)    -> l'épingle / la désépingle dans la vitrine
+	  ("ToPen", idCréature)  -> cheval sauvage : il quitte la collection et va dans un enclos
+	                            (il y produit son crin et reste utilisable comme monture)
 
 	API (PlacementService) :
 	  DisplayService:CanBuyPedestal(player) -> (prix | nil, raison)
@@ -516,6 +518,30 @@ local function onDisplayAction(player: Player, action: any, uid: any): (boolean,
 		table.insert(picks, uid)
 		SyncService:Set(player, "ShowcasePicks", picks)
 		return true, "⭐ " .. label .. " épinglé dans la vitrine !"
+	elseif action == "ToPen" then
+		local def = Config.Creatures[entry.Creature]
+		if not def.Horse then
+			return false, "Seuls les chevaux sauvages vont en enclos."
+		end
+		if pedestalOf(data, uid) then
+			return false, "Retire-le d'abord de son socle."
+		end
+		local penKey, reason = AnimalService:FindPenFor(player, def.Horse)
+		if not penKey then
+			return false, reason or "Pas d'enclos libre."
+		end
+		local variant = Config.Mounts.MutationToVariant[entry.Mutation] or "Normal"
+		if not AnimalService:AddAnimal(player, penKey, def.Horse, variant) then
+			return false, "Impossible de le mettre en enclos."
+		end
+		for index, creature in data.Creatures do
+			if creature.Id == uid then
+				table.remove(data.Creatures, index)
+				break
+			end
+		end
+		SyncService:Set(player, "Creatures", data.Creatures)
+		return true, ("🐾 %s est dans son enclos : il y produira son crin (et reste une monture) !"):format(label)
 	end
 	return false, "Action inconnue."
 end

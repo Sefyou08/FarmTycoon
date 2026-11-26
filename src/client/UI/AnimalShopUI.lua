@@ -26,8 +26,10 @@ local busy = false
 
 local function sortedSpecies(): { string }
 	local ids = {}
-	for id in Config.Animals do
-		table.insert(ids, id)
+	for id, def in Config.Animals do
+		if not def.NotForSale then -- les chevaux sauvages ne s'achètent pas
+			table.insert(ids, id)
+		end
 	end
 	table.sort(ids, function(a, b)
 		return Config.Animals[a].Order < Config.Animals[b].Order

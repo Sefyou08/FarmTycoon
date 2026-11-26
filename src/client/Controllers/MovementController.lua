@@ -3,8 +3,8 @@
 	======================
 	Sprint : maintenir Maj (gauche ou droite) pour courir à Config.Movement.SprintSpeed.
 	Sur mobile/tablette, un bouton "🏃 Courir" dans le HUD active/désactive le sprint.
-	Monture : bouton "🐴 Monture" (le serveur vérifie et pose l'attribut "Mounted") ;
-	à cheval, les vitesses sont MountSpeed / MountSprintSpeed.
+	Monture : gérée par MountController ; à cheval, le serveur pose les attributs
+	"MountSpeed" / "MountSprint" (vitesse du cheval monté), appliqués ici.
 	Boost de vitesse (consommables) : attribut "SpeedBoost" posé par le serveur (x1,2...).
 
 	Note : si un joueur a activé le "Shift Lock" dans ses paramètres Roblox,
@@ -16,7 +16,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local MovementController = {}
 
@@ -40,8 +39,8 @@ local function apply()
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		local mounted = player:GetAttribute("Mounted") == true
-		local walk = if mounted then MovementConfig.MountSpeed else MovementConfig.WalkSpeed
-		local sprint = if mounted then MovementConfig.MountSprintSpeed else MovementConfig.SprintSpeed
+		local walk = if mounted then (player:GetAttribute("MountSpeed") or MovementConfig.WalkSpeed) else MovementConfig.WalkSpeed
+		local sprint = if mounted then (player:GetAttribute("MountSprint") or MovementConfig.SprintSpeed) else MovementConfig.SprintSpeed
 		local boost = player:GetAttribute("SpeedBoost") or 1
 		humanoid.WalkSpeed = (if sprinting then sprint else walk) * boost
 	end
@@ -80,12 +79,9 @@ function MovementController.Init(HUD)
 		end)
 	end
 
-	-- Monture
-	local mountRemote: RemoteEvent = Remotes.Get("ToggleMount")
-	HUD.AddButton("MountButton", "🐴 Monture", Color3.fromRGB(150, 100, 60), 9, function()
-		mountRemote:FireServer()
-	end)
+	-- Monture (le bouton 🐴 est dans MountController)
 	player:GetAttributeChangedSignal("Mounted"):Connect(apply)
+	player:GetAttributeChangedSignal("MountSpeed"):Connect(apply)
 	player:GetAttributeChangedSignal("SpeedBoost"):Connect(apply)
 
 	-- Réapplique la vitesse à chaque réapparition (le serveur remet la vitesse de base)

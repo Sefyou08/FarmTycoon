@@ -20,13 +20,18 @@
 	    attaque de zone annoncée par un cercle rouge au sol.
 	  • Défaite : PV à 0, mort du personnage, sortie de l'arène, ou délai dépassé.
 
-	Le client reçoit l'état (PV, vague, boss) par le RemoteEvent "DungeonState".
+	Performance : les ennemis n'existent côté serveur QUE sous forme de données
+	(position, état, PV). Le serveur envoie au joueur un petit instantané 10 fois par
+	seconde (RemoteEvent "DungeonEnemies" : positions + événements "touché", "mort",
+	"attaque de zone"...), et c'est le CLIENT qui crée les modèles, les fait bouger en
+	douceur et joue toutes les animations et tous les effets. L'état (PV, vague, boss)
+	part par "DungeonState", au plus 5 fois par seconde et seulement s'il a changé.
+
 	RemoteFunction "DungeonAction" : ("Enter", dungeonId) | ("Leave").
 ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Debris = game:GetService("Debris")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -42,27 +47,27 @@ local InventoryService = require(script.Parent.InventoryService)
 local BoostService = require(script.Parent.BoostService)
 local XPService = require(script.Parent.XPService)
 local PlotService = require(script.Parent.PlotService)
+local MovementService = require(script.Parent.MovementService)
 
 local Combat = Config.Combat
 
 local DungeonService = {}
 
-local TICK = 0.1
+local TICK = 0.1 -- simulation et instantanés : 10 fois par seconde
+local STATE_INTERVAL = 0.2 -- état (PV, vague, boss) : au plus 5 fois par seconde
 local MAX_ARENAS = Config.Plots.Count -- une arène par joueur possible
 
 type Enemy = {
 	Id: number,
+	Key: string, -- id de Config.Enemies (le client construit le modèle à partir de lui)
 	Def: any,
-	Model: Model,
-	Body: BasePart,
 	HP: number,
 	MaxHP: number,
 	Position: Vector3,
+	Yaw: number, -- orientation (radians), pour le client
 	State: string, -- "Chase" | "WindUp" | "Cooldown" | "Slam"
 	StateUntil: number,
 	NextSlam: number,
-	SlamCircle: BasePart?,
-	HPFill: Frame,
 }
 
 type Run = {
@@ -83,6 +88,8 @@ type Run = {
 	State: string, -- "Fighting" | "Ended"
 	StartedAt: number,
 	Dirty: boolean,
+	LastStateSent: number,
+	Events: { { any } }, -- événements à envoyer avec le prochain instantané (effets côté client)
 	BossName: string?,
 }
 
@@ -172,68 +179,6 @@ end
 -- Ennemis
 --------------------------------------------------------------------------
 
-local function buildEnemyModel(def: any, ground: CFrame): (Model, BasePart, Frame)
-	local model = Instance.new("Model")
-	model.Name = def.DisplayName
-	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-	local s = def.Size
-	local bodySize = if def.Body == "Ball" then Vector3.one * s else Vector3.new(s * 0.9, s * 0.8, s)
-	local function part(name: string, shape: Enum.PartType, size: Vector3, offset: CFrame, color: Color3): Part
-		return makePart({ Name = name, Shape = shape, Size = size, CFrame = ground * offset, Color = color, CanCollide = false, CanTouch = false, CanQuery = false, Material = Enum.Material.SmoothPlastic, Parent = model })
-	end
-	local body = part("Body", if def.Body == "Ball" then Enum.PartType.Ball else Enum.PartType.Block, bodySize, CFrame.new(0, bodySize.Y / 2, 0), def.Color)
-	model.PrimaryPart = body
-	model.WorldPivot = ground
-	-- Yeux méchants (à l'avant, -Z) + piquants
-	for _, sx in { -1, 1 } do
-		part("Eye", Enum.PartType.Ball, Vector3.one * s * 0.22, CFrame.new(sx * s * 0.2, bodySize.Y * 0.65, -bodySize.Z / 2), Color3.fromRGB(255, 230, 80))
-		part("Brow", Enum.PartType.Block, Vector3.new(s * 0.28, s * 0.06, s * 0.08), CFrame.new(sx * s * 0.2, bodySize.Y * 0.8, -bodySize.Z / 2 - 0.05) * CFrame.Angles(0, 0, sx * math.rad(20)), Color3.fromRGB(20, 20, 20))
-	end
-	for i = -1, 1 do
-		part("Spike", Enum.PartType.Block, Vector3.new(s * 0.15, s * 0.35, s * 0.15), CFrame.new(i * s * 0.25, bodySize.Y + s * 0.1, 0) * CFrame.Angles(0, 0, math.rad(i * 15)), def.Accent)
-	end
-	if def.Boss then
-		-- Couronne + aura pour les boss
-		for i = 1, 6 do
-			local angle = i / 6 * math.pi * 2
-			part("Crown", Enum.PartType.Block, Vector3.new(s * 0.12, s * 0.3, s * 0.12), CFrame.new(math.cos(angle) * s * 0.3, bodySize.Y + s * 0.3, math.sin(angle) * s * 0.3), Color3.fromRGB(255, 210, 60)).Material = Enum.Material.Neon
-		end
-		local light = Instance.new("PointLight")
-		light.Color = def.Accent
-		light.Range = 20
-		light.Brightness = 2
-		light.Parent = body
-	end
-
-	-- Barre de vie au-dessus
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromScale(math.max(4, s * 1.2), 1.4)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, bodySize.Y / 2 + 2, 0)
-	gui.MaxDistance = 120
-	gui.LightInfluence = 0
-	gui.Parent = body
-	local name = Instance.new("TextLabel")
-	name.Size = UDim2.fromScale(1, 0.55)
-	name.BackgroundTransparency = 1
-	name.Font = Enum.Font.FredokaOne
-	name.TextScaled = true
-	name.TextColor3 = if def.Boss then Color3.fromRGB(255, 120, 120) else Color3.new(1, 1, 1)
-	name.TextStrokeTransparency = 0.3
-	name.Text = (if def.Boss then "👑 " else "") .. def.DisplayName
-	name.Parent = gui
-	local back = Instance.new("Frame")
-	back.Position = UDim2.fromScale(0, 0.6)
-	back.Size = UDim2.fromScale(1, 0.35)
-	back.BackgroundColor3 = Color3.fromRGB(40, 20, 20)
-	back.Parent = gui
-	local fill = Instance.new("Frame")
-	fill.Size = UDim2.fromScale(1, 1)
-	fill.BackgroundColor3 = Color3.fromRGB(230, 60, 60)
-	fill.BorderSizePixel = 0
-	fill.Parent = back
-	return model, body, fill
-end
-
 local function spawnEnemy(run: Run, enemyId: string)
 	local def = Config.Enemies[enemyId]
 	if not def then
@@ -255,60 +200,39 @@ local function spawnEnemy(run: Run, enemyId: string)
 	if def.Boss then
 		position = origin + Vector3.new(0, 0, -Combat.ArenaSize / 4)
 	end
-	local model, body, fill = buildEnemyModel(def, CFrame.new(position))
-	model.Parent = run.Arena.EnemyFolder
 
+	-- Aucune Part côté serveur : juste des données (le client dessine l'ennemi)
 	enemyCounter += 1
 	run.Enemies[enemyCounter] = {
 		Id = enemyCounter,
+		Key = enemyId,
 		Def = def,
-		Model = model,
-		Body = body,
 		HP = def.HP,
 		MaxHP = def.HP,
 		Position = position,
+		Yaw = 0,
 		State = "Chase",
 		StateUntil = 0,
 		NextSlam = os.clock() + (def.SlamInterval or math.huge),
-		SlamCircle = nil,
-		HPFill = fill,
 	}
 	if def.Boss then
 		run.BossName = def.DisplayName
 	end
 end
 
-local function setEnemyColor(enemy: Enemy, warning: boolean)
-	enemy.Body.Color = if warning then Color3.fromRGB(255, 40, 40) else enemy.Def.Color
-	enemy.Body.Material = if warning then Enum.Material.Neon else Enum.Material.SmoothPlastic
-end
-
 local function removeEnemy(run: Run, enemy: Enemy)
 	run.Enemies[enemy.Id] = nil
-	if enemy.SlamCircle then
-		enemy.SlamCircle:Destroy()
-	end
-	enemy.Model:Destroy()
 end
 
--- Petit nombre de dégâts qui s'envole au-dessus de l'ennemi
-local function damagePopup(body: BasePart, amount: number)
-	local gui = Instance.new("BillboardGui")
-	gui.Size = UDim2.fromScale(3, 1.2)
-	gui.StudsOffsetWorldSpace = Vector3.new(rng:NextNumber(-1, 1), body.Size.Y / 2 + 3, 0)
-	gui.AlwaysOnTop = true
-	gui.LightInfluence = 0
-	gui.Parent = body
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = Color3.fromRGB(255, 230, 90)
-	label.TextStrokeTransparency = 0
-	label.Text = "-" .. Format.Number(amount)
-	label.Parent = gui
-	Debris:AddItem(gui, 0.7)
+-- Instantané compact des ennemis + événements, envoyé au joueur (10 fois par seconde max)
+local function sendSnapshot(run: Run)
+	local list = {}
+	for id, enemy in run.Enemies do
+		-- { id, clé, x, z, orientation, PV, état } : quelques nombres par ennemi
+		table.insert(list, { id, enemy.Key, math.floor(enemy.Position.X * 10) / 10, math.floor(enemy.Position.Z * 10) / 10, math.floor(enemy.Yaw * 100) / 100, math.max(0, math.floor(enemy.HP)), enemy.State })
+	end
+	Remotes.Get("DungeonEnemies"):FireClient(run.Player, list, run.Events)
+	run.Events = {}
 end
 
 --------------------------------------------------------------------------
@@ -339,6 +263,7 @@ local function sendState(run: Run, extra: { [string]: any }?)
 		MaxHP = run.MaxHP,
 		Enemies = count,
 		NextWaveAt = run.NextWaveAt,
+		ArenaY = run.Arena.Origin.Y,
 	}
 	if extra then
 		for key, value in extra do
@@ -347,6 +272,7 @@ local function sendState(run: Run, extra: { [string]: any }?)
 	end
 	Remotes.Get("DungeonState"):FireClient(run.Player, state)
 	run.Dirty = false
+	run.LastStateSent = os.clock()
 end
 
 --------------------------------------------------------------------------
@@ -413,6 +339,9 @@ local function endRun(run: Run, outcome: string, reason: string?)
 	for _, enemy in run.Enemies do
 		removeEnemy(run, enemy)
 	end
+	if player.Parent then
+		sendSnapshot(run) -- le client retire les modèles restants
+	end
 
 	local message
 	if outcome == "Victory" then
@@ -451,13 +380,15 @@ end
 local function damagePlayer(run: Run, amount: number)
 	local now = os.clock()
 	if now < run.InvulnerableUntil then
-		sendState(run, { Dodged = true })
+		table.insert(run.Events, { "Dodged" })
 		return
 	end
-	run.HP = math.max(0, run.HP - math.floor(amount / run.Defense + 0.5))
+	local damage = math.floor(amount / run.Defense + 0.5)
+	run.HP = math.max(0, run.HP - damage)
+	table.insert(run.Events, { "PlayerHit", damage })
 	run.Dirty = true
-	sendState(run, { Hit = true })
 	if run.HP <= 0 then
+		sendState(run)
 		endRun(run, "Defeat")
 	end
 end
@@ -482,43 +413,30 @@ local function updateEnemy(run: Run, enemy: Enemy, rootPosition: Vector3, now: n
 	local toPlayer = flat(rootPosition) - flat(enemy.Position)
 	local distance = toPlayer.Magnitude
 	local reach = def.AttackRange + def.Size / 2
+	if distance > 0.1 then
+		enemy.Yaw = math.atan2(-toPlayer.X, -toPlayer.Z) -- regarde le joueur
+	end
 
 	if enemy.State == "Chase" then
-		-- Boss : attaque de zone à intervalle régulier
+		-- Boss : attaque de zone à intervalle régulier (le client affiche le cercle rouge)
 		if def.Boss and now >= enemy.NextSlam then
 			enemy.State = "Slam"
 			enemy.StateUntil = now + def.SlamWindup
-			local circle = makePart({
-				Name = "SlamWarning",
-				Shape = Enum.PartType.Cylinder,
-				Size = Vector3.new(0.3, def.SlamRadius * 2, def.SlamRadius * 2),
-				CFrame = CFrame.new(enemy.Position + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-				Color = Color3.fromRGB(255, 40, 40),
-				Material = Enum.Material.Neon,
-				Transparency = 0.45,
-				CanCollide = false,
-				CanQuery = false,
-				CanTouch = false,
-				Parent = run.Arena.EnemyFolder,
-			})
-			enemy.SlamCircle = circle
-			setEnemyColor(enemy, true)
+			table.insert(run.Events, { "SlamStart", enemy.Id, def.SlamRadius, def.SlamWindup })
 			return
 		end
 		if distance <= reach then
-			enemy.State = "WindUp"
+			enemy.State = "WindUp" -- le client le fait devenir rouge et armer son coup
 			enemy.StateUntil = now + def.WindUp
-			setEnemyColor(enemy, true) -- avertissement : il va frapper !
 		elseif distance > 0.1 then
 			local step = math.min(def.Speed * TICK, distance - reach * 0.8)
 			if step > 0 then
 				enemy.Position += toPlayer.Unit * step
 			end
-			enemy.Model:PivotTo(CFrame.lookAt(enemy.Position, enemy.Position + toPlayer.Unit))
 		end
 	elseif enemy.State == "WindUp" then
 		if now >= enemy.StateUntil then
-			setEnemyColor(enemy, false)
+			table.insert(run.Events, { "Attack", enemy.Id })
 			if distance <= reach + 1.5 then
 				damagePlayer(run, def.Damage)
 			end
@@ -527,11 +445,7 @@ local function updateEnemy(run: Run, enemy: Enemy, rootPosition: Vector3, now: n
 		end
 	elseif enemy.State == "Slam" then
 		if now >= enemy.StateUntil then
-			setEnemyColor(enemy, false)
-			if enemy.SlamCircle then
-				enemy.SlamCircle:Destroy()
-				enemy.SlamCircle = nil
-			end
+			table.insert(run.Events, { "SlamHit", enemy.Id, def.SlamRadius })
 			if distance <= def.SlamRadius then
 				damagePlayer(run, def.SlamDamage)
 			end
@@ -585,7 +499,11 @@ local function tickRun(run: Run, now: number)
 			nextWave(run)
 		end
 	end
-	if run.Dirty then
+	-- Réseau : instantané des ennemis (10/s) et état seulement s'il a changé (5/s max)
+	if next(run.Enemies) ~= nil or #run.Events > 0 then
+		sendSnapshot(run)
+	end
+	if run.Dirty and now - run.LastStateSent >= STATE_INTERVAL then
 		sendState(run)
 	end
 end
@@ -618,9 +536,10 @@ local function onAttack(player: Player)
 	end
 	local damage = math.floor(run.Damage * rng:NextNumber(0.9, 1.1) + 0.5)
 	target.HP -= damage
-	damagePopup(target.Body, damage)
-	target.HPFill.Size = UDim2.fromScale(math.clamp(target.HP / target.MaxHP, 0, 1), 1)
+	-- Le client joue l'impact (flash, recul, particules, son, nombre de dégâts)
+	table.insert(run.Events, { "Hit", target.Id, damage })
 	if target.HP <= 0 then
+		table.insert(run.Events, { "Death", target.Id })
 		XPService:AddXP(player, target.Def.XP)
 		removeEnemy(run, target)
 	end
@@ -694,6 +613,8 @@ local function onDungeonAction(player: Player, action: any, dungeonId: any): (bo
 		State = "Fighting",
 		StartedAt = now,
 		Dirty = true,
+		LastStateSent = 0,
+		Events = {},
 		BossName = nil,
 	}
 	run.HP = run.MaxHP
@@ -703,6 +624,7 @@ local function onDungeonAction(player: Player, action: any, dungeonId: any): (bo
 		wall.Color = def.WallColor
 	end
 	runs[player] = run
+	MovementService:Dismount(player) -- on descend de cheval en passant le portail
 	player:SetAttribute("InDungeon", dungeonId)
 
 	pcall(function()

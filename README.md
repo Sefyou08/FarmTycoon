@@ -60,3 +60,5 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 20. **Capture** : choisis 🎯 Sûr (100 % de réussite finale, un peu plus dur) ou ⚡ Rapide (un peu plus facile, moins sûr).
 21. **Portail rouge ⚔️ DONJONS** (à gauche du spawn) : vagues d'ennemis puis un boss. ⚔️ Attaque (clic / F), 💨 Esquive (Q) quand un ennemi devient rouge.
 22. **🐣 Couver** dans le sac : fais éclore les œufs gagnés au donjon pour obtenir des créatures.
+23. **🐴 Monture** : choisis ton cheval (enclos ou chevaux sauvages capturés), monte et descends avec le même bouton.
+24. **Chevaux sauvages** : un par zone d'expédition (Mousseval, Givrecrin, Sablecrin, Brasecrin), capturables ; 🐾 dans la collection pour le mettre en enclos.

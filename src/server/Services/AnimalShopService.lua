@@ -26,7 +26,7 @@ local standPosition: Vector3
 
 local function onBuyAnimal(player: Player, speciesId: any): (boolean, string, string?)
 	-- 1. Argument
-	if type(speciesId) ~= "string" or not Config.Animals[speciesId] then
+	if type(speciesId) ~= "string" or not Config.Animals[speciesId] or Config.Animals[speciesId].NotForSale then
 		return false, "Animal inconnu."
 	end
 	local species = Config.Animals[speciesId]
