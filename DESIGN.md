@@ -83,7 +83,7 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 4 | Bâtiments de transformation + vitesse de marche et sprint | ✅ fait |
 | 5 | Expéditions (portail, zones, créatures sauvages, capture) | ✅ fait |
 | 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | ✅ fait |
-| 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) + vitrine de prestige + rareté Divine | ⏳ en cours |
+| 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) + vitrine de prestige + rareté Divine | 🧪 codée, à tester |
 | 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | à faire |
 | 8 | Donjon (ennemis, boss, combat simple, récompenses rares) | à faire |
 | 9 | Monétisation (Game Passes, Developer Products, IDs factices) + personnalisation cosmétique | à faire |

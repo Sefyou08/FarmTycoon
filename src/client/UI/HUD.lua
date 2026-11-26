@@ -23,6 +23,7 @@ HUD.Screen = nil :: ScreenGui?
 
 local coinsLabel: TextLabel
 local rebirthsLabel: TextLabel
+local incomeLabel: TextLabel
 local leftColumn: Frame
 local coinsDisplayValue = Instance.new("NumberValue") -- valeur animée affichée
 
@@ -114,12 +115,24 @@ function HUD.Init(StateController)
 		coinsLabel.Text = Format.Number(value)
 	end)
 
+	-- Revenus des créatures exposées, sous les compteurs
+	incomeLabel = Theme.Label({
+		Name = "Income",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 60),
+		Size = UDim2.fromOffset(260, 22),
+		TextColor3 = Theme.Colors.Coins,
+		TextStrokeTransparency = 0.4,
+		Text = "",
+		Parent = screen,
+	})
+
 	-- Colonne de boutons à gauche
 	leftColumn = Instance.new("Frame")
 	leftColumn.Name = "LeftButtons"
 	leftColumn.AnchorPoint = Vector2.new(0, 0.5)
 	leftColumn.Position = UDim2.new(0, 12, 0.5, 0)
-	leftColumn.Size = UDim2.fromOffset(150, 300)
+	leftColumn.Size = UDim2.fromOffset(150, 440)
 	leftColumn.BackgroundTransparency = 1
 	leftColumn.Parent = screen
 
@@ -144,6 +157,10 @@ function HUD.Init(StateController)
 			setCoins(value)
 		elseif key == "Rebirths" then
 			setRebirths(value)
+		end
+		if key == "*" or key == "DisplayIncome" then
+			local income = StateController.Get("DisplayIncome") or 0
+			incomeLabel.Text = if income > 0 then ("🏛️ +%s Coins/s"):format(Format.Number(income)) else ""
 		end
 	end)
 end

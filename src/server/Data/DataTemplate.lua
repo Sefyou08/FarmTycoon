@@ -53,7 +53,11 @@ return {
 	Creatures = {},
 	CreatureIndex = {}, -- créatures déjà découvertes : { [creatureId] = true } (Index, phase 6)
 	UnlockedZones = { Forest = true }, -- zones d'expédition débloquées
-	Displayed = {}, -- (phase 6) créatures exposées sur les socles
+	-- Socles d'exposition : { [pedestalId] = { X, Z, Rot, Placed, Creature = idCréature | nil } }
+	Pedestals = {},
+	ShowcasePicks = {}, -- créatures épinglées dans la vitrine (liste d'id, max Config.Showcase.Slots)
+	IndexRewards = {}, -- récompenses d'Index déjà réclamées : { [zoneId] = true }
+	DisplayLastTick = 0, -- os.time() du dernier versement des socles (revenus hors ligne)
 
 	Stats = {
 		TotalEarned = 0, -- total de coins gagnés depuis toujours

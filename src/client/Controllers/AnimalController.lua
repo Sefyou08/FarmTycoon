@@ -7,7 +7,8 @@
 	    se promènent au hasard autour de leur point d'origine (attributs
 	    WanderCenter / WanderRadius posés par le serveur ; arrêt si "Frozen") ;
 	  • les parts taguées "RainbowPart" changent de couleur en continu
-	    (variantes Arc-en-ciel et Mythique).
+	    (variantes Arc-en-ciel et Mythique) ;
+	  • les modèles tagués "DisplaySpin" (socles, vitrine) tournent doucement sur eux-mêmes.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -18,6 +19,8 @@ local AnimalController = {}
 
 local ANIMAL_TAG = "FarmAnimal"
 local RAINBOW_TAG = "RainbowPart"
+local SPIN_TAG = "DisplaySpin" -- créatures exposées sur un socle / dans la vitrine
+local SPIN_SPEED = 0.6 -- radians par seconde
 local WALK_SPEED = 3 -- studs par seconde
 
 -- Jeton par modèle : si le modèle sort puis revient (streaming), l'ancienne boucle s'arrête
@@ -87,6 +90,15 @@ function AnimalController.Init()
 	end)
 	CollectionService:GetInstanceRemovedSignal(ANIMAL_TAG):Connect(function(model)
 		wandering[model] = nil
+	end)
+
+	-- Rotation lente des créatures exposées
+	RunService.RenderStepped:Connect(function(dt)
+		for _, model in CollectionService:GetTagged(SPIN_TAG) do
+			if model:IsA("Model") and model.PrimaryPart then
+				model:PivotTo(model:GetPivot() * CFrame.Angles(0, dt * SPIN_SPEED, 0))
+			end
+		end
 	end)
 
 	-- Couleurs arc-en-ciel animées

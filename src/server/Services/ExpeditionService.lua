@@ -19,7 +19,8 @@
 	  • Les créatures capturées vont dans data.Creatures (collection, Config.Expeditions.MaxCreatures).
 	    Première capture d'une espèce -> data.CreatureIndex (Index de la phase 6).
 	  • Vente d'une créature depuis la collection (SellCreature).
-	  • Annonces : Mythique = bannière à tout le serveur ; Secrète = chat + bannière.
+	  • Annonces (AnnouncementService) : Mythique = bannière serveur ; Secrète = chat +
+	    bannière ; Divine = tous les serveurs (MessagingService).
 ]]
 
 local HttpService = game:GetService("HttpService")
@@ -38,6 +39,7 @@ local DataService = require(script.Parent.DataService)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
+local AnnouncementService = require(script.Parent.AnnouncementService)
 
 local Exp = Config.Expeditions
 
@@ -441,10 +443,7 @@ local function announce(player: Player, creatureId: string, mutationId: string)
 		return
 	end
 	local text = ("🌟 %s a capturé %s [%s] !"):format(player.DisplayName, CreatureUtil.Label(creatureId, mutationId), rarity.DisplayName)
-	SyncService:NotifyAll(text, "Rare")
-	if rarity.Announce == "Chat" then
-		Remotes.Get("ChatAnnounce"):FireAllClients(text, rarity.Color:ToHex())
-	end
+	AnnouncementService:Announce(text, rarity.Color, rarity.Announce)
 end
 
 local function giveCreature(player: Player, creatureId: string, mutationId: string): boolean
@@ -616,10 +615,28 @@ local function onCaptureAction(player: Player, action: any, sessionId: any, clai
 	return { Result = "Miss", Hits = session.Hits, Misses = session.Misses }
 end
 
--- Surveille les sessions : délai dépassé ou joueur trop loin
+-- true si le personnage du joueur est dans les limites de la zone
+local function isInZone(player: Player, zoneId: string): boolean
+	local info = zones[zoneId]
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not info or not root or not root:IsA("BasePart") then
+		return false
+	end
+	local offset = root.Position - info.Def.Center
+	local half = info.Def.Size / 2 + 10
+	return math.abs(offset.X) <= half and math.abs(offset.Z) <= half
+end
+
+-- Surveille les sessions (délai dépassé, joueur trop loin) et les joueurs sortis d'une zone
+-- (bouton Ma ferme, visite d'une parcelle...)
 local function sessionLoop()
 	while true do
 		task.wait(0.5)
+		for player, zoneId in playerZone do
+			if not isInZone(player, zoneId) then
+				playerZone[player] = nil
+			end
+		end
 		local now = Workspace:GetServerTimeNow()
 		for player, session in sessions do
 			if now > session.Expires then
@@ -689,8 +706,10 @@ local function onExpeditionAction(player: Player, action: any, zoneId: any): (bo
 		if not data.UnlockedZones[zoneId] and def.UnlockPrice > 0 then
 			return false, "Débloque d'abord cette zone."
 		end
-		playerZone[player] = zoneId
+		-- Téléportation D'ABORD (elle attend le chargement de la zone), puis on note la zone :
+		-- sinon la vérification "est-il dans la zone ?" le retirerait pendant l'attente
 		teleportTo(player, zones[zoneId].ArrivalCFrame)
+		playerZone[player] = zoneId
 		return true, ("Bienvenue : %s %s ! Approche-toi d'une créature pour la capturer."):format(def.Icon, def.DisplayName)
 	end
 	return false, "Action inconnue."
@@ -706,6 +725,11 @@ local function onSellCreature(player: Player, creatureUid: any): (boolean, strin
 	local data = DataService:GetData(player)
 	if not data then
 		return false, "Données pas encore chargées."
+	end
+	for _, pedestal in data.Pedestals do
+		if pedestal.Creature == creatureUid then
+			return false, "Cette créature est exposée : retire-la d'abord de son socle."
+		end
 	end
 	for index, entry in data.Creatures do
 		if entry.Id == creatureUid then

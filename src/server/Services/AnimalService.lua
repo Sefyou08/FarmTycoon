@@ -308,6 +308,11 @@ local function buildAnimalModel(speciesId: string, variantId: string, groundCFra
 	return model
 end
 
+-- Utilisé par la vitrine de prestige (DisplayService) : même modèle, sans promenade
+function AnimalService:BuildAnimalModel(speciesId: string, variantId: string, groundCFrame: CFrame): Model
+	return buildAnimalModel(speciesId, variantId, groundCFrame)
+end
+
 --------------------------------------------------------------------------
 -- Visuels des enclos
 --------------------------------------------------------------------------

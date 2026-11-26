@@ -164,6 +164,7 @@ Config.Fertilizer = {
 Config.Variants = {
 	Normal = {
 		Order = 1,
+		Prestige = 1, -- points de prestige d'un animal de cette variante (vitrine)
 		DisplayName = "",
 		DisplayNameF = "",
 		Chance = 0,
@@ -173,6 +174,7 @@ Config.Variants = {
 	},
 	Gold = {
 		Order = 2,
+		Prestige = 5, -- points de prestige d'un animal de cette variante (vitrine)
 		DisplayName = "Doré",
 		DisplayNameF = "Dorée",
 		Chance = 0.05,
@@ -183,6 +185,7 @@ Config.Variants = {
 	},
 	Rainbow = {
 		Order = 3,
+		Prestige = 25, -- points de prestige d'un animal de cette variante (vitrine)
 		DisplayName = "Arc-en-ciel",
 		DisplayNameF = "Arc-en-ciel",
 		Chance = 0.015,
@@ -193,6 +196,7 @@ Config.Variants = {
 	},
 	Legendary = {
 		Order = 4,
+		Prestige = 100, -- points de prestige d'un animal de cette variante (vitrine)
 		DisplayName = "Légendaire",
 		DisplayNameF = "Légendaire",
 		Chance = 0.004,
@@ -204,6 +208,7 @@ Config.Variants = {
 	},
 	Mythic = {
 		Order = 5,
+		Prestige = 500, -- points de prestige d'un animal de cette variante (vitrine)
 		DisplayName = "Mythique",
 		DisplayNameF = "Mythique",
 		Chance = 0.001,
@@ -511,6 +516,7 @@ Config.BuildingSettings = {
 --   Size       : côté de la zone (studs)
 --   UnlockPrice: prix pour débloquer l'accès (0 = gratuit)
 --   ValueMultiplier : multiplie la valeur des créatures de la zone
+--   IncomeMultiplier: multiplie les Coins / seconde des créatures exposées de la zone
 --   Props      : décor simple ("Trees", "Rocks", "Cacti", "Lava")
 --------------------------------------------------------------------------
 Config.Expeditions = {
@@ -533,28 +539,28 @@ Config.Expeditions = {
 Config.Zones = {
 	Forest = {
 		DisplayName = "Forêt", Icon = "🌲", Order = 1, Feminine = true,
-		UnlockPrice = 0, ValueMultiplier = 1,
+		UnlockPrice = 0, ValueMultiplier = 1, IncomeMultiplier = 1,
 		Center = Vector3.new(-900, 0, 1400), Size = 320,
 		GroundColor = Color3.fromRGB(80, 150, 60), GroundMaterial = Enum.Material.Grass,
 		WallColor = Color3.fromRGB(60, 100, 50), Props = "Trees",
 	},
 	Mountain = {
 		DisplayName = "Montagne", Icon = "⛰️", Order = 2, Feminine = true,
-		UnlockPrice = 25000, ValueMultiplier = 4,
+		UnlockPrice = 25000, ValueMultiplier = 4, IncomeMultiplier = 3,
 		Center = Vector3.new(-300, 0, 1400), Size = 320,
 		GroundColor = Color3.fromRGB(150, 150, 160), GroundMaterial = Enum.Material.Slate,
 		WallColor = Color3.fromRGB(230, 235, 245), Props = "Rocks",
 	},
 	Desert = {
 		DisplayName = "Désert", Icon = "🏜️", Order = 3,
-		UnlockPrice = 100000, ValueMultiplier = 15,
+		UnlockPrice = 100000, ValueMultiplier = 15, IncomeMultiplier = 8,
 		Center = Vector3.new(300, 0, 1400), Size = 320,
 		GroundColor = Color3.fromRGB(235, 205, 140), GroundMaterial = Enum.Material.Sand,
 		WallColor = Color3.fromRGB(200, 150, 90), Props = "Cacti",
 	},
 	Volcano = {
 		DisplayName = "Volcan", Icon = "🌋", Order = 4,
-		UnlockPrice = 400000, ValueMultiplier = 50,
+		UnlockPrice = 400000, ValueMultiplier = 50, IncomeMultiplier = 20,
 		Center = Vector3.new(900, 0, 1400), Size = 320,
 		GroundColor = Color3.fromRGB(60, 45, 45), GroundMaterial = Enum.Material.Basalt,
 		WallColor = Color3.fromRGB(40, 30, 30), Props = "Lava",
@@ -567,38 +573,52 @@ Config.Zones = {
 --   BaseValue : valeur de base (x zone x mutation) ; sert à la vente et aux revenus (phase 6)
 --   Capture   : Hits = clics réussis nécessaires, Width = largeur de la zone verte (0-1),
 --               Speed = allers par seconde du curseur, Chance = tirage final après le mini-jeu
---   Announce  : "Server" = bannière à tout le serveur, "Chat" = chat + bannière
+--   Income    : Coins / seconde quand la créature est exposée sur un socle (x zone x mutation)
+--   Prestige  : points de prestige (vitrine, meilleure prise, classement)
+--   Announce  : "Server" = bannière, "Chat" = chat + bannière, "Global" = TOUS les serveurs
 --------------------------------------------------------------------------
 Config.CreatureRarities = {
 	Common = {
 		DisplayName = "Commune", Order = 1, Color = Color3.fromRGB(200, 200, 200),
 		Weight = 60, BaseValue = 100,
+		Income = 1, Prestige = 1,
 		Capture = { Hits = 1, Width = 0.30, Speed = 0.8, Chance = 1.0 },
 	},
 	Rare = {
 		DisplayName = "Rare", Order = 2, Color = Color3.fromRGB(70, 150, 255),
 		Weight = 25, BaseValue = 400,
+		Income = 4, Prestige = 5,
 		Capture = { Hits = 2, Width = 0.24, Speed = 1.0, Chance = 0.9 },
 	},
 	Epic = {
 		DisplayName = "Épique", Order = 3, Color = Color3.fromRGB(170, 80, 240),
 		Weight = 10, BaseValue = 1500,
+		Income = 15, Prestige = 25,
 		Capture = { Hits = 2, Width = 0.18, Speed = 1.25, Chance = 0.75 },
 	},
 	Legendary = {
 		DisplayName = "Légendaire", Order = 4, Color = Color3.fromRGB(255, 180, 30),
 		Weight = 4, BaseValue = 6000,
+		Income = 60, Prestige = 100,
 		Capture = { Hits = 3, Width = 0.15, Speed = 1.5, Chance = 0.55 },
 	},
 	Mythic = {
 		DisplayName = "Mythique", Order = 5, Color = Color3.fromRGB(255, 70, 120),
 		Weight = 0.9, BaseValue = 25000, Announce = "Server",
+		Income = 250, Prestige = 500,
 		Capture = { Hits = 3, Width = 0.12, Speed = 1.8, Chance = 0.4 },
 	},
 	Secret = {
 		DisplayName = "Secrète", Order = 6, Color = Color3.fromRGB(20, 255, 200),
 		Weight = 0.1, BaseValue = 120000, Announce = "Chat",
+		Income = 1200, Prestige = 2500,
 		Capture = { Hits = 4, Width = 0.10, Speed = 2.1, Chance = 0.3 },
+	},
+	Divine = {
+		DisplayName = "Divine", Order = 7, Color = Color3.fromRGB(255, 235, 120),
+		Weight = 0.001, BaseValue = 1500000, Announce = "Global", Divine = true,
+		Income = 10000, Prestige = 25000,
+		Capture = { Hits = 5, Width = 0.08, Speed = 2.4, Chance = 0.25 },
 	},
 }
 
@@ -662,6 +682,43 @@ Config.Creatures = {
 	Pyrodrake = creature("Volcano", "Legendary", 5, "Pyrodrake", "Block", 3.4, rgb(170, 30, 30), rgb(255, 150, 30), { "Wings", "Horns", "Tail", "Legs" }),
 	Volcanosaure = creature("Volcano", "Mythic", 6, "Volcanosaure", "Block", 4, rgb(50, 35, 35), rgb(255, 80, 20), { "Spikes", "Horns", "Legs", "Glow" }),
 	CoeurDeLave = creature("Volcano", "Secret", 7, "Cœur-de-Lave", "Ball", 2.6, rgb(255, 60, 20), rgb(255, 240, 120), { "Spikes", "Glow" }),
+
+	-- ✨ Divines (une par zone, bonus de l'Index)
+	Sylvanthe = creature("Forest", "Divine", 8, "Sylvanthe", "Block", 3.4, rgb(200, 255, 190), rgb(255, 240, 140), { "Horns", "Legs", "Wings", "Leaf", "Glow" }, true),
+	Aurorea = creature("Mountain", "Divine", 8, "Auroréal", "Ball", 3, rgb(220, 240, 255), rgb(180, 140, 255), { "Wings", "Tail", "Glow" }),
+	Solarion = creature("Desert", "Divine", 8, "Solarion", "Block", 3.4, rgb(255, 215, 90), rgb(255, 255, 200), { "Ears", "Wings", "Tail", "Legs", "Glow" }),
+	Ignaros = creature("Volcano", "Divine", 8, "Ignaros", "Block", 3.8, rgb(30, 20, 20), rgb(255, 200, 60), { "Wings", "Horns", "Tail", "Legs", "Spikes", "Glow" }),
+}
+
+--------------------------------------------------------------------------
+-- EXPOSITION : socles, vitrine de prestige, Index, classement (phase 6)
+--------------------------------------------------------------------------
+Config.Display = {
+	-- Socles placés avec le mode construction ; 1 créature exposée par socle
+	PedestalPrices = { 500, 2000, 6000, 15000, 40000, 100000, 250000, 500000, 1000000, 2000000 },
+	MaxPedestalsByLevel = { 4, 6, 8, 10 },
+	PedestalFootprint = Vector2.new(7, 7),
+	IncomeInterval = 5, -- les Coins des socles sont versés toutes les 5 s
+	MaxOfflineSeconds = 8 * 3600, -- revenus hors ligne plafonnés à 8 h
+}
+
+Config.Showcase = {
+	Slots = 5, -- socles de la vitrine devant l'entrée de chaque parcelle
+	Spacing = 7, -- écart entre deux socles (studs)
+	DistanceFromEntrance = 10, -- distance entre l'entrée de la parcelle et la vitrine (côté allée)
+	RefreshInterval = 3, -- secondes entre deux vérifications du contenu de la vitrine
+}
+
+Config.Index = {
+	-- Récompense (Coins) quand toutes les créatures d'une zone sont découvertes (hors Divines)
+	ZoneRewards = { Forest = 5000, Mountain = 30000, Desert = 150000, Volcano = 600000 },
+}
+
+Config.Leaderboard = {
+	StoreName = "FarmTycoon_CollectionScore_v1", -- OrderedDataStore (score = prestige total)
+	UpdateInterval = 120, -- secondes entre deux mises à jour du classement
+	Size = 10, -- nombre de joueurs affichés
+	BoardPosition = Vector3.new(60, 0, 0), -- grand panneau près du spawn
 }
 
 --------------------------------------------------------------------------

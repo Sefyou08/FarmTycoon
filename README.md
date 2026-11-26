@@ -28,8 +28,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - [x] Phase 3 : animaux de ferme, enclos, variantes, agrandissement de parcelle
 - [x] Phase 4 : bâtiments de transformation, vitesse de marche et sprint
 - [x] Phase 5 : expéditions, créatures, capture
-- [ ] Phase 5b : mode construction + champs (à tester)
-- [ ] Phase 6 : collection et exposition
+- [x] Phase 5b : mode construction + champs
+- [ ] Phase 6 : collection, exposition, vitrine, Index, classement (à tester)
 - [ ] Phase 7 : progression, ressources rares, consommables, aides PNJ
 - [ ] Phase 8 : donjon
 - [ ] Phase 9 : monétisation
@@ -51,3 +51,5 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 11. Bouton bleu à l'entrée de ta parcelle : **agrandir** la parcelle.
 12. **Maj** pour courir.
 13. **Portail violet** derrière le spawn : expéditions et capture de créatures (bouton **📖 Créatures**).
+14. **Socles d'exposition** (🔨 Construire) : expose tes créatures (📖 Créatures → 🏛️ Exposer) pour gagner des Coins/seconde, même hors ligne. ⭐ épingle une créature dans la **vitrine** devant ta parcelle.
+15. **📚 Index** : complète une zone pour réclamer sa récompense. **🏡 Visiter** : va voir la ferme des autres joueurs. Panneau **🏆** près du spawn : classement des collections.

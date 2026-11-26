@@ -152,6 +152,30 @@ function CreatureBuilder.Build(creatureId: string, mutationId: string, groundCFr
 		particles.Parent = body
 	end
 
+	-- Divine : auréole dorée au-dessus de la tête, lumière intense, pluie d'étincelles
+	if CreatureUtil.GetRarity(def.Rarity).Divine then
+		local haloRadius = s * 0.45
+		local haloCenter = CFrame.new(0, top + s * 0.5, front * 0.2)
+		for i = 1, 12 do
+			local angle = i / 12 * math.pi * 2
+			part("Halo", Enum.PartType.Block, Vector3.new(s * 0.26, s * 0.07, s * 0.1), haloCenter * CFrame.new(math.cos(angle) * haloRadius, 0, math.sin(angle) * haloRadius) * CFrame.Angles(0, -angle, 0), Color3.fromRGB(255, 225, 90), true).Material = Enum.Material.Neon
+		end
+		local glow = Instance.new("PointLight")
+		glow.Color = Color3.fromRGB(255, 235, 150)
+		glow.Range = 24
+		glow.Brightness = 3
+		glow.Parent = body
+		local sparkles = Instance.new("ParticleEmitter")
+		sparkles.Color = ColorSequence.new(Color3.fromRGB(255, 240, 160), Color3.fromRGB(255, 255, 255))
+		sparkles.LightEmission = 1
+		sparkles.Rate = 25
+		sparkles.Lifetime = NumberRange.new(1.2, 2)
+		sparkles.Speed = NumberRange.new(1, 3)
+		sparkles.SpreadAngle = Vector2.new(180, 180)
+		sparkles.Size = NumberSequence.new(0.5, 0)
+		sparkles.Parent = body
+	end
+
 	-- Géante : on agrandit tout le modèle autour de son pivot (au sol)
 	if mutation.Scale and mutation.Scale ~= 1 then
 		model.WorldPivot = groundCFrame

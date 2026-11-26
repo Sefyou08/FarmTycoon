@@ -268,6 +268,7 @@ local function buildPlot(id: number, folder: Folder): Plot
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.TextStrokeTransparency = 0.3
 	label.Text = PlotConfig.FreeLabel
+	label.RichText = true -- 2e ligne : meilleure prise du joueur (DisplayService)
 	label.Parent = billboard
 
 	-- Point d'apparition (invisible), juste après l'entrée, tourné vers l'intérieur
@@ -416,6 +417,19 @@ end
 -- Attribution / libération
 --------------------------------------------------------------------------
 
+-- Panneau de la parcelle : "Ferme de X" + une 2e ligne optionnelle (ex. meilleure prise)
+function PlotService:SetSignSubtitle(plot: Plot, subtitle: string?)
+	if not plot.Owner then
+		plot.OwnerLabel.Text = PlotConfig.FreeLabel
+		return
+	end
+	local title = PlotConfig.OwnerLabelFormat:format(plot.Owner.DisplayName)
+	local text = if subtitle then ('%s\n<font size="20">%s</font>'):format(title, subtitle) else title
+	if plot.OwnerLabel.Text ~= text then
+		plot.OwnerLabel.Text = text
+	end
+end
+
 function PlotService:GetPlot(player: Player): Plot?
 	return plotByPlayer[player]
 end
@@ -461,7 +475,7 @@ local function assignPlot(player: Player)
 		if plot.Owner == nil then
 			plot.Owner = player
 			plot.Model:SetAttribute("OwnerUserId", player.UserId)
-			plot.OwnerLabel.Text = PlotConfig.OwnerLabelFormat:format(player.DisplayName)
+			PlotService:SetSignSubtitle(plot, nil)
 			plotByPlayer[player] = plot
 			player:SetAttribute("PlotId", plot.Id)
 			print(("[PlotService] Parcelle %d attribuée à %s"):format(plot.Id, player.Name))
@@ -545,6 +559,28 @@ function PlotService:Start()
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayerAdded, player)
 	end
+
+	-- Visite de la parcelle d'un autre joueur (bouton 🏡 Visiter)
+	Remotes.Get("RequestVisit").OnServerEvent:Connect(function(player: Player, userId: any)
+		if not RemoteGuard.IsValidNumber(userId, 1, math.huge, true) then
+			return
+		end
+		if not RemoteGuard.CheckCooldown(player, "Visit", 3) then
+			SyncService:Notify(player, "Patiente un peu avant de te téléporter.", "Error")
+			return
+		end
+		local target = Players:GetPlayerByUserId(userId)
+		local plot = target and plotByPlayer[target]
+		local character = player.Character
+		if not plot or not character or not character.PrimaryPart then
+			SyncService:Notify(player, "Ce joueur n'a pas de parcelle.", "Error")
+			return
+		end
+		character:PivotTo(plot.SpawnCFrame)
+		if target ~= player then
+			SyncService:Notify(player, ("🏡 Bienvenue chez %s ! (🏠 Ma ferme pour rentrer)"):format((target :: Player).DisplayName), "Info")
+		end
+	end)
 
 	-- Bouton "Ma ferme" du client : cooldown vérifié côté serveur
 	Remotes.Get("RequestTeleportHome").OnServerEvent:Connect(function(player: Player)

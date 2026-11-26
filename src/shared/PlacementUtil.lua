@@ -8,7 +8,7 @@
 	Coordonnées LOCALES de parcelle :
 	  X = gauche/droite depuis le milieu de l'entrée, Z = profondeur (vers l'intérieur).
 	  Rot = 0, 1, 2 ou 3 quarts de tour.
-	Un élément placé = { Type = "Field" | "Pen" | "Building", Id, Kind, X, Z, Rot }
+	Un élément placé = { Type = "Field" | "Pen" | "Building" | "Pedestal", Id, Kind, X, Z, Rot }
 	(Kind = id du bâtiment pour "Building").
 ]]
 
@@ -18,7 +18,7 @@ local PlacementUtil = {}
 
 local Build = Config.Build
 
-PlacementUtil.Types = { "Field", "Pen", "Building" }
+PlacementUtil.Types = { "Field", "Pen", "Building", "Pedestal" }
 
 -- Emprise (largeur X, profondeur Z) à la rotation 0
 function PlacementUtil.Footprint(placeType: string, kind: string?): (number, number)
@@ -26,6 +26,8 @@ function PlacementUtil.Footprint(placeType: string, kind: string?): (number, num
 		return Config.Farm.FieldFootprint.X, Config.Farm.FieldFootprint.Y
 	elseif placeType == "Pen" then
 		return Config.Pens.Footprint.X, Config.Pens.Footprint.Y
+	elseif placeType == "Pedestal" then
+		return Config.Display.PedestalFootprint.X, Config.Display.PedestalFootprint.Y
 	elseif placeType == "Building" then
 		local def = kind and Config.Buildings[kind]
 		if def then
@@ -83,6 +85,7 @@ function PlacementUtil.Collect(data: { [string]: any }): { { [string]: any } }
 	add("Field", data.Fields)
 	add("Pen", data.Pens)
 	add("Building", data.Buildings)
+	add("Pedestal", data.Pedestals)
 	return list
 end
 
@@ -125,6 +128,8 @@ function PlacementUtil.Label(placeType: string, kind: string?): string
 		return "🌱 Champ"
 	elseif placeType == "Pen" then
 		return "🐾 Enclos"
+	elseif placeType == "Pedestal" then
+		return "🏛️ Socle d'exposition"
 	elseif placeType == "Building" and kind and Config.Buildings[kind] then
 		local def = Config.Buildings[kind]
 		return def.Icon .. " " .. def.DisplayName

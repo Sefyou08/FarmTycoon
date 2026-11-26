@@ -83,7 +83,19 @@ local function clientData(): { [string]: any }
 		Fields = StateController.Get("Fields") or {},
 		Pens = StateController.Get("Pens") or {},
 		Buildings = StateController.Get("Buildings") or {},
+		Pedestals = StateController.Get("Pedestals") or {},
 	}
+end
+
+local function recordsOf(data: { [string]: any }, placeType: string): { [string]: any }
+	if placeType == "Field" then
+		return data.Fields
+	elseif placeType == "Pen" then
+		return data.Pens
+	elseif placeType == "Pedestal" then
+		return data.Pedestals
+	end
+	return data.Buildings
 end
 
 local function count(tbl: { [any]: any }): number
@@ -254,9 +266,7 @@ end
 
 -- Prend un élément existant (posé ou rangé) pour le déplacer / le replacer
 local function pickExisting(placeType: string, id: string)
-	local data = clientData()
-	local records = if placeType == "Field" then data.Fields elseif placeType == "Pen" then data.Pens else data.Buildings
-	local record = records[id]
+	local record = recordsOf(clientData(), placeType)[id]
 	if not record then
 		return
 	end
@@ -365,6 +375,18 @@ local function rebuildMenu()
 		addRow(nextOrder(), "🐾 Enclos", if penPrice then "Agrandis ta parcelle" else "Maximum atteint")
 	end
 
+	-- Socles d'exposition
+	local pedestals = count(data.Pedestals)
+	local pedestalPrice = Config.Display.PedestalPrices[pedestals + 1]
+	local maxPedestals = Config.Display.MaxPedestalsByLevel[level]
+	if pedestalPrice and pedestals < maxPedestals then
+		addRow(nextOrder(), "🏛️ Socle d'exposition", ("%d / %d socles"):format(pedestals, maxPedestals), "💰" .. Format.Number(pedestalPrice), gold, function()
+			startHolding({ Action = "Buy", Type = "Pedestal" })
+		end)
+	else
+		addRow(nextOrder(), "🏛️ Socle d'exposition", if pedestalPrice then "Agrandis ta parcelle" else "Maximum atteint")
+	end
+
 	-- Bâtiments, dans l'ordre de déblocage
 	local buildingIds = {}
 	for id in Config.Buildings do
@@ -392,8 +414,7 @@ local function rebuildMenu()
 	-- Éléments rangés
 	local stored = {}
 	for _, placeType in PlacementUtil.Types do
-		local records = if placeType == "Field" then data.Fields elseif placeType == "Pen" then data.Pens else data.Buildings
-		for id, record in records do
+		for id, record in recordsOf(data, placeType) do
 			if type(record) == "table" and record.Placed == false then
 				table.insert(stored, { Type = placeType, Id = id })
 			end
@@ -572,7 +593,7 @@ function BuildMode.Init(screen: ScreenGui, HUD, stateController, notifyFn: (stri
 		if not active then
 			return
 		end
-		if key == "*" or key == "Fields" or key == "Pens" or key == "Buildings" or key == "PlotLevel" then
+		if key == "*" or key == "Fields" or key == "Pens" or key == "Buildings" or key == "Pedestals" or key == "PlotLevel" then
 			rebuildMenu()
 			updateGhost()
 		end

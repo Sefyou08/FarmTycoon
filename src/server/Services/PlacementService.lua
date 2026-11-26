@@ -2,7 +2,7 @@
 	PlacementService.lua
 	====================
 	Mode construction : acheter + placer, déplacer, ranger et replacer les
-	éléments de la parcelle (champs, enclos, bâtiments ; socles en phase 6).
+	éléments de la parcelle (champs, enclos, bâtiments, socles d'exposition).
 
 	Le client envoie ses demandes par la RemoteFunction "BuildAction" :
 	  ("Buy",   { Type, Kind?, X, Z, Rot })  -> achète un nouvel élément et le pose
@@ -32,6 +32,7 @@ local PlotService = require(script.Parent.PlotService)
 local FarmService = require(script.Parent.FarmService)
 local AnimalService = require(script.Parent.AnimalService)
 local BuildingService = require(script.Parent.BuildingService)
+local DisplayService = require(script.Parent.DisplayService)
 
 local PlacementService = {}
 
@@ -45,6 +46,8 @@ local function recordsFor(data: { [string]: any }, placeType: string): { [string
 		return data.Pens
 	elseif placeType == "Building" then
 		return data.Buildings
+	elseif placeType == "Pedestal" then
+		return data.Pedestals
 	end
 	return nil
 end
@@ -56,6 +59,8 @@ local function refresh(player: Player, placeType: string, id: string)
 		AnimalService:RefreshPen(player, id)
 	elseif placeType == "Building" then
 		BuildingService:Refresh(player, id)
+	elseif placeType == "Pedestal" then
+		DisplayService:RefreshPedestal(player, id)
 	end
 end
 
@@ -93,6 +98,8 @@ local function actionBuy(player: Player, data: { [string]: any }, payload: { [st
 		price, reason = AnimalService:CanBuyPen(player)
 	elseif placeType == "Building" then
 		price, reason = BuildingService:CanBuy(player, kind)
+	elseif placeType == "Pedestal" then
+		price, reason = DisplayService:CanBuyPedestal(player)
 	else
 		return false, "Type inconnu."
 	end
@@ -122,6 +129,9 @@ local function actionBuy(player: Player, data: { [string]: any }, payload: { [st
 	elseif placeType == "Pen" then
 		AnimalService:CreatePen(player, x, z, rot)
 		return true, "🐾 Enclos placé !"
+	elseif placeType == "Pedestal" then
+		DisplayService:CreatePedestal(player, x, z, rot)
+		return true, "🏛️ Socle placé ! Expose une créature depuis 📖 Créatures."
 	end
 	BuildingService:Create(player, kind, x, z, rot)
 	return true, PlacementUtil.Label("Building", kind) .. " placé(e) !"

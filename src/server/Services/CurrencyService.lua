@@ -56,7 +56,8 @@ function CurrencyService:CanAfford(player: Player, amount: number): boolean
 	return isValidAmount(amount) and self:GetCoins(player) >= amount
 end
 
-function CurrencyService:AddCoins(player: Player, amount: number, reason: string?): (boolean, number)
+-- silent = true : pas de ligne dans l'Output (versements fréquents, ex. socles toutes les 5 s)
+function CurrencyService:AddCoins(player: Player, amount: number, reason: string?, silent: boolean?): (boolean, number)
 	if not isValidAmount(amount) then
 		warn(("[CurrencyService] AddCoins refusé : montant invalide (%s) pour %s"):format(tostring(amount), player.Name))
 		return false, 0
@@ -75,7 +76,7 @@ function CurrencyService:AddCoins(player: Player, amount: number, reason: string
 	data.Stats.TotalEarned += finalAmount
 	self:Refresh(player)
 
-	if Config.Debug.Enabled then
+	if Config.Debug.Enabled and not silent then
 		print(("[CurrencyService] +%d coins pour %s (%s) -> total %d"):format(finalAmount, player.Name, reason or "?", data.Coins))
 	end
 	return true, finalAmount

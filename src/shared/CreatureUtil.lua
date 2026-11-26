@@ -84,6 +84,36 @@ function CreatureUtil.Label(creatureId: string, mutationId: string?): string
 	return def.DisplayName .. (if adjective ~= "" then " " .. adjective else "")
 end
 
+-- Coins / seconde d'une créature exposée = revenu de la rareté x zone x mutation
+function CreatureUtil.GetIncome(creatureId: string, mutationId: string?): number
+	local def = Config.Creatures[creatureId]
+	if not def then
+		return 0
+	end
+	local zone = Config.Zones[def.Zone]
+	local rarity = CreatureUtil.GetRarity(def.Rarity)
+	return rarity.Income * (zone and zone.IncomeMultiplier or 1) * CreatureUtil.GetMutation(mutationId).ValueMultiplier
+end
+
+-- Points de prestige d'une créature (vitrine, meilleure prise, classement)
+function CreatureUtil.GetPrestige(creatureId: string, mutationId: string?): number
+	local def = Config.Creatures[creatureId]
+	if not def then
+		return 0
+	end
+	return math.floor(CreatureUtil.GetRarity(def.Rarity).Prestige * CreatureUtil.GetMutation(mutationId).ValueMultiplier)
+end
+
+-- Points de prestige d'un animal de ferme (selon sa variante, départagé par le prix de l'espèce)
+function CreatureUtil.GetAnimalPrestige(speciesId: string, variantId: string): number
+	local species = Config.Animals[speciesId]
+	local variant = Config.Variants[variantId] or Config.Variants.Normal
+	if not species then
+		return 0
+	end
+	return variant.Prestige + species.Price / 1e6
+end
+
 -- Position (0 à 1) du curseur du mini-jeu de capture à l'instant t (temps serveur).
 -- Aller-retour régulier : le serveur et le client calculent EXACTEMENT la même valeur,
 -- ce qui permet au serveur de vérifier chaque clic.

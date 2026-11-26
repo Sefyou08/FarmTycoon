@@ -26,6 +26,8 @@ local PortalUI = require(UI:WaitForChild("PortalUI"))
 local CaptureUI = require(UI:WaitForChild("CaptureUI"))
 local CollectionUI = require(UI:WaitForChild("CollectionUI"))
 local BuildMode = require(UI:WaitForChild("BuildMode"))
+local IndexUI = require(UI:WaitForChild("IndexUI"))
+local VisitUI = require(UI:WaitForChild("VisitUI"))
 
 Notifications.Init()
 HUD.Init(StateController)
@@ -38,6 +40,8 @@ PortalUI.Init(HUD.Screen, StateController, Notifications.Show)
 CaptureUI.Init(HUD.Screen, Notifications.Show)
 CollectionUI.Init(HUD.Screen, HUD, StateController, Notifications.Show)
 BuildMode.Init(HUD.Screen, HUD, StateController, Notifications.Show)
+IndexUI.Init(HUD.Screen, HUD, StateController, Notifications.Show)
+VisitUI.Init(HUD.Screen, HUD)
 
 PromptController.Init()
 PlantTimers.Init()
@@ -45,4 +49,4 @@ AnimalController.Init()
 MovementController.Init(HUD)
 StateController.Init() -- en dernier : l'UI écoute déjà Changed quand l'état arrive
 
-print("[FarmTycoon] Client démarré ✅ (Phase 5b)")
+print("[FarmTycoon] Client démarré ✅ (Phase 6)")

@@ -25,7 +25,8 @@ Remotes.EventNames = {
 	"SelectSeed", -- Client -> Serveur : choisit la graine à planter (seedId)
 	"CaptureStart", -- Serveur -> Client : début du mini-jeu de capture (paramètres de la session)
 	"CaptureEnded", -- Serveur -> Client : fin de capture imposée par le serveur (délai, éloignement...)
-	"ChatAnnounce", -- Serveur -> Clients : message système dans le chat (créature Secrète)
+	"ChatAnnounce", -- Serveur -> Clients : message système dans le chat (créature Secrète / Divine)
+	"RequestVisit", -- Client -> Serveur : (userId) se téléporter sur la parcelle d'un autre joueur
 }
 
 -- RemoteFunctions (requête + réponse)
@@ -38,6 +39,8 @@ Remotes.FunctionNames = {
 	"CaptureAction", -- Client -> Serveur : ("Hit", sessionId, tempsServeur) | ("Cancel", sessionId) -> résultat
 	"SellCreature", -- Client -> Serveur : (idCréature) -> (ok, message)
 	"BuildAction", -- Client -> Serveur : ("Buy" | "Place" | "Store", { Type, Id/Kind, X, Z, Rot }) -> (ok, message)
+	"DisplayAction", -- Client -> Serveur : ("Assign" | "Remove" | "Pin", idCréature) -> (ok, message)
+	"ClaimIndexReward", -- Client -> Serveur : (zoneId) -> (ok, message)
 }
 
 local folder: Folder? = nil
