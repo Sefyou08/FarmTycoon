@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
+local PatternBuilder = require(script.Parent.PatternBuilder)
 
 local MountBuilder = {}
 
@@ -130,6 +131,27 @@ function MountBuilder.Build(speciesId: string, variantId: string, skin: any?): (
 			collar.Material = Enum.Material.Neon
 		end
 		joint("CollarJoint", neck, collar, CFrame.new(0, 0, 0), CFrame.new())
+	end
+	-- Motif cosmétique sur le dessus de la selle (phase 10)
+	if skin and skin.Pattern then
+		-- (hors Workspace, les Motor6D ne placent pas encore les pièces : on place la selle à la main)
+		saddle.CFrame = bodyPart.CFrame * CFrame.new(0, body.Y / 2 + 0.1, 0.1)
+		local holder = Instance.new("Model")
+		holder.Name = "SaddlePattern"
+		holder.Parent = model
+		PatternBuilder.Apply(saddle, Enum.NormalId.Top, skin.Pattern, { Parent = holder, Spacing = 0.9, Size = 0.6, MaxCount = 8, Color = skin.PatternColor, Accent = skin.PatternAccent })
+		-- Le cheval bouge avec le joueur : les pièces du motif sont soudées à la selle
+		for _, d in holder:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.Anchored = false
+				d.Massless = true
+				d.CanCollide = false
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = saddle
+				weld.Part1 = d
+				weld.Parent = d
+			end
+		end
 	end
 	if skin and skin.Sparkles then
 		local sparkles = Instance.new("ParticleEmitter")

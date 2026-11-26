@@ -80,6 +80,7 @@ function AnimalShopService:Init()
 		ActionText = "Voir les animaux",
 		ObjectText = "Éleveur",
 		PromptDistance = 10,
+		Theme = "Animals", -- décor du stand (phase 10)
 	})
 	prompt:SetAttribute("OpenUI", "AnimalShop") -- le client ouvre la fenêtre
 end

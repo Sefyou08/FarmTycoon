@@ -75,6 +75,9 @@ local function describe(def: any): string
 	if def.Text then
 		table.insert(parts, def.Text)
 	end
+	if def.Pattern then
+		table.insert(parts, "motif " .. (Config.Art.PatternNames[def.Pattern] or def.Pattern))
+	end
 	return table.concat(parts, " • ")
 end
 

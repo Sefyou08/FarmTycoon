@@ -37,6 +37,7 @@ local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local PatternBuilder = require(script.Parent.Parent.Util.PatternBuilder)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -556,6 +557,25 @@ local function buildPenVisual(state: State, key: string)
 				Material = fenceMaterial,
 				Parent = folder,
 			})
+		end
+	end
+	-- Motif cosmétique : un panneau décoré entre les barres de chaque côté (phase 10)
+	if skin and skin.Pattern then
+		for _, side in {
+			{ Vector3.new(size, 0.9, 0.15), Vector3.new(0, 0.95, -half), Enum.NormalId.Front },
+			{ Vector3.new(size, 0.9, 0.15), Vector3.new(0, 0.95, half), Enum.NormalId.Back },
+			{ Vector3.new(0.15, 0.9, size), Vector3.new(-half, 0.95, 0), Enum.NormalId.Left },
+			{ Vector3.new(0.15, 0.9, size), Vector3.new(half, 0.95, 0), Enum.NormalId.Right },
+		} do
+			local panel = makePart({
+				Name = "Panel",
+				Size = side[1],
+				CFrame = center * CFrame.new(side[2]),
+				Color = fenceColor,
+				Material = fenceMaterial,
+				Parent = folder,
+			})
+			PatternBuilder.Apply(panel, side[3], skin.Pattern, { Parent = folder, Spacing = 2, Size = 0.8, MaxCount = 10, Color = skin.PatternColor, Accent = skin.PatternAccent })
 		end
 	end
 	for _, sx in { -1, 1 } do

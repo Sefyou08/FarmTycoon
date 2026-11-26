@@ -33,6 +33,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
+local BuildingBuilder = require(script.Parent.Parent.Util.BuildingBuilder)
 local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -52,8 +53,9 @@ local BuildingService = {}
 type Visual = {
 	Model: Model,
 	Label: TextLabel,
-	Smoke: ParticleEmitter,
 	Prompt: ProximityPrompt,
+	WorkFX: { Instance }, -- fumée, feu, gouttes de lait : allumés seulement en production
+	WorkShow: { BasePart }, -- pièces visibles seulement en production (feu, filet de lait)
 }
 
 type State = {
@@ -68,18 +70,6 @@ local states: { [Player]: State } = {}
 --------------------------------------------------------------------------
 -- Utilitaires
 --------------------------------------------------------------------------
-
-local function makePart(props: { [string]: any }): Part
-	local part = Instance.new("Part")
-	part.Anchored = true
-	part.TopSurface = Enum.SurfaceType.Smooth
-	part.BottomSurface = Enum.SurfaceType.Smooth
-	local anyPart: any = part
-	for key, value in props do
-		anyPart[key] = value
-	end
-	return part
-end
 
 local function makeBillboard(parent: Instance, size: Vector2, offset: Vector3, maxDistance: number): (BillboardGui, TextLabel)
 	local gui = Instance.new("BillboardGui")
@@ -228,7 +218,18 @@ local function updateVisual(state: State, buildingId: string)
 	if visual.Label.Text ~= text then
 		visual.Label.Text = text
 	end
-	visual.Smoke.Enabled = #building.Queue > 0
+	-- Animations UNIQUEMENT quand le bâtiment produit : le serveur allume fumée / feu / lait
+	-- et pose l'attribut Working ; les roues et l'aiguille sont animées par le client
+	local working = #building.Queue > 0
+	if visual.Model:GetAttribute("Working") ~= working then
+		visual.Model:SetAttribute("Working", working)
+		for _, fx in visual.WorkFX do
+			(fx :: any).Enabled = working
+		end
+		for _, part in visual.WorkShow do
+			part.Transparency = if working then 0 else 1
+		end
+	end
 end
 
 local function destroyVisual(state: State, buildingId: string)
@@ -253,66 +254,15 @@ local function buildVisual(state: State, buildingId: string)
 	local palette = CosmeticUtil.Equipped(state.Data, "BuildingPalette") or {}
 	local origin = base * CFrame.new(0, 0, 1)
 
-	local model = Instance.new("Model")
+	-- Modèle cartoon thématique (BuildingBuilder) ; seuls Walls et Door comptent pour le gameplay
+	local model, refs = BuildingBuilder.Build(buildingId, origin, palette)
 	model.Name = "Building_" .. buildingId
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	model:SetAttribute("PlaceType", "Building")
 	model:SetAttribute("PlaceId", buildingId)
-
-	local wallHeight = 7
-	local walls = makePart({
-		Name = "Walls",
-		Size = Vector3.new(def.Width, wallHeight, def.Depth),
-		CFrame = origin * CFrame.new(0, wallHeight / 2, 0),
-		Color = palette.Wall or def.WallColor,
-		Material = Enum.Material.SmoothPlastic,
-		Parent = model,
-	})
-	model.PrimaryPart = walls
-
-	-- Toit à deux pentes (2 WedgeParts)
-	for _, side in { -1, 1 } do
-		local roof = Instance.new("WedgePart")
-		roof.Anchored = true
-		roof.Size = Vector3.new(def.Width + 1, 3, def.Depth / 2 + 0.5)
-		-- Un WedgePart est haut côté +Z local et descend vers -Z : on tourne la pente "+Z"
-		-- de 180° pour que les deux pentes montent vers le faîte (au centre)
-		roof.CFrame = origin * CFrame.new(0, wallHeight + 1.5, side * (def.Depth / 4 + 0.25)) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0)
-		roof.Color = palette.Roof or def.RoofColor
-		roof.Material = Enum.Material.SmoothPlastic
-		roof.Parent = model
-	end
-
-	-- Cheminée avec fumée quand le bâtiment travaille
-	local chimney = makePart({
-		Name = "Chimney",
-		Size = Vector3.new(1.4, 4, 1.4),
-		CFrame = origin * CFrame.new(def.Width / 2 - 2.5, wallHeight + 2.5, def.Depth / 4),
-		Color = Color3.fromRGB(120, 90, 80),
-		Material = Enum.Material.Brick,
-		Parent = model,
-	})
-	local smoke = Instance.new("ParticleEmitter")
-	smoke.Color = ColorSequence.new(Color3.fromRGB(220, 220, 220))
-	smoke.Transparency = NumberSequence.new(0.3, 1)
-	smoke.Size = NumberSequence.new(0.8, 2.5)
-	smoke.Lifetime = NumberRange.new(2, 3)
-	smoke.Rate = 4
-	smoke.Speed = NumberRange.new(2, 3)
-	smoke.SpreadAngle = Vector2.new(10, 10)
-	smoke.EmissionDirection = Enum.NormalId.Top
-	smoke.Enabled = false
-	smoke.Parent = chimney
-
-	-- Porte côté entrée de la parcelle (-Z local = vers l'allée) : c'est là qu'est le prompt
-	local door = makePart({
-		Name = "Door",
-		Size = Vector3.new(3, 5, 0.3),
-		CFrame = origin * CFrame.new(0, 2.5, -def.Depth / 2 - 0.15),
-		Color = Color3.fromRGB(110, 70, 40),
-		Material = Enum.Material.Wood,
-		Parent = model,
-	})
+	model:SetAttribute("Working", false)
+	local walls, door = refs.Walls, refs.Door
+	local wallHeight = BuildingBuilder.WallHeight
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Ouvrir"
@@ -328,7 +278,7 @@ local function buildVisual(state: State, buildingId: string)
 	local _, label = makeBillboard(walls, Vector2.new(14, 3), Vector3.new(0, wallHeight / 2 + 5, 0), 120)
 
 	model.Parent = state.Plot.Model
-	state.Visuals[buildingId] = { Model = model, Label = label, Smoke = smoke, Prompt = prompt }
+	state.Visuals[buildingId] = { Model = model, Label = label, Prompt = prompt, WorkFX = refs.WorkFX, WorkShow = refs.WorkShow }
 	updateVisual(state, buildingId)
 end
 

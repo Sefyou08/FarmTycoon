@@ -68,6 +68,7 @@ function SellService:Init()
 		ActionText = "Tout vendre",
 		ObjectText = "Marchand",
 		PromptDistance = 10,
+		Theme = "Sell", -- décor du stand (phase 10)
 	})
 	prompt.Triggered:Connect(onSellTriggered)
 end

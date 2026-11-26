@@ -38,6 +38,7 @@ local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local FarmScenery = require(script.Parent.Parent.Util.FarmScenery)
+local PatternBuilder = require(script.Parent.Parent.Util.PatternBuilder)
 local DataService = require(script.Parent.DataService)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
@@ -204,6 +205,37 @@ local function applyLevel(plot: Plot, level: number)
 		end
 	end
 	plot.OwnerLabel.TextColor3 = if sign and sign.TextColor then sign.TextColor else Color3.new(1, 1, 1)
+
+	-- Motifs cosmétiques sur le sol et le panneau (phase 10), recréés à chaque changement
+	for _, name in { "FloorPattern", "SignPattern" } do
+		local old = plot.Model:FindFirstChild(name)
+		if old then
+			old:Destroy()
+		end
+	end
+	if floor and floor.Pattern then
+		local holder = Instance.new("Model")
+		holder.Name = "FloorPattern"
+		holder.Parent = plot.Model
+		local checker = floor.Pattern == "Checker"
+		PatternBuilder.Apply(plot.Base, Enum.NormalId.Top, floor.Pattern, {
+			Parent = holder,
+			Spacing = if checker then 8 else 13,
+			Size = 4,
+			MaxCount = if checker then 200 else 90,
+			Color = floor.PatternColor,
+			Accent = floor.PatternAccent,
+		})
+	end
+	local board = plot.Model:FindFirstChild("SignBoard")
+	if sign and sign.Pattern and board and board:IsA("BasePart") then
+		local holder = Instance.new("Model")
+		holder.Name = "SignPattern"
+		holder.Parent = plot.Model
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			PatternBuilder.Apply(board, face, sign.Pattern, { Parent = holder, Spacing = 2.6, Size = 1.6, MaxCount = 10, Color = sign.PatternColor, Accent = sign.PatternAccent })
+		end
+	end
 end
 
 local function buildPlot(id: number, folder: Folder): Plot

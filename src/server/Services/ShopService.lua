@@ -147,6 +147,7 @@ function ShopService:Init()
 		ActionText = "Ouvrir la boutique",
 		ObjectText = "Vendeur de graines",
 		PromptDistance = 10,
+		Theme = "Seeds", -- décor du stand (phase 10)
 	})
 	prompt:SetAttribute("OpenUI", "SeedShop") -- le client ouvre la fenêtre de boutique
 end

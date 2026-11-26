@@ -1325,7 +1325,55 @@ Config.Cosmetics = {
 	SaddleClassic = { Category = "MountSkin", Name = "Classique", Default = true, Unlock = { Kind = "Free" }, Saddle = rgb2(120, 50, 40) },
 	SaddleRoyal = { Category = "MountSkin", Name = "Selle royale", Unlock = { Kind = "Coins", Price = 80000 }, Saddle = rgb2(110, 40, 160), Harness = rgb2(255, 200, 60) },
 	SaddleGold = { Category = "MountSkin", Name = "Harnais doré", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Saddle = rgb2(255, 200, 50), Harness = rgb2(255, 240, 150), Neon = true },
-	SaddleStars = { Category = "MountSkin", Name = "Selle étoilée", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, Saddle = rgb2(30, 30, 70), Harness = rgb2(150, 220, 255), Neon = true, Sparkles = true },
+	SaddleStars = { Category = "MountSkin", Name = "Selle étoilée", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, Saddle = rgb2(30, 30, 70), Harness = rgb2(150, 220, 255), Neon = true, Sparkles = true, Pattern = "Stars" },
+
+	------------------------------------------------------------------
+	-- MOTIFS ET DÉCORATIONS (phase 10) : Pattern = Stars | Hearts | Diamonds | Pearls |
+	--   Flowers | Flames | Clouds | Checker | Stripes | Glitter | Unicorn | Mascot
+	--   (voir PatternBuilder ; une image Config.Art.Decals[Pattern] remplace le motif 3D)
+	--   PatternColor / PatternAccent : couleurs du motif (sinon couleurs par défaut)
+	------------------------------------------------------------------
+	-- Bâtiments
+	BuildStripes = { Category = "BuildingPalette", Name = "Rayures de marché", Unlock = { Kind = "Coins", Price = 75000 }, Wall = rgb2(255, 245, 230), Roof = rgb2(220, 60, 60), Pattern = "Stripes", PatternColor = rgb2(255, 255, 255), PatternAccent = rgb2(240, 90, 90) },
+	BuildFlowers = { Category = "BuildingPalette", Name = "Maison fleurie", Unlock = { Kind = "Level", Level = 14 }, Wall = rgb2(255, 250, 235), Roof = rgb2(120, 180, 90), Pattern = "Flowers" },
+	BuildStars = { Category = "BuildingPalette", Name = "Nuit étoilée+", Unlock = { Kind = "Level", Level = 22 }, Wall = rgb2(45, 50, 95), Roof = rgb2(25, 25, 55), Pattern = "Stars" },
+	BuildMascot = { Category = "BuildingPalette", Name = "Biscotte", Unlock = { Kind = "Level", Level = 5 }, Wall = rgb2(255, 240, 215), Roof = rgb2(70, 160, 90), Pattern = "Mascot" },
+	BuildFlames = { Category = "BuildingPalette", Name = "Forge ardente", Unlock = { Kind = "Index", Zone = "Volcano" }, Wall = rgb2(60, 40, 40), Roof = rgb2(30, 20, 20), Pattern = "Flames" },
+	BuildHearts = { Category = "BuildingPalette", Name = "Petits cœurs", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Wall = rgb2(255, 220, 235), Roof = rgb2(230, 80, 130), Pattern = "Hearts" },
+	BuildClouds = { Category = "BuildingPalette", Name = "Ciel de nuages", Unlock = { Kind = "Robux", Price = 75, ProductId = 0 }, Wall = rgb2(150, 200, 255), Roof = rgb2(255, 255, 255), Pattern = "Clouds" },
+	BuildUnicorn = { Category = "BuildingPalette", Name = "Licornes", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Wall = rgb2(240, 220, 255), Roof = rgb2(255, 150, 220), Pattern = "Unicorn" },
+	BuildDiamonds = { Category = "BuildingPalette", Name = "Palais de diamants", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, Wall = rgb2(230, 245, 255), Roof = rgb2(120, 200, 255), Pattern = "Diamonds" },
+	BuildGlitter = { Category = "BuildingPalette", Name = "Paillettes", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Wall = rgb2(255, 230, 250), Roof = rgb2(220, 120, 255), Pattern = "Glitter" },
+
+	-- Clôtures d'enclos (panneaux décorés entre les barres)
+	PenChecker = { Category = "PenSkin", Name = "Damier", Unlock = { Kind = "Coins", Price = 45000 }, Color = rgb2(245, 245, 245), Material = Enum.Material.SmoothPlastic, Pattern = "Checker" },
+	PenFlowers = { Category = "PenSkin", Name = "Fleurie", Unlock = { Kind = "Level", Level = 16 }, Color = rgb2(255, 250, 235), Material = Enum.Material.WoodPlanks, Pattern = "Flowers" },
+	PenMascot = { Category = "PenSkin", Name = "Biscotte", Unlock = { Kind = "Index", Zone = "Desert" }, Color = rgb2(255, 240, 215), Material = Enum.Material.WoodPlanks, Pattern = "Mascot" },
+	PenHearts = { Category = "PenSkin", Name = "Cœurs", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Color = rgb2(255, 200, 220), Material = Enum.Material.SmoothPlastic, Pattern = "Hearts" },
+	PenPearls = { Category = "PenSkin", Name = "Perles", Unlock = { Kind = "Robux", Price = 79, ProductId = 0 }, Color = rgb2(240, 230, 250), Material = Enum.Material.Marble, Pattern = "Pearls" },
+	PenFlames = { Category = "PenSkin", Name = "Flammes", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(40, 30, 30), Material = Enum.Material.Basalt, Pattern = "Flames" },
+
+	-- Sols de parcelle (motifs semés sur le sol)
+	FloorFlowers = { Category = "PlotFloor", Name = "Champ de fleurs", Unlock = { Kind = "Level", Level = 18 }, Color = rgb2(115, 185, 80), Material = Enum.Material.Grass, Pattern = "Flowers" },
+	FloorChecker = { Category = "PlotFloor", Name = "Damier", Unlock = { Kind = "Coins", Price = 90000 }, Color = rgb2(235, 235, 235), Material = Enum.Material.SmoothPlastic, Pattern = "Checker", PatternColor = rgb2(60, 60, 70) },
+	FloorStars = { Category = "PlotFloor", Name = "Ciel étoilé", Unlock = { Kind = "Level", Level = 28 }, Color = rgb2(35, 35, 80), Material = Enum.Material.SmoothPlastic, Pattern = "Stars" },
+	FloorClouds = { Category = "PlotFloor", Name = "Nuages", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(150, 205, 255), Material = Enum.Material.SmoothPlastic, Pattern = "Clouds" },
+	FloorUnicorn = { Category = "PlotFloor", Name = "Licornes", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, Color = rgb2(240, 220, 255), Material = Enum.Material.SmoothPlastic, Pattern = "Unicorn" },
+	FloorMascot = { Category = "PlotFloor", Name = "Biscotte", Unlock = { Kind = "Level", Level = 30 }, Color = rgb2(255, 235, 200), Material = Enum.Material.Sand, Pattern = "Mascot" },
+
+	-- Panneaux de parcelle
+	SignStars = { Category = "SignStyle", Name = "Étoiles", Unlock = { Kind = "Coins", Price = 20000 }, Color = rgb2(40, 40, 90), Material = Enum.Material.SmoothPlastic, TextColor = rgb2(255, 230, 120), Pattern = "Stars" },
+	SignMascot = { Category = "SignStyle", Name = "Biscotte", Unlock = { Kind = "Free" }, Color = rgb2(255, 240, 215), Material = Enum.Material.WoodPlanks, TextColor = rgb2(120, 70, 40), Pattern = "Mascot" },
+	SignFlames = { Category = "SignStyle", Name = "Flammes", Unlock = { Kind = "Level", Level = 18 }, Color = rgb2(50, 30, 30), Material = Enum.Material.Basalt, TextColor = rgb2(255, 200, 80), Pattern = "Flames" },
+	SignHearts = { Category = "SignStyle", Name = "Cœurs", Unlock = { Kind = "Robux", Price = 25, ProductId = 0 }, Color = rgb2(255, 210, 230), Material = Enum.Material.SmoothPlastic, TextColor = rgb2(200, 50, 110), Pattern = "Hearts" },
+	SignUnicorn = { Category = "SignStyle", Name = "Licorne", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Color = rgb2(240, 220, 255), Material = Enum.Material.SmoothPlastic, TextColor = rgb2(170, 80, 200), Pattern = "Unicorn" },
+	SignDiamonds = { Category = "SignStyle", Name = "Diamants", Unlock = { Kind = "Robux", Price = 75, ProductId = 0 }, Color = rgb2(200, 235, 255), Material = Enum.Material.Glass, TextColor = rgb2(40, 90, 160), Pattern = "Diamonds" },
+
+	-- Selles
+	SaddleFlowers = { Category = "MountSkin", Name = "Selle fleurie", Unlock = { Kind = "Level", Level = 15 }, Saddle = rgb2(255, 240, 220), Harness = rgb2(120, 190, 90), Pattern = "Flowers" },
+	SaddleFlames = { Category = "MountSkin", Name = "Selle de feu", Unlock = { Kind = "Index", Zone = "Volcano" }, Saddle = rgb2(40, 25, 25), Harness = rgb2(255, 110, 30), Neon = true, Pattern = "Flames" },
+	SaddleUnicorn = { Category = "MountSkin", Name = "Selle licorne", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Saddle = rgb2(250, 230, 255), Harness = rgb2(255, 150, 220), Pattern = "Unicorn", Sparkles = true },
+	SaddleCheckers = { Category = "MountSkin", Name = "Selle de course", Unlock = { Kind = "Coins", Price = 60000 }, Saddle = rgb2(245, 245, 245), Harness = rgb2(40, 40, 50), Pattern = "Checker", PatternColor = rgb2(30, 30, 40) },
 }
 
 --------------------------------------------------------------------------
@@ -1396,6 +1444,12 @@ Config.Art = {
 		Stars = 0, Hearts = 0, Diamonds = 0, Pearls = 0, Flowers = 0, Flames = 0, Clouds = 0,
 		Checker = 0, Stripes = 0, Glitter = 0, Unicorn = 0, Mascot = 0,
 		MascotLogo = 0, -- logo du jeu sur le panneau du spawn
+	},
+	-- Noms des motifs (affichés dans 🎨 Personnaliser)
+	PatternNames = {
+		Stars = "étoiles", Hearts = "cœurs", Diamonds = "diamants", Pearls = "perles", Flowers = "fleurs",
+		Flames = "flammes", Clouds = "nuages", Checker = "damier", Stripes = "rayures", Glitter = "paillettes",
+		Unicorn = "licornes", Mascot = "Biscotte",
 	},
 
 	-- Mascotte originale du jeu
