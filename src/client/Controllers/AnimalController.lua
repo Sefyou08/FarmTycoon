@@ -6,14 +6,19 @@
 	  • les modèles tagués "FarmAnimal" (animaux de ferme et créatures sauvages)
 	    se promènent au hasard autour de leur point d'origine (attributs
 	    WanderCenter / WanderRadius posés par le serveur ; arrêt si "Frozen") ;
+	  • leurs pièces articulées (attribut Anim posé par AnimalBuilder / CreatureBuilder)
+	    bougent : pattes qui marchent pendant les déplacements, tête qui hoche,
+	    queue qui remue, ailes qui battent, petit rebond de respiration ("Breathe") ;
 	  • les parts taguées "RainbowPart" changent de couleur en continu
 	    (variantes Arc-en-ciel et Mythique) ;
 	  • les modèles tagués "DisplaySpin" (socles, vitrine) tournent doucement sur eux-mêmes.
+	Les animaux loin de la caméra ne sont pas animés (performance).
 ]]
 
 local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
 
 local AnimalController = {}
 
@@ -22,9 +27,98 @@ local RAINBOW_TAG = "RainbowPart"
 local SPIN_TAG = "DisplaySpin" -- créatures exposées sur un socle / dans la vitrine
 local SPIN_SPEED = 0.6 -- radians par seconde
 local WALK_SPEED = 3 -- studs par seconde
+local ANIM_DISTANCE = 110 -- au-delà, pas d'animation des membres
 
 -- Jeton par modèle : si le modèle sort puis revient (streaming), l'ancienne boucle s'arrête
 local wandering: { [Model]: {} } = {}
+local walking: { [Model]: boolean } = {}
+
+type Joint = { Part: BasePart, Local: CFrame, Kind: string, Phase: number, Hinge: Vector3 }
+type Rig = { Joints: { Joint }, Seed: number, Hop: boolean }
+local rigs: { [Model]: Rig } = {}
+
+--------------------------------------------------------------------------
+-- Articulations
+--------------------------------------------------------------------------
+
+local function buildRig(model: Model)
+	local pivot = model:GetPivot()
+	local joints = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local kind = d:GetAttribute("Anim")
+			if type(kind) == "string" then
+				local hinge = d:GetAttribute("Hinge")
+				table.insert(joints, {
+					Part = d,
+					Local = pivot:ToObjectSpace(d.CFrame),
+					Kind = kind,
+					Phase = d:GetAttribute("Phase") or 0,
+					Hinge = if typeof(hinge) == "Vector3" then hinge else Vector3.zero,
+				})
+			end
+		end
+	end
+	if #joints > 0 then
+		rigs[model] = { Joints = joints, Seed = math.random() * 10, Hop = model:GetAttribute("Hop") == true }
+	end
+end
+
+-- Angle de chaque type de pièce selon le temps et la marche
+local function jointRotation(kind: string, t: number, phase: number, seed: number, isWalking: boolean): CFrame
+	if kind == "Leg" then
+		return if isWalking then CFrame.Angles(math.sin(t * 9 + phase) * 0.55, 0, 0) else CFrame.identity
+	elseif kind == "Head" then
+		local nod = if isWalking then math.sin(t * 9) * 0.06 else math.sin(t * 1.3 + seed) * 0.09
+		return CFrame.Angles(nod, math.sin(t * 0.5 + seed) * 0.12, 0)
+	elseif kind == "Tail" then
+		return CFrame.Angles(0, math.sin(t * (if isWalking then 7 else 3.5) + seed) * 0.35, 0)
+	elseif kind == "Wing" then
+		local flap = if isWalking then math.abs(math.sin(t * 12)) * 0.5 else math.max(0, math.sin(t * 0.8 + seed) - 0.85) * 2.5
+		return CFrame.Angles(0, 0, -phase * flap)
+	elseif kind == "Breathe" then
+		return CFrame.identity -- traité à part (translation)
+	end
+	return CFrame.identity
+end
+
+local function animate(t: number)
+	local camera = Workspace.CurrentCamera
+	local cameraPos = if camera then camera.CFrame.Position else Vector3.zero
+	local parts, cframes = {}, {}
+	for model, rig in rigs do
+		if not model.Parent then
+			rigs[model] = nil
+			continue
+		end
+		local pivot = model:GetPivot()
+		if (pivot.Position - cameraPos).Magnitude > ANIM_DISTANCE then
+			continue
+		end
+		local isWalking = walking[model] == true and not model:GetAttribute("Frozen")
+		-- Petit rebond quand l'animal marche (ou sautille pour les créatures "Hop")
+		local bounce = if isWalking then math.abs(math.sin(t * 9)) * (if rig.Hop then 0.6 else 0.12) else 0
+		for _, joint in rig.Joints do
+			local localCf = joint.Local
+			if joint.Kind == "Breathe" then
+				localCf = CFrame.new(0, math.sin(t * 2 + rig.Seed) * 0.05 + bounce, 0) * localCf
+			else
+				local rotation = jointRotation(joint.Kind, t, joint.Phase, rig.Seed, isWalking)
+				local hingePos = localCf.Position + joint.Hinge
+				localCf = CFrame.new(0, bounce, 0) * CFrame.new(hingePos) * rotation * CFrame.new(-hingePos) * localCf
+			end
+			table.insert(parts, joint.Part)
+			table.insert(cframes, pivot * localCf)
+		end
+	end
+	if #parts > 0 then
+		Workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
+	end
+end
+
+--------------------------------------------------------------------------
+-- Promenade
+--------------------------------------------------------------------------
 
 -- Boucle de promenade d'UN animal : pause, puis marche vers un point au hasard.
 local function wander(model: Model)
@@ -33,6 +127,7 @@ local function wander(model: Model)
 	end
 	local token = {}
 	wandering[model] = token
+	task.defer(buildRig, model) -- attend que tout le modèle soit répliqué
 
 	task.spawn(function()
 		local driver = Instance.new("CFrameValue")
@@ -66,8 +161,10 @@ local function wander(model: Model)
 			local goal = CFrame.lookAt(target, target + (target - from.Position).Unit)
 			driver.Value = CFrame.lookAt(from.Position, target)
 			local tween = TweenService:Create(driver, TweenInfo.new(travel / WALK_SPEED, Enum.EasingStyle.Linear), { Value = goal })
+			walking[model] = true
 			tween:Play()
 			tween.Completed:Wait()
+			walking[model] = nil
 		end
 
 		driver:Destroy()
@@ -90,6 +187,8 @@ function AnimalController.Init()
 	end)
 	CollectionService:GetInstanceRemovedSignal(ANIMAL_TAG):Connect(function(model)
 		wandering[model] = nil
+		walking[model] = nil
+		rigs[model] = nil
 	end)
 
 	-- Rotation lente des créatures exposées
@@ -99,6 +198,7 @@ function AnimalController.Init()
 				model:PivotTo(model:GetPivot() * CFrame.Angles(0, dt * SPIN_SPEED, 0))
 			end
 		end
+		animate(os.clock())
 	end)
 
 	-- Couleurs arc-en-ciel animées

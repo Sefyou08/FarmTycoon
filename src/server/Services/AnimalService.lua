@@ -38,6 +38,7 @@ local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local PatternBuilder = require(script.Parent.Parent.Util.PatternBuilder)
+local AnimalBuilder = require(script.Parent.Parent.Util.AnimalBuilder)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
@@ -49,7 +50,6 @@ local PenConfig = Config.Pens
 local AnimalService = {}
 
 local ANIMAL_TAG = "FarmAnimal" -- le client fait se promener ces modèles
-local RAINBOW_TAG = "RainbowPart" -- le client anime la couleur de ces parts
 
 type PenVisual = {
 	Folder: Model,
@@ -229,149 +229,17 @@ end
 --------------------------------------------------------------------------
 
 local function buildAnimalModel(speciesId: string, variantId: string, groundCFrame: CFrame): Model
+	-- Modèle cartoon (AnimalBuilder, phase 10) ou modèle à toi (CustomModels/Animals)
 	local species = Config.Animals[speciesId]
 	local variant = ItemUtil.GetVariant(variantId)
-	local model = Instance.new("Model")
-	model.Name = speciesId
-	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-
-	local body, head, leg = species.BodySize, species.HeadSize, species.LegHeight
-	local bodyColor = if variant.Gold then variant.Color else species.Color
-	local headColor = if variant.Gold then variant.Color else (species.HeadColor or species.Color)
-	local reflectance = if variant.Gold then 0.25 else 0
-
-	-- Crée une part du modèle. rainbow = false pour les détails qui gardent leur couleur.
-	local function part(name: string, size: Vector3, offset: CFrame, color: Color3, rainbow: boolean?): Part
-		local p = decoPart({
-			Name = name,
-			Size = size,
-			CFrame = groundCFrame * offset,
-			Color = color,
-			Material = Enum.Material.SmoothPlastic,
-			Reflectance = if rainbow == false then 0 else reflectance,
-			Parent = model,
-		})
-		if variant.Rainbow and rainbow ~= false then
-			p:SetAttribute("HueOffset", math.random())
-			CollectionService:AddTag(p, RAINBOW_TAG)
-		end
-		return p
-	end
-
-	local bodyPart = part("Body", body, CFrame.new(0, leg + body.Y / 2, 0), bodyColor)
-	model.PrimaryPart = bodyPart
-
-	-- Tête à l'avant (-Z = direction du regard)
-	local headY = leg + body.Y * 0.85
-	local headZ = -(body.Z / 2 + head.Z / 2 - 0.15)
-	part("Head", head, CFrame.new(0, headY, headZ), headColor)
-
-	-- Pattes
-	if leg > 0.05 then
-		local thickness = math.max(0.3, body.X * 0.18)
-		local legColor = bodyColor:Lerp(Color3.new(0, 0, 0), 0.25)
-		for _, sx in { -1, 1 } do
-			for _, sz in { -1, 1 } do
-				part("Leg", Vector3.new(thickness, leg, thickness), CFrame.new(sx * (body.X / 2 - thickness / 2), leg / 2, sz * (body.Z / 2 - thickness)), legColor)
-			end
-		end
-	end
-
-	-- Détails par espèce
-	local headFront = headZ - head.Z / 2
-	if species.Beak then
-		part("Beak", Vector3.new(0.3, 0.22, 0.4), CFrame.new(0, headY - 0.05, headFront - 0.15), Color3.fromRGB(255, 160, 30), false)
-	end
-	if species.Crest then
-		part("Crest", Vector3.new(0.15, 0.35, 0.5), CFrame.new(0, headY + head.Y / 2 + 0.15, headZ), Color3.fromRGB(220, 40, 40), false)
-	end
-	if species.Ears then
-		for _, sx in { -1, 1 } do
-			part("Ear", Vector3.new(0.22, 0.9, 0.3), CFrame.new(sx * 0.22, headY + head.Y / 2 + 0.42, headZ + 0.1), headColor)
-		end
-	end
-	if species.Horns then
-		for _, sx in { -1, 1 } do
-			part("Horn", Vector3.new(0.18, 0.5, 0.18), CFrame.new(sx * head.X * 0.3, headY + head.Y / 2 + 0.22, headZ + 0.15), Color3.fromRGB(230, 220, 190), false)
-		end
-	end
-	if species.Snout then
-		part("Snout", Vector3.new(head.X * 0.5, head.Y * 0.4, 0.3), CFrame.new(0, headY - head.Y * 0.15, headFront - 0.12), headColor:Lerp(Color3.fromRGB(200, 80, 110), 0.3))
-	end
-	if species.Spots and not variant.Gold and not variant.Rainbow then
-		for _, sx in { -1, 1 } do
-			part("Spot", Vector3.new(0.05, body.Y * 0.45, body.Z * 0.3), CFrame.new(sx * (body.X / 2 + 0.03), leg + body.Y * 0.55, sx * body.Z * 0.15), species.Spots, false)
-		end
-	end
-	if species.Mane then
-		part("Mane", Vector3.new(0.3, head.Y * 0.8, head.Z * 0.7), CFrame.new(0, headY + head.Y * 0.35, headZ + head.Z * 0.35), species.Mane, false)
-	end
-
-	-- Effets des variantes rares
-	if variant.Aura then
-		local light = Instance.new("PointLight")
-		light.Color = variant.Aura
-		light.Range = 10
-		light.Brightness = 2
-		light.Parent = bodyPart
-	end
-	if variant.Gold or variant.Aura or variant.Rainbow then
-		local particles = Instance.new("ParticleEmitter")
-		particles.Color = ColorSequence.new(variant.Aura or variant.Color)
-		particles.LightEmission = 1
-		particles.Rate = if variant.Aura then 10 else 3
-		particles.Lifetime = NumberRange.new(0.8, 1.5)
-		particles.Speed = NumberRange.new(0.5, 1.5)
-		particles.SpreadAngle = Vector2.new(180, 180)
-		particles.Size = NumberSequence.new(0.35, 0)
-		particles.Parent = bodyPart
-	end
+	local model = AnimalBuilder.Build(speciesId, variantId, groundCFrame)
+	local bodyPart = model.PrimaryPart :: BasePart
 
 	-- Nom au-dessus de l'animal ("Vache Dorée")
 	local adjective = ItemUtil.VariantAdjective(species, variantId)
-	local _, nameLabel = makeBillboard(bodyPart, Vector2.new(6, 1.1), Vector3.new(0, body.Y / 2 + head.Y + 1, 0), 45)
+	local _, nameLabel = makeBillboard(bodyPart, Vector2.new(6, 1.1), Vector3.new(0, species.BodySize.Y / 2 + species.HeadSize.Y + 1.2, 0), 45)
 	nameLabel.Text = species.DisplayName .. (if adjective ~= "" then " " .. adjective else "")
 	nameLabel.TextColor3 = if variantId == "Normal" then Color3.new(1, 1, 1) else variant.Color
-
-	-- Animal céleste (Astrelune, exclusif à la roue) : corne d'étoile, auréole, crinière
-	-- arc-en-ciel animée, lumière et poussière d'étoiles, quelle que soit sa variante
-	if species.Celestial then
-		local headPart = model:FindFirstChild("Head") :: BasePart?
-		if headPart then
-			local hornCFrame = headPart.CFrame * CFrame.new(0, head.Y / 2 + 0.55, -head.Z * 0.2) * CFrame.Angles(math.rad(-25), 0, 0)
-			local horn = part("StarHorn", Vector3.new(0.3, 1.2, 0.3), CFrame.new(), Color3.fromRGB(255, 240, 150), false)
-			horn.CFrame = hornCFrame
-			horn.Material = Enum.Material.Neon
-			for i = 1, 10 do
-				local angle = i / 10 * math.pi * 2
-				local halo = part("Halo", Vector3.new(0.35, 0.08, 0.12), CFrame.new(), Color3.fromRGB(255, 230, 120), false)
-				halo.CFrame = headPart.CFrame * CFrame.new(math.cos(angle) * 0.8, head.Y / 2 + 1.2, math.sin(angle) * 0.8) * CFrame.Angles(0, -angle, 0)
-				halo.Material = Enum.Material.Neon
-			end
-		end
-		local mane = model:FindFirstChild("Mane") :: BasePart?
-		if mane then
-			mane:SetAttribute("HueOffset", 0)
-			CollectionService:AddTag(mane, RAINBOW_TAG)
-			mane.Material = Enum.Material.Neon
-		end
-		local light = Instance.new("PointLight")
-		light.Color = Color3.fromRGB(255, 200, 255)
-		light.Range = 16
-		light.Brightness = 2.5
-		light.Parent = bodyPart
-		local stars = Instance.new("ParticleEmitter")
-		stars.Color = ColorSequence.new(Color3.fromRGB(255, 240, 180), Color3.fromRGB(200, 150, 255))
-		stars.LightEmission = 1
-		stars.Rate = 18
-		stars.Lifetime = NumberRange.new(1, 2)
-		stars.Speed = NumberRange.new(0.5, 2)
-		stars.SpreadAngle = Vector2.new(180, 180)
-		stars.Size = NumberSequence.new(0.4, 0)
-		stars.Parent = bodyPart
-	end
-
-	model:SetAttribute("Variant", variantId)
 	return model
 end
 
@@ -403,6 +271,11 @@ local function addHat(model: Model, hat: any)
 		p.CanCollide = false
 		p.CanQuery = false
 		p.CanTouch = false
+		-- Le chapeau suit le hochement de la tête (animation client)
+		if head:GetAttribute("Anim") == "Head" then
+			p:SetAttribute("Anim", "Head")
+			p:SetAttribute("Hinge", model:GetPivot():VectorToObjectSpace(head.Position - p.Position) + (head:GetAttribute("Hinge") or Vector3.zero))
+		end
 		p.Parent = model
 	end
 	local w = head.Size.X
