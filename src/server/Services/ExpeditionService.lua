@@ -44,6 +44,7 @@ local Format = require(ReplicatedStorage.Shared.Format)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local CreatureBuilder = require(script.Parent.Parent.Util.CreatureBuilder)
+local ZoneScenery = require(script.Parent.Parent.Util.ZoneScenery)
 local DataService = require(script.Parent.DataService)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
@@ -167,6 +168,38 @@ local function buildPortal(cframe: CFrame, color: Color3, parent: Instance, titl
 			Parent = parent,
 		})
 	end
+	-- Arche de pierre sculptée autour de l'anneau, piliers et cristaux (phase 10)
+	for i = 1, segments do
+		local angle = (i / segments) * math.pi * 2
+		makePart({
+			Name = "Stone",
+			Size = Vector3.new(3.2, 1.6, 1.6),
+			CFrame = center * CFrame.new(math.cos(angle) * (radius + 1.1), math.sin(angle) * (radius + 1.1), 0.2) * CFrame.Angles(0, 0, angle + math.pi / 2),
+			Color = Color3.fromRGB(110, 105, 125),
+			Material = Enum.Material.Cobblestone,
+			CanCollide = false,
+			Parent = parent,
+		})
+	end
+	for _, sx in { -1, 1 } do
+		makePart({
+			Name = "Pillar",
+			Size = Vector3.new(2, radius * 2 + 3, 2),
+			CFrame = cframe * CFrame.new(sx * (radius + 2.6), radius + 1.5, 0),
+			Color = Color3.fromRGB(95, 90, 110),
+			Material = Enum.Material.Cobblestone,
+			Parent = parent,
+		})
+		local crystal = Instance.new("WedgePart")
+		crystal.Name = "PortalCrystal"
+		crystal.Anchored = true
+		crystal.CanCollide = false
+		crystal.Size = Vector3.new(1.2, 2.4, 1.2)
+		crystal.CFrame = cframe * CFrame.new(sx * (radius + 2.6), radius * 2 + 4.2, 0)
+		crystal.Color = color
+		crystal.Material = Enum.Material.Neon
+		crystal.Parent = parent
+	end
 	local disc = makePart({
 		Name = "Disc",
 		Shape = Enum.PartType.Cylinder,
@@ -183,6 +216,16 @@ local function buildPortal(cframe: CFrame, color: Color3, parent: Instance, titl
 	light.Range = 16
 	light.Brightness = 2
 	light.Parent = disc
+	-- Tourbillon d'étincelles dans le portail
+	local swirl = Instance.new("ParticleEmitter")
+	swirl.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
+	swirl.LightEmission = 1
+	swirl.Rate = 12
+	swirl.Lifetime = NumberRange.new(1, 1.6)
+	swirl.Speed = NumberRange.new(0.5, 1.5)
+	swirl.SpreadAngle = Vector2.new(180, 180)
+	swirl.Size = NumberSequence.new(0.4, 0)
+	swirl.Parent = disc
 
 	local anchor = makePart({
 		Name = "PortalPrompt",
@@ -198,69 +241,22 @@ local function buildPortal(cframe: CFrame, color: Color3, parent: Instance, titl
 	return anchor
 end
 
--- Décor très simple par thème (remplacé par un vrai décor en phase 9)
-local function buildProps(info: ZoneInfo, seed: number)
-	local def = info.Def
-	local propRng = Random.new(seed)
-	local half = def.Size / 2 - 15
-	local arrival = info.ArrivalCFrame.Position
-
-	for _ = 1, 45 do
-		local position = def.Center + Vector3.new(propRng:NextNumber(-half, half), 0, propRng:NextNumber(-half, half))
-		if (Vector3.new(position.X, arrival.Y, position.Z) - arrival).Magnitude < 30 then
-			continue
-		end
-		local base = CFrame.new(position) * CFrame.Angles(0, propRng:NextNumber(0, math.pi * 2), 0)
-
-		if def.Props == "Trees" then
-			local height = propRng:NextNumber(7, 12)
-			makePart({ Name = "Trunk", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, 1.6, 1.6), CFrame = base * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(110, 75, 45), Material = Enum.Material.Wood, Parent = info.Folder })
-			local leaves = propRng:NextNumber(6, 9)
-			makePart({ Name = "Leaves", Shape = Enum.PartType.Ball, Size = Vector3.one * leaves, CFrame = base * CFrame.new(0, height + leaves * 0.3, 0), Color = Color3.fromRGB(60, 140 + propRng:NextInteger(0, 40), 50), Material = Enum.Material.Grass, Parent = info.Folder })
-		elseif def.Props == "Rocks" then
-			local size = propRng:NextNumber(3, 9)
-			makePart({ Name = "Rock", Shape = Enum.PartType.Ball, Size = Vector3.one * size, CFrame = base * CFrame.new(0, size * 0.3, 0), Color = Color3.fromRGB(120, 120, 130), Material = Enum.Material.Slate, Parent = info.Folder })
-			if size > 6 then
-				makePart({ Name = "Snow", Shape = Enum.PartType.Ball, Size = Vector3.one * size * 0.6, CFrame = base * CFrame.new(0, size * 0.65, 0), Color = Color3.fromRGB(245, 250, 255), Material = Enum.Material.Snow, CanCollide = false, Parent = info.Folder })
-			end
-		elseif def.Props == "Cacti" then
-			local height = propRng:NextNumber(5, 9)
-			makePart({ Name = "Cactus", Shape = Enum.PartType.Cylinder, Size = Vector3.new(height, 1.6, 1.6), CFrame = base * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(70, 150, 70), Material = Enum.Material.Grass, Parent = info.Folder })
-			for _, side in { -1, 1 } do
-				makePart({ Name = "Arm", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2.5, 1, 1), CFrame = base * CFrame.new(side * 1.3, height * 0.55, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(70, 150, 70), Material = Enum.Material.Grass, Parent = info.Folder })
-			end
-		else -- Lava
-			local size = propRng:NextNumber(3, 7)
-			makePart({ Name = "LavaRock", Shape = Enum.PartType.Ball, Size = Vector3.one * size, CFrame = base * CFrame.new(0, size * 0.3, 0), Color = Color3.fromRGB(35, 25, 25), Material = Enum.Material.Basalt, Parent = info.Folder })
-			makePart({ Name = "LavaPool", Size = Vector3.new(size * 1.2, 0.2, size * 0.8), CFrame = base * CFrame.new(size, 0.1, 0), Color = Color3.fromRGB(255, 100, 20), Material = Enum.Material.Neon, CanCollide = false, Parent = info.Folder })
-		end
-	end
-end
-
 local function buildZone(zoneId: string, def: any, parent: Folder)
 	local folder = Instance.new("Folder")
 	folder.Name = zoneId
 	folder.Parent = parent
 
 	local size = def.Size
-	makePart({
-		Name = "Ground",
-		Size = Vector3.new(size, 2, size),
-		CFrame = CFrame.new(def.Center - Vector3.new(0, 1, 0)),
-		Color = def.GroundColor,
-		Material = def.GroundMaterial,
-		Parent = folder,
-	})
-
-	-- Falaises tout autour : on ne tombe pas dans le vide
-	local wallHeight = 16
+	-- Le sol, les falaises et le décor sont en Terrain + Parts (ZoneScenery, phase 10).
+	-- Murs invisibles tout autour : on ne sort pas de la zone
+	local wallHeight = 60
 	for _, wall in {
 		{ Vector3.new(size + 8, wallHeight, 4), Vector3.new(0, wallHeight / 2, size / 2 + 2) },
 		{ Vector3.new(size + 8, wallHeight, 4), Vector3.new(0, wallHeight / 2, -size / 2 - 2) },
 		{ Vector3.new(4, wallHeight, size + 8), Vector3.new(size / 2 + 2, wallHeight / 2, 0) },
 		{ Vector3.new(4, wallHeight, size + 8), Vector3.new(-size / 2 - 2, wallHeight / 2, 0) },
 	} do
-		makePart({ Name = "Cliff", Size = wall[1], CFrame = CFrame.new(def.Center + wall[2]), Color = def.WallColor, Material = Enum.Material.Rock, Parent = folder })
+		makePart({ Name = "Cliff", Size = wall[1], CFrame = CFrame.new(def.Center + wall[2]), Transparency = 1, CanQuery = false, Parent = folder })
 	end
 
 	-- Arrivée au "sud" de la zone, tournée vers le centre ; portail de retour juste derrière
@@ -288,7 +284,7 @@ local function buildZone(zoneId: string, def: any, parent: Folder)
 		ExpeditionService:ReturnHome(player)
 	end)
 
-	buildProps(info, def.Order * 1000)
+	ZoneScenery.Build(zoneId, def, folder, arrivalPosition)
 end
 
 --------------------------------------------------------------------------
@@ -365,7 +361,7 @@ local function spawnWild(info: ZoneInfo)
 		return
 	end
 	local def = info.Def
-	local half = def.Size / 2 - 20
+	local half = def.Size / 2 - Exp.SpawnMargin -- le bord de la zone est réservé au décor
 	local arrival = info.ArrivalCFrame.Position
 
 	-- Position au hasard, loin de l'arrivée

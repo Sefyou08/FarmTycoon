@@ -666,6 +666,7 @@ Config.Expeditions = {
 	SpawnInterval = 4, -- secondes entre deux apparitions (si des joueurs sont dans la zone)
 	WildLifetime = 150, -- secondes avant qu'une créature sauvage reparte
 	WildWanderRadius = 6,
+	SpawnMargin = 35, -- bande du bord de zone sans créatures (réservée au décor, phase 10)
 	CaptureDistance = 12, -- distance max pour lancer une capture
 
 	MaxCreatures = 100, -- créatures max dans la collection

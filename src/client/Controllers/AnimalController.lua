@@ -34,7 +34,7 @@ local wandering: { [Model]: {} } = {}
 local walking: { [Model]: boolean } = {}
 
 type Joint = { Part: BasePart, Local: CFrame, Kind: string, Phase: number, Hinge: Vector3 }
-type Rig = { Joints: { Joint }, Seed: number, Hop: boolean }
+type Rig = { Joints: { Joint }, Seed: number, Hop: boolean, Flyer: boolean, Scale: number }
 local rigs: { [Model]: Rig } = {}
 
 --------------------------------------------------------------------------
@@ -43,6 +43,7 @@ local rigs: { [Model]: Rig } = {}
 
 local function buildRig(model: Model)
 	local pivot = model:GetPivot()
+	local scale = model:GetAttribute("RigScale") or 1 -- les articulations suivent la taille appliquée
 	local joints = {}
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
@@ -54,19 +55,25 @@ local function buildRig(model: Model)
 					Local = pivot:ToObjectSpace(d.CFrame),
 					Kind = kind,
 					Phase = d:GetAttribute("Phase") or 0,
-					Hinge = if typeof(hinge) == "Vector3" then hinge else Vector3.zero,
+					Hinge = if typeof(hinge) == "Vector3" then hinge * scale else Vector3.zero,
 				})
 			end
 		end
 	end
 	if #joints > 0 then
-		rigs[model] = { Joints = joints, Seed = math.random() * 10, Hop = model:GetAttribute("Hop") == true }
+		rigs[model] = {
+			Joints = joints,
+			Seed = math.random() * 10,
+			Hop = model:GetAttribute("Hop") == true,
+			Flyer = model:GetAttribute("Flyer") == true,
+			Scale = scale,
+		}
 	end
 end
 
 -- Angle de chaque type de pièce selon le temps et la marche
-local function jointRotation(kind: string, t: number, phase: number, seed: number, isWalking: boolean): CFrame
-	if kind == "Leg" then
+local function jointRotation(kind: string, t: number, phase: number, seed: number, isWalking: boolean, flyer: boolean): CFrame
+	if kind == "Leg" or kind == "Arm" then
 		return if isWalking then CFrame.Angles(math.sin(t * 9 + phase) * 0.55, 0, 0) else CFrame.identity
 	elseif kind == "Head" then
 		local nod = if isWalking then math.sin(t * 9) * 0.06 else math.sin(t * 1.3 + seed) * 0.09
@@ -74,7 +81,14 @@ local function jointRotation(kind: string, t: number, phase: number, seed: numbe
 	elseif kind == "Tail" then
 		return CFrame.Angles(0, math.sin(t * (if isWalking then 7 else 3.5) + seed) * 0.35, 0)
 	elseif kind == "Wing" then
-		local flap = if isWalking then math.abs(math.sin(t * 12)) * 0.5 else math.max(0, math.sin(t * 0.8 + seed) - 0.85) * 2.5
+		local flap
+		if flyer then
+			flap = math.sin(t * 11 + seed) * 0.45 -- les volants battent des ailes sans arrêt
+		elseif isWalking then
+			flap = math.abs(math.sin(t * 12)) * 0.5
+		else
+			flap = math.max(0, math.sin(t * 0.8 + seed) - 0.85) * 2.5
+		end
 		return CFrame.Angles(0, 0, -phase * flap)
 	elseif kind == "Breathe" then
 		return CFrame.identity -- traité à part (translation)
@@ -97,13 +111,16 @@ local function animate(t: number)
 		end
 		local isWalking = walking[model] == true and not model:GetAttribute("Frozen")
 		-- Petit rebond quand l'animal marche (ou sautille pour les créatures "Hop")
-		local bounce = if isWalking then math.abs(math.sin(t * 9)) * (if rig.Hop then 0.6 else 0.12) else 0
+		local bounce = if isWalking then math.abs(math.sin(t * 9)) * (if rig.Hop then 0.6 else 0.12) * rig.Scale else 0
+		if rig.Flyer then
+			bounce = math.sin(t * 2 + rig.Seed) * 0.35 * rig.Scale -- vol stationnaire
+		end
 		for _, joint in rig.Joints do
 			local localCf = joint.Local
 			if joint.Kind == "Breathe" then
-				localCf = CFrame.new(0, math.sin(t * 2 + rig.Seed) * 0.05 + bounce, 0) * localCf
+				localCf = CFrame.new(0, math.sin(t * 2 + rig.Seed) * 0.05 * rig.Scale + bounce, 0) * localCf
 			else
-				local rotation = jointRotation(joint.Kind, t, joint.Phase, rig.Seed, isWalking)
+				local rotation = jointRotation(joint.Kind, t, joint.Phase, rig.Seed, isWalking, rig.Flyer)
 				local hingePos = localCf.Position + joint.Hinge
 				localCf = CFrame.new(0, bounce, 0) * CFrame.new(hingePos) * rotation * CFrame.new(-hingePos) * localCf
 			end
