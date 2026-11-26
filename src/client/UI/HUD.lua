@@ -154,7 +154,7 @@ function HUD.Init(StateController)
 	leftColumn.Name = "LeftButtons"
 	leftColumn.AnchorPoint = Vector2.new(0, 0.5)
 	leftColumn.Position = UDim2.new(0, 12, 0.5, 0)
-	leftColumn.Size = UDim2.fromOffset(266, 300)
+	leftColumn.Size = UDim2.fromOffset(266, 330) -- 13 boutons sur 2 colonnes
 	leftColumn.BackgroundTransparency = 1
 	leftColumn.Parent = screen
 

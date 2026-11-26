@@ -26,7 +26,8 @@ local RAINBOW_TAG = "RainbowPart"
 local MOUNT_TAG = "MountModel"
 
 -- Renvoie (model, body). Le modèle est construit à l'origine ; l'appelant le soude au joueur.
-function MountBuilder.Build(speciesId: string, variantId: string): (Model, Part)
+-- skin (optionnel) = cosmétique "Selle de monture" (Config.Cosmetics, catégorie MountSkin).
+function MountBuilder.Build(speciesId: string, variantId: string, skin: any?): (Model, Part)
 	local species = Config.Animals[speciesId] or Config.Animals.Horse
 	local variant = ItemUtil.GetVariant(variantId)
 	local model = Instance.new("Model")
@@ -113,8 +114,34 @@ function MountBuilder.Build(speciesId: string, variantId: string): (Model, Part)
 	joint("ManeJoint", neck, mane, CFrame.new(0, 0, head.Z * 0.28), CFrame.new())
 	local tail = part("Tail", Vector3.new(0.35, 0.35, 1.6), maneColor, false)
 	joint("Tail", bodyPart, tail, CFrame.new(0, body.Y * 0.3, body.Z / 2) * CFrame.Angles(math.rad(35), 0, 0), CFrame.new(0, 0, -0.8))
-	local saddle = part("Saddle", Vector3.new(body.X + 0.15, 0.3, body.Z * 0.38), Color3.fromRGB(120, 50, 40), false)
+	local saddle = part("Saddle", Vector3.new(body.X + 0.15, 0.3, body.Z * 0.38), if skin and skin.Saddle then skin.Saddle else Color3.fromRGB(120, 50, 40), false)
 	joint("SaddleJoint", bodyPart, saddle, CFrame.new(0, body.Y / 2 + 0.1, 0.1), CFrame.new())
+	-- Harnais (bandes autour du corps et du cou) si la selle cosmétique en a un
+	if skin and skin.Harness then
+		for i, z in { -0.1, 0.35 } do
+			local strap = part("Harness" .. i, Vector3.new(body.X + 0.2, body.Y + 0.1, 0.25), skin.Harness, false)
+			if skin.Neon then
+				strap.Material = Enum.Material.Neon
+			end
+			joint("HarnessJoint" .. i, bodyPart, strap, CFrame.new(0, 0, z * body.Z), CFrame.new())
+		end
+		local collar = part("Collar", Vector3.new(body.X * 0.7, 0.25, head.Z * 0.6), skin.Harness, false)
+		if skin.Neon then
+			collar.Material = Enum.Material.Neon
+		end
+		joint("CollarJoint", neck, collar, CFrame.new(0, 0, 0), CFrame.new())
+	end
+	if skin and skin.Sparkles then
+		local sparkles = Instance.new("ParticleEmitter")
+		sparkles.Color = ColorSequence.new(skin.Harness or Color3.new(1, 1, 1))
+		sparkles.LightEmission = 1
+		sparkles.Rate = 10
+		sparkles.Lifetime = NumberRange.new(0.6, 1.2)
+		sparkles.Speed = NumberRange.new(0.3, 1)
+		sparkles.SpreadAngle = Vector2.new(180, 180)
+		sparkles.Size = NumberSequence.new(0.3, 0)
+		sparkles.Parent = saddle
+	end
 
 	-- Effets des variantes rares
 	if variant.Aura or variant.Gold or variant.Rainbow then

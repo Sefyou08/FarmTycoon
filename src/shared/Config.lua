@@ -275,6 +275,8 @@ Config.Resources = {
 	FrostMane = { DisplayName = "Crin de givre", Icon = "❄️", Order = 10, SellPrice = 1200 },
 	SandMane = { DisplayName = "Crin doré", Icon = "✨", Order = 11, SellPrice = 2500 },
 	EmberMane = { DisplayName = "Crin de braise", Icon = "🔥", Order = 12, SellPrice = 6000 },
+	-- Ressource EXCLUSIVE de l'Astrelune (roue quotidienne)
+	Stardust = { DisplayName = "Poussière d'étoile", Icon = "🌠", Order = 13, SellPrice = 30000, Feminine = true },
 }
 
 --------------------------------------------------------------------------
@@ -384,6 +386,17 @@ Config.Animals = {
 		BodySize = Vector3.new(2.1, 2.3, 4.6), HeadSize = Vector3.new(1.05, 1.35, 2.05), LegHeight = 2.8,
 		Color = Color3.fromRGB(45, 30, 30), HeadColor = Color3.fromRGB(55, 35, 30),
 		Mane = Color3.fromRGB(255, 110, 20), Horns = true,
+	},
+
+	-- Animal EXCLUSIF de la roue quotidienne (0,1 %) : introuvable ailleurs.
+	-- Cheval céleste à corne d'étoile, crinière arc-en-ciel, auréole et poussière d'étoiles.
+	Astrelune = {
+		DisplayName = "Astrelune", Icon = "🦄", Feminine = true, Order = 30, NotForSale = true, Celestial = true,
+		Price = 0, Resource = "Stardust", ProductionTime = 300, FeedPerProduct = 30,
+		Diet = { "StarFlower", "MoonPumpkin", "Strawberry", "Carrot" },
+		BodySize = Vector3.new(2, 2.2, 4.4), HeadSize = Vector3.new(1, 1.3, 2), LegHeight = 2.9,
+		Color = Color3.fromRGB(235, 225, 255), HeadColor = Color3.fromRGB(245, 235, 255),
+		Mane = Color3.fromRGB(255, 120, 220), Horns = true,
 	},
 }
 
@@ -503,6 +516,7 @@ Config.Mounts = {
 		SnowHorse = { Speed = 44, SprintSpeed = 54, JumpPower = 80, Perk = "Saute très haut" },
 		SandHorse = { Speed = 52, SprintSpeed = 64, JumpPower = 50, Perk = "Le plus rapide" },
 		LavaHorse = { Speed = 50, SprintSpeed = 62, JumpPower = 65, Perk = "Rapide et puissant" },
+		Astrelune = { Speed = 56, SprintSpeed = 70, JumpPower = 90, Perk = "Monture céleste exclusive" },
 	},
 }
 
@@ -954,6 +968,8 @@ Config.Boosts = {
 		Coins = { Icon = "💰", DisplayName = "Coins" },
 		Capture = { Icon = "🪢", DisplayName = "Capture" },
 		Combat = { Icon = "⚔️", DisplayName = "Combat (donjon)" },
+		Growth = { Icon = "🌱", DisplayName = "Pousse des plantes" }, -- s'applique aux plantes semées pendant le boost
+		Production = { Icon = "🏭", DisplayName = "Production (animaux + bâtiments)" },
 	},
 }
 
@@ -1143,19 +1159,173 @@ Config.Build = {
 }
 
 --------------------------------------------------------------------------
--- MONÉTISATION (préparée, DÉSACTIVÉE : activée en phase 8)
--- Remplace les Id = 0 par les vrais IDs créés sur le Creator Dashboard.
+-- MONÉTISATION (phase 9)
+--   Remplace chaque Id = 0 par le vrai ID créé sur le Creator Dashboard (voir README).
+--   Un objet dont l'Id vaut 0 est affiché "Bientôt disponible" et ne peut pas être acheté.
+--   Price = prix en Robux AFFICHÉ (le vrai prix est celui réglé sur Roblox).
 --------------------------------------------------------------------------
 Config.Monetization = {
-	Enabled = false,
-	Products = {
-		-- Débloque l'étape d'agrandissement suivante sans payer de Coins
-		PlotExpansion = { Id = 0, Enabled = false },
-	},
+	Enabled = true,
+	-- Studio uniquement : donne tous les Game Passes pour tester leurs effets sans les acheter
+	GrantAllPassesInStudio = false,
+
+	-- GAME PASSES : achetés une fois, effet permanent
 	GamePasses = {
-		-- Version premium des aides PNJ (tournées 2x plus rapides) : phase 9
-		PremiumHelpers = { Id = 0, Enabled = false },
+		DoubleCoins = { Id = 0, Price = 199, Icon = "💰", Name = "x2 Coins", Description = "Tous tes gains de Coins (vente, socles) x2, pour toujours." },
+		PremiumHelpers = { Id = 0, Price = 249, Icon = "🧑‍🌾", Name = "Aides premium", Description = "Le fermier et le soigneur font leurs tournées 2x plus vite." },
+		BigBackpack = { Id = 0, Price = 99, Icon = "🎒", Name = "Grand sac", Description = "+300 places dans ton sac.", Bonus = 300 },
+		ExtraIncubators = { Id = 0, Price = 149, Icon = "🐣", Name = "Couveuses en plus", Description = "+2 œufs qui couvent en même temps.", Bonus = 2 },
+		BigCollection = { Id = 0, Price = 149, Icon = "📖", Name = "Grande collection", Description = "+100 places pour tes créatures.", Bonus = 100 },
 	},
+
+	-- DEVELOPER PRODUCTS : achetables plusieurs fois
+	--   Kind : "Coins" (Amount + PerLevel x niveau) | "Boost" (Boost, Power, Duration) |
+	--          "PlotExpansion" | "HatchNow" (tous les œufs éclosent) | "WheelSpins" (Amount)
+	Products = {
+		PlotExpansion = { Id = 0, Price = 99, Icon = "🗺️", Name = "Agrandissement", Description = "Agrandis ta parcelle d'un niveau tout de suite.", Kind = "PlotExpansion" },
+		CoinsSmall = { Id = 0, Price = 25, Icon = "💰", Name = "Petit sac de Coins", Description = "Des Coins (plus si ton niveau est haut).", Kind = "Coins", Amount = 25000, PerLevel = 2500 },
+		CoinsMedium = { Id = 0, Price = 99, Icon = "💰", Name = "Coffre de Coins", Description = "Beaucoup de Coins.", Kind = "Coins", Amount = 150000, PerLevel = 15000 },
+		CoinsLarge = { Id = 0, Price = 299, Icon = "💰", Name = "Trésor de Coins", Description = "Énormément de Coins.", Kind = "Coins", Amount = 600000, PerLevel = 60000 },
+		GrowthBoost = { Id = 0, Price = 39, Icon = "🌱", Name = "Pousse x2 (30 min)", Description = "Les plantes semées poussent 2x plus vite.", Kind = "Boost", Boost = "Growth", Power = 1, Duration = 1800 },
+		ProductionBoost = { Id = 0, Price = 49, Icon = "🏭", Name = "Production x2 (30 min)", Description = "Animaux et bâtiments produisent 2x plus vite.", Kind = "Boost", Boost = "Production", Power = 1, Duration = 1800 },
+		CoinsBoost = { Id = 0, Price = 49, Icon = "💰", Name = "Coins x2 (30 min)", Description = "Gains de Coins x2 pendant 30 min.", Kind = "Boost", Boost = "Coins", Power = 1, Duration = 1800 },
+		XPBoost = { Id = 0, Price = 29, Icon = "⭐", Name = "XP x2 (30 min)", Description = "XP x2 pendant 30 min.", Kind = "Boost", Boost = "XP", Power = 1, Duration = 1800 },
+		SpeedBoost = { Id = 0, Price = 15, Icon = "🏃", Name = "Vitesse +30 % (30 min)", Description = "Tu cours plus vite.", Kind = "Boost", Boost = "Speed", Power = 0.3, Duration = 1800 },
+		CaptureBoost = { Id = 0, Price = 39, Icon = "🪢", Name = "Capture +25 % (30 min)", Description = "Zone verte plus large et meilleure chance finale.", Kind = "Boost", Boost = "Capture", Power = 0.25, Duration = 1800 },
+		CombatBoost = { Id = 0, Price = 39, Icon = "⚔️", Name = "Force +50 % (30 min)", Description = "Plus de PV et de dégâts au donjon.", Kind = "Boost", Boost = "Combat", Power = 0.5, Duration = 1800 },
+		HatchNow = { Id = 0, Price = 25, Icon = "🐣", Name = "Éclosion immédiate", Description = "Tous tes œufs en couveuse éclosent tout de suite.", Kind = "HatchNow" },
+		WheelSpin = { Id = 0, Price = 19, Icon = "🎡", Name = "1 tour de roue", Description = "Un tour de roue en plus.", Kind = "WheelSpins", Amount = 1 },
+		WheelSpins5 = { Id = 0, Price = 79, Icon = "🎡", Name = "5 tours de roue", Description = "Cinq tours de roue en plus.", Kind = "WheelSpins", Amount = 5 },
+	},
+	MaxReceiptHistory = 300, -- reçus mémorisés par joueur (anti double-crédit)
+}
+
+--------------------------------------------------------------------------
+-- ROUE QUOTIDIENNE (phase 9)
+--   1 tour gratuit toutes les Cooldown secondes (délai sauvegardé) ; tours en plus
+--   achetables (Developer Products WheelSpin / WheelSpins5). Tout est tiré PAR LE SERVEUR.
+--   Rewards : Weight = poids (les chances affichées = Weight / total)
+--     Kind "Coins" (Amount + PerLevel x niveau) | "XP" (Amount + PerLevel x niveau) |
+--     "Seeds" (Id, Amount) | "Boost" (Boost, Power, Duration) | "Rations" (Amount par enclos) |
+--     "Item" (Id, Variant?, Amount) | "Creature" (Zone : créature de cette zone, raretés favorisées) |
+--     "Animal" (Species, Variant) : l'animal exclusif, annoncé sur tous les serveurs
+--------------------------------------------------------------------------
+Config.Wheel = {
+	Cooldown = 24 * 3600,
+	SpinDuration = 5, -- secondes d'animation (suspense) côté client
+	Rewards = {
+		{ Id = "CoinsS", Kind = "Coins", Amount = 5000, PerLevel = 500, Weight = 25, Icon = "💰", Color = Color3.fromRGB(240, 190, 60) },
+		{ Id = "Strawberry", Kind = "Seeds", Item = "Strawberry", Amount = 5, Weight = 14, Icon = "🍓", Color = Color3.fromRGB(240, 70, 90) },
+		{ Id = "CoinsL", Kind = "Coins", Amount = 20000, PerLevel = 2000, Weight = 10, Icon = "💰", Color = Color3.fromRGB(255, 160, 40) },
+		{ Id = "BoostCoins", Kind = "Boost", Boost = "Coins", Power = 0.5, Duration = 900, Weight = 8, Icon = "💰", Color = Color3.fromRGB(250, 220, 90) },
+		{ Id = "BoostXP", Kind = "Boost", Boost = "XP", Power = 0.5, Duration = 900, Weight = 8, Icon = "⭐", Color = Color3.fromRGB(120, 200, 255) },
+		{ Id = "XP", Kind = "XP", Amount = 300, PerLevel = 60, Weight = 8, Icon = "⭐", Color = Color3.fromRGB(90, 160, 255) },
+		{ Id = "Dragonfruit", Kind = "Seeds", Item = "Dragonfruit", Amount = 3, Weight = 6, Icon = "🐉", Color = Color3.fromRGB(255, 80, 170) },
+		{ Id = "BoostGrowth", Kind = "Boost", Boost = "Growth", Power = 1, Duration = 900, Weight = 6, Icon = "🌱", Color = Color3.fromRGB(90, 200, 90) },
+		{ Id = "Rations", Kind = "Rations", Amount = 150, Weight = 5, Icon = "🍽️", Color = Color3.fromRGB(200, 160, 90) },
+		{ Id = "BoostCapture", Kind = "Boost", Boost = "Capture", Power = 0.25, Duration = 900, Weight = 4, Icon = "🪢", Color = Color3.fromRGB(190, 140, 90) },
+		{ Id = "StarFlower", Kind = "Seeds", Item = "StarFlower", Amount = 1, Weight = 2, Icon = "🌟", Color = Color3.fromRGB(255, 230, 80) },
+		{ Id = "ForestEgg", Kind = "Item", Item = "ForestEgg", Amount = 1, Weight = 2.5, Icon = "🥚", Color = Color3.fromRGB(140, 200, 110) },
+		{ Id = "MountainEgg", Kind = "Item", Item = "MountainEgg", Amount = 1, Weight = 1, Icon = "🥚", Color = Color3.fromRGB(180, 220, 255) },
+		{ Id = "Creature", Kind = "Creature", Zone = "Desert", Weight = 0.4, Icon = "📖", Color = Color3.fromRGB(170, 80, 240) },
+		{ Id = "Astrelune", Kind = "Animal", Species = "Astrelune", Variant = "Normal", Weight = 0.1, Icon = "🦄", Color = Color3.fromRGB(255, 120, 220), Jackpot = true },
+	},
+}
+
+--------------------------------------------------------------------------
+-- PERSONNALISATION COSMÉTIQUE (phase 9) : UNIQUEMENT visuel, aucun avantage de jeu.
+--   Category : PenSkin | PlotFloor | BuildingPalette | FieldStyle | SignStyle | ShowcaseFX |
+--              Trail | Title | AnimalHat | MountSkin
+--   Unlock : { Kind = "Free" } | { Kind = "Coins", Price } | { Kind = "Level", Level } |
+--            { Kind = "Index", Zone } (zone de l'Index complétée) |
+--            { Kind = "Robux", Price = prix affiché, ProductId = ID du Developer Product (0 = à créer) }
+--   Default = true : équipé par défaut (gratuit)
+--------------------------------------------------------------------------
+local rgb2 = Color3.fromRGB
+Config.CosmeticCategories = {
+	{ Id = "PenSkin", Icon = "🐾", DisplayName = "Clôtures d'enclos" },
+	{ Id = "PlotFloor", Icon = "🟩", DisplayName = "Sol de parcelle" },
+	{ Id = "BuildingPalette", Icon = "🏠", DisplayName = "Couleurs des bâtiments" },
+	{ Id = "FieldStyle", Icon = "🌱", DisplayName = "Bordures des champs" },
+	{ Id = "SignStyle", Icon = "🪧", DisplayName = "Panneau de parcelle" },
+	{ Id = "ShowcaseFX", Icon = "✨", DisplayName = "Effets de vitrine" },
+	{ Id = "Trail", Icon = "👣", DisplayName = "Traces de pas" },
+	{ Id = "Title", Icon = "🏷️", DisplayName = "Titre" },
+	{ Id = "AnimalHat", Icon = "🎩", DisplayName = "Chapeaux des animaux" },
+	{ Id = "MountSkin", Icon = "🐴", DisplayName = "Selle de monture" },
+}
+
+Config.Cosmetics = {
+	-- Clôtures d'enclos
+	PenWood = { Category = "PenSkin", Name = "Bois", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(150, 105, 60), Material = Enum.Material.Wood },
+	PenStone = { Category = "PenSkin", Name = "Pierre", Unlock = { Kind = "Coins", Price = 25000 }, Color = rgb2(150, 150, 155), Material = Enum.Material.Cobblestone },
+	PenIce = { Category = "PenSkin", Name = "Glace", Unlock = { Kind = "Index", Zone = "Mountain" }, Color = rgb2(170, 220, 255), Material = Enum.Material.Ice },
+	PenCandy = { Category = "PenSkin", Name = "Bonbon", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Color = rgb2(255, 130, 200), Material = Enum.Material.SmoothPlastic },
+	PenNeon = { Category = "PenSkin", Name = "Néon", Unlock = { Kind = "Robux", Price = 79, ProductId = 0 }, Color = rgb2(80, 230, 255), Material = Enum.Material.Neon },
+	PenGold = { Category = "PenSkin", Name = "Or", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(255, 200, 50), Material = Enum.Material.Foil },
+
+	-- Sol de parcelle
+	FloorGrass = { Category = "PlotFloor", Name = "Herbe", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(106, 170, 70), Material = Enum.Material.Grass },
+	FloorMeadow = { Category = "PlotFloor", Name = "Prairie fleurie", Unlock = { Kind = "Level", Level = 10 }, Color = rgb2(130, 190, 90), Material = Enum.Material.LeafyGrass },
+	FloorSand = { Category = "PlotFloor", Name = "Sable doré", Unlock = { Kind = "Coins", Price = 50000 }, Color = rgb2(230, 205, 140), Material = Enum.Material.Sand },
+	FloorSnow = { Category = "PlotFloor", Name = "Neige", Unlock = { Kind = "Index", Zone = "Mountain" }, Color = rgb2(240, 245, 255), Material = Enum.Material.Snow },
+	FloorLava = { Category = "PlotFloor", Name = "Roche volcanique", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color = rgb2(50, 35, 35), Material = Enum.Material.Basalt },
+	FloorRoyal = { Category = "PlotFloor", Name = "Velours royal", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, Color = rgb2(110, 50, 160), Material = Enum.Material.Fabric },
+
+	-- Couleurs des bâtiments (Wall = murs, Roof = toit)
+	BuildClassic = { Category = "BuildingPalette", Name = "Classique", Default = true, Unlock = { Kind = "Free" } },
+	BuildPastel = { Category = "BuildingPalette", Name = "Pastel", Unlock = { Kind = "Coins", Price = 40000 }, Wall = rgb2(255, 230, 240), Roof = rgb2(170, 220, 255) },
+	BuildNight = { Category = "BuildingPalette", Name = "Nuit étoilée", Unlock = { Kind = "Level", Level = 20 }, Wall = rgb2(50, 55, 90), Roof = rgb2(25, 25, 50) },
+	BuildCandy = { Category = "BuildingPalette", Name = "Bonbon", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Wall = rgb2(255, 170, 210), Roof = rgb2(150, 255, 200) },
+	BuildGold = { Category = "BuildingPalette", Name = "Palais doré", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Wall = rgb2(255, 240, 200), Roof = rgb2(255, 190, 40) },
+
+	-- Bordures des champs
+	FieldClassic = { Category = "FieldStyle", Name = "Terre", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(85, 60, 35), Material = Enum.Material.Ground },
+	FieldStone = { Category = "FieldStyle", Name = "Pavés", Unlock = { Kind = "Coins", Price = 15000 }, Color = rgb2(140, 140, 145), Material = Enum.Material.Cobblestone },
+	FieldFlowers = { Category = "FieldStyle", Name = "Fleurs", Unlock = { Kind = "Level", Level = 12 }, Color = rgb2(240, 140, 200), Material = Enum.Material.LeafyGrass },
+	FieldGold = { Category = "FieldStyle", Name = "Or", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Color = rgb2(255, 200, 60), Material = Enum.Material.Foil },
+
+	-- Panneau de parcelle
+	SignWood = { Category = "SignStyle", Name = "Bois", Default = true, Unlock = { Kind = "Free" }, Color = rgb2(150, 105, 60), Material = Enum.Material.WoodPlanks, TextColor = rgb2(255, 255, 255) },
+	SignRoyal = { Category = "SignStyle", Name = "Royal", Unlock = { Kind = "Level", Level = 15 }, Color = rgb2(110, 50, 160), Material = Enum.Material.Fabric, TextColor = rgb2(255, 220, 90) },
+	SignGold = { Category = "SignStyle", Name = "Or", Unlock = { Kind = "Robux", Price = 25, ProductId = 0 }, Color = rgb2(255, 200, 50), Material = Enum.Material.Foil, TextColor = rgb2(255, 250, 220) },
+	SignNeon = { Category = "SignStyle", Name = "Néon", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Color = rgb2(40, 20, 60), Material = Enum.Material.Neon, TextColor = rgb2(120, 255, 255) },
+
+	-- Effets autour de la vitrine
+	FXNone = { Category = "ShowcaseFX", Name = "Aucun", Default = true, Unlock = { Kind = "Free" } },
+	FXSparkles = { Category = "ShowcaseFX", Name = "Étincelles", Unlock = { Kind = "Coins", Price = 100000 }, ParticleColor = rgb2(255, 240, 180), Rate = 6 },
+	FXFireflies = { Category = "ShowcaseFX", Name = "Lucioles", Unlock = { Kind = "Index", Zone = "Forest" }, ParticleColor = rgb2(200, 255, 120), Rate = 4 },
+	FXRainbow = { Category = "ShowcaseFX", Name = "Arc-en-ciel", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, ParticleColor = rgb2(255, 120, 220), Rate = 10, Rainbow = true },
+	FXStars = { Category = "ShowcaseFX", Name = "Pluie d'étoiles", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, ParticleColor = rgb2(255, 230, 120), Rate = 14 },
+
+	-- Traces de pas (traînée derrière le joueur)
+	TrailNone = { Category = "Trail", Name = "Aucune", Default = true, Unlock = { Kind = "Free" } },
+	TrailLeaves = { Category = "Trail", Name = "Feuilles", Unlock = { Kind = "Level", Level = 8 }, Color1 = rgb2(120, 200, 80), Color2 = rgb2(60, 140, 50) },
+	TrailFire = { Category = "Trail", Name = "Braises", Unlock = { Kind = "Index", Zone = "Volcano" }, Color1 = rgb2(255, 200, 60), Color2 = rgb2(255, 60, 20), Glow = true },
+	TrailSparkle = { Category = "Trail", Name = "Paillettes", Unlock = { Kind = "Robux", Price = 49, ProductId = 0 }, Color1 = rgb2(255, 255, 255), Color2 = rgb2(255, 220, 120), Glow = true },
+	TrailRainbow = { Category = "Trail", Name = "Arc-en-ciel", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Color1 = rgb2(255, 80, 80), Color2 = rgb2(80, 120, 255), Glow = true, Rainbow = true },
+
+	-- Titres au-dessus du joueur
+	TitleNone = { Category = "Title", Name = "Aucun", Default = true, Unlock = { Kind = "Free" } },
+	TitleFarmer = { Category = "Title", Name = "Fermier", Unlock = { Kind = "Free" }, Text = "🌾 Fermier", Color = rgb2(180, 230, 120) },
+	TitleBreeder = { Category = "Title", Name = "Éleveur", Unlock = { Kind = "Level", Level = 10 }, Text = "🐄 Éleveur", Color = rgb2(255, 220, 160) },
+	TitleHunter = { Category = "Title", Name = "Chasseur de créatures", Unlock = { Kind = "Index", Zone = "Forest" }, Text = "🪢 Chasseur de créatures", Color = rgb2(200, 160, 255) },
+	TitleChampion = { Category = "Title", Name = "Champion du donjon", Unlock = { Kind = "Level", Level = 25 }, Text = "⚔️ Champion du donjon", Color = rgb2(255, 120, 120) },
+	TitleLegend = { Category = "Title", Name = "Légende", Unlock = { Kind = "Robux", Price = 75, ProductId = 0 }, Text = "🌟 Légende", Color = rgb2(255, 210, 60) },
+	TitleVIP = { Category = "Title", Name = "VIP", Unlock = { Kind = "Robux", Price = 150, ProductId = 0 }, Text = "💎 VIP", Color = rgb2(120, 255, 255) },
+
+	-- Chapeaux de tous les animaux de ferme
+	HatNone = { Category = "AnimalHat", Name = "Aucun", Default = true, Unlock = { Kind = "Free" } },
+	HatStraw = { Category = "AnimalHat", Name = "Chapeau de paille", Unlock = { Kind = "Coins", Price = 30000 }, Shape = "Hat", Color = rgb2(230, 200, 110) },
+	HatFlowers = { Category = "AnimalHat", Name = "Couronne de fleurs", Unlock = { Kind = "Level", Level = 12 }, Shape = "Ring", Color = rgb2(255, 140, 200) },
+	HatParty = { Category = "AnimalHat", Name = "Chapeau de fête", Unlock = { Kind = "Robux", Price = 25, ProductId = 0 }, Shape = "Cone", Color = rgb2(120, 200, 255) },
+	HatCrown = { Category = "AnimalHat", Name = "Couronne", Unlock = { Kind = "Robux", Price = 79, ProductId = 0 }, Shape = "Crown", Color = rgb2(255, 200, 50) },
+
+	-- Selle des montures
+	SaddleClassic = { Category = "MountSkin", Name = "Classique", Default = true, Unlock = { Kind = "Free" }, Saddle = rgb2(120, 50, 40) },
+	SaddleRoyal = { Category = "MountSkin", Name = "Selle royale", Unlock = { Kind = "Coins", Price = 80000 }, Saddle = rgb2(110, 40, 160), Harness = rgb2(255, 200, 60) },
+	SaddleGold = { Category = "MountSkin", Name = "Harnais doré", Unlock = { Kind = "Robux", Price = 99, ProductId = 0 }, Saddle = rgb2(255, 200, 50), Harness = rgb2(255, 240, 150), Neon = true },
+	SaddleStars = { Category = "MountSkin", Name = "Selle étoilée", Unlock = { Kind = "Robux", Price = 149, ProductId = 0 }, Saddle = rgb2(30, 30, 70), Harness = rgb2(150, 220, 255), Neon = true, Sparkles = true },
 }
 
 --------------------------------------------------------------------------

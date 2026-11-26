@@ -39,6 +39,7 @@ local CropUtil = require(ReplicatedStorage.Shared.CropUtil)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local Format = require(ReplicatedStorage.Shared.Format)
 local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
+local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local CurrencyService = require(script.Parent.CurrencyService)
@@ -46,6 +47,7 @@ local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
 local XPService = require(script.Parent.XPService)
+local BoostService = require(script.Parent.BoostService)
 
 local FarmConfig = Config.Farm
 local TILES_PER_FIELD = FarmConfig.FieldColumns * FarmConfig.FieldRows
@@ -118,10 +120,10 @@ local function plantKey(fieldId: string, index: number): string
 	return fieldId .. ":" .. index
 end
 
-function FarmService:GetGrowTime(_player: Player, cropId: string): number
+function FarmService:GetGrowTime(player: Player, cropId: string): number
 	local crop = Config.Crops[cropId]
-	-- Phase 7 (boosts) / phase 9 (game pass) appliqueront un multiplicateur ici
-	return crop.GrowTime
+	-- Boost "Pousse" (Developer Product, roue) : x2 = moitié du temps
+	return math.max(1, math.ceil(crop.GrowTime / BoostService:GetMultiplier(player, "Growth")))
 end
 
 local function totalUnlockedTiles(data: { [string]: any }): number
@@ -526,12 +528,13 @@ local function buildFieldVisual(farm: Farm, fieldId: string)
 
 	-- Bordure de terre retournée sous le champ (repère visuel de l'emprise)
 	local footprint = FarmConfig.FieldFootprint
+	local style = CosmeticUtil.Equipped(farm.Data, "FieldStyle") -- cosmétique "Bordures des champs"
 	makePart({
 		Name = "Border",
 		Size = Vector3.new(footprint.X - 0.5, 0.2, footprint.Y - 0.5),
 		CFrame = origin * CFrame.new(0, 0.1, 0),
-		Color = Color3.fromRGB(85, 60, 35),
-		Material = Enum.Material.Ground,
+		Color = if style and style.Color then style.Color else Color3.fromRGB(85, 60, 35),
+		Material = if style and style.Material then style.Material else Enum.Material.Ground,
 		Parent = model,
 	})
 

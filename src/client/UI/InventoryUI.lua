@@ -125,13 +125,13 @@ local function rebuild(inventory: { [string]: { [string]: number } }?)
 
 	summary.Text = ("%d / %d produits  •  valeur ≈ 💰 %s  •  Vends au stand 💰 VENTE"):format(
 		totalCount,
-		Config.Farm.InventoryCapacity,
+		ItemUtil.Capacity(game:GetService("Players").LocalPlayer),
 		Format.Number(totalValue)
 	)
-	summary.TextColor3 = if totalCount >= Config.Farm.InventoryCapacity then Color3.fromRGB(255, 100, 100) else Theme.Colors.Text
+	summary.TextColor3 = if totalCount >= ItemUtil.Capacity(game:GetService("Players").LocalPlayer) then Color3.fromRGB(255, 100, 100) else Theme.Colors.Text
 
 	if hudButton then
-		hudButton.Text = ("🎒 Sac %d/%d"):format(totalCount, Config.Farm.InventoryCapacity)
+		hudButton.Text = ("🎒 Sac %d/%d"):format(totalCount, ItemUtil.Capacity(game:GetService("Players").LocalPlayer))
 	end
 end
 

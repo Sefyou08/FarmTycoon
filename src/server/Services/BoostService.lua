@@ -89,16 +89,7 @@ local function onConsume(player: Player, itemId: any, variant: any): (boolean, s
 	local rank = ItemUtil.GetVariant(variant).Order - 1
 	local power = consumable.Power * (1 + BoostConfig.VariantPowerBonus * rank)
 	local duration = consumable.Duration * (1 + BoostConfig.VariantDurationBonus * rank)
-
-	local now = os.time()
-	local current = data.Boosts[consumable.Boost]
-	local endsAt = math.max(if current then current.EndsAt else now, now) + duration
-	data.Boosts[consumable.Boost] = {
-		Power = math.max(power, if current and current.EndsAt > now then current.Power else 0),
-		EndsAt = math.min(endsAt, now + BoostConfig.MaxDuration),
-	}
-	SyncService:Set(player, "Boosts", data.Boosts)
-	applySpeedAttribute(player)
+	BoostService:Grant(player, consumable.Boost, power, duration)
 
 	local info = BoostConfig.Types[consumable.Boost]
 	return true, ("%s %s mangé : boost %s +%d %% pendant %s"):format(
@@ -108,6 +99,25 @@ local function onConsume(player: Player, itemId: any, variant: any): (boolean, s
 		math.floor(power * 100 + 0.5),
 		Format.Time(duration)
 	)
+end
+
+-- Active (ou prolonge) un boost : utilisé par les consommables, la roue et les achats Robux.
+-- Même type : on garde la plus forte puissance, la durée s'ajoute (plafond MaxDuration).
+function BoostService:Grant(player: Player, boostType: string, power: number, duration: number): boolean
+	local data = DataService:GetData(player)
+	if not data or not BoostConfig.Types[boostType] or power <= 0 or duration <= 0 then
+		return false
+	end
+	local now = os.time()
+	local current = data.Boosts[boostType]
+	local endsAt = math.max(if current then current.EndsAt else now, now) + duration
+	data.Boosts[boostType] = {
+		Power = math.max(power, if current and current.EndsAt > now then current.Power else 0),
+		EndsAt = math.min(endsAt, now + BoostConfig.MaxDuration),
+	}
+	SyncService:Set(player, "Boosts", data.Boosts)
+	applySpeedAttribute(player)
+	return true
 end
 
 function BoostService:Init()

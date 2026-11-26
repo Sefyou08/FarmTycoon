@@ -31,8 +31,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - [x] Phase 5b : mode construction + champs
 - [x] Phase 6 : collection, exposition, vitrine, Index, classement
 - [x] Phase 7 : progression, ressources rares, consommables, aides PNJ
-- [ ] Phase 8 : donjon + œufs de créatures (à tester)
-- [ ] Phase 9 : monétisation
+- [x] Phase 8 : donjon + œufs de créatures
+- [ ] Phase 9 : monétisation, roue quotidienne, cosmétiques (à tester)
 - [ ] Phase 10 : direction artistique
 
 ## Boucle de jeu actuelle
@@ -62,3 +62,12 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 22. **🐣 Couver** dans le sac : fais éclore les œufs gagnés au donjon pour obtenir des créatures.
 23. **🐴 Monture** : choisis ton cheval (enclos ou chevaux sauvages capturés), monte et descends avec le même bouton.
 24. **Chevaux sauvages** : un par zone d'expédition (Mousseval, Givrecrin, Sablecrin, Brasecrin), capturables ; 🐾 dans la collection pour le mettre en enclos.
+25. **🎡 Roue** : 1 tour gratuit par jour (chances affichées) ; 0,1 % de gagner l'Astrelune 🦄, animal exclusif.
+26. **💎 Boutique** : Game Passes et achats Robux (IDs à mettre dans `Config.Monetization`).
+27. **🎨 Personnaliser** : clôtures, sol, bâtiments, champs, panneau, vitrine, traces, titre, chapeaux, selle (visuel uniquement).
+
+## Achats Robux : où mettre les IDs
+- Game Passes : `Config.Monetization.GamePasses.<Nom>.Id`
+- Developer Products : `Config.Monetization.Products.<Nom>.Id`
+- Cosmétiques payants : `Config.Cosmetics.<Nom>.Unlock.ProductId` (un Developer Product par cosmétique)
+- Un Id à `0` affiche « Bientôt disponible ». `GrantAllPassesInStudio = true` donne tous les passes dans Studio pour tester.

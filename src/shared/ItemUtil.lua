@@ -97,6 +97,12 @@ function ItemUtil.Label(itemId: string, variant: string?): string
 	return text
 end
 
+-- Capacité du sac d'un joueur (+ bonus du Game Pass "Grand sac", attribut posé par le serveur)
+function ItemUtil.Capacity(player: Player?): number
+	local bonus = if player and player:GetAttribute("Pass_BigBackpack") then Config.Monetization.GamePasses.BigBackpack.Bonus else 0
+	return Config.Farm.InventoryCapacity + bonus
+end
+
 -- Prix de vente d'UNE unité (avant multiplicateurs du joueur)
 function ItemUtil.UnitValue(itemId: string, variant: string?): number
 	local item = ItemUtil.Get(itemId)

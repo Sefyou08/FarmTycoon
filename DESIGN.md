@@ -85,8 +85,8 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 5b | Mode construction (placer / déplacer / ranger) + champs supplémentaires | ✅ fait |
 | 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) + vitrine de prestige + rareté Divine | ✅ fait |
 | 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | ✅ fait |
-| 8 | Donjon (ennemis, boss, combat simple, récompenses rares) + œufs de créatures | 🧪 codée, à tester |
-| 9 | Monétisation (Game Passes, Developer Products, IDs factices) + roue quotidienne + personnalisation cosmétique | à faire |
+| 8 | Donjon (ennemis, boss, combat simple, récompenses rares) + œufs de créatures | ✅ fait |
+| 9 | Monétisation (Game Passes, Developer Products, IDs factices) + roue quotidienne + personnalisation cosmétique | 🧪 codée, à tester |
 | 10 | Direction artistique complète (créatures, animaux, zones, ferme, bâtiments) | à faire |
 
 ### Phase 3 : Animaux de ferme
@@ -257,6 +257,19 @@ plus d'animaux et de bâtiments, et à partir en expédition.
   - un menu **« 🎨 Personnaliser »** avec un **aperçu avant l'achat** ;
   - si un achat payant donne un résultat aléatoire, **afficher clairement les chances** (règle
     Roblox).
+
+**Réalisé (phase 9)** :
+- `MonetizationService` : Game Passes vérifiés à l'arrivée (attribut `Pass_<Nom>` sur le joueur),
+  `ProcessReceipt` idempotent (`data.PurchaseHistory`, 300 derniers reçus, sauvegarde immédiate),
+  `NotProcessedYet` si les données ne sont pas prêtes. Id = 0 → bouton « Bientôt disponible ».
+- `WheelService` + `WheelUI` (🎡) : tirage serveur, bande de cases qui ralentit jusqu'au résultat,
+  chances affichées, ouverture auto à la connexion, tours achetés en réserve.
+- **Astrelune** 🦄 (0,1 %) : licorne céleste exclusive (aura, particules, crinière rose, corne
+  lumineuse), produit la **Poussière d'étoile** (30 000 Coins). Montable (56 / 70, saut 90).
+  Sans enclos libre, elle attend (`data.PendingAnimals`) et arrive dès qu'un enclos se libère.
+- `CosmeticService` + `CosmeticsUI` (🎨) : 10 catégories, déblocage gratuit / niveau / Index /
+  Coins / Robux, aperçu 👁 (traces et titre essayés sur ton personnage).
+- `StoreUI` (💎 Boutique) : passes et produits, prix affichés.
 
 ### Phase 10 : Direction artistique complète
 Le gameplay est là ; il faut maintenant une vraie identité visuelle.
@@ -536,3 +549,26 @@ multipliés : Rare x1,5, Épique x3, Légendaire x5, Mythique x8, Secrète et Di
 Un cheval sauvage capturé reste dans la collection (monture possible) ; le bouton 🐾 le met dans
 un enclos, où il produit son crin et reste une monture. Valeurs : `Config.Mounts`,
 `Config.Animals` (espèces ForestHorse, SnowHorse, SandHorse, LavaHorse), `Config.Creatures`.
+
+### 5.11 Monétisation, roue et cosmétiques (phase 9)
+Tous les prix et effets : `Config.Monetization`, `Config.Wheel`, `Config.Cosmetics`.
+
+| Game Pass | Prix | Effet |
+|---|---|---|
+| 💰 x2 Coins | 199 R$ | gains de Coins x2 |
+| 🧑‍🌾 Aides premium | 249 R$ | tournées des aides 2x plus rapides |
+| 🎒 Grand sac | 99 R$ | +300 places |
+| 🐣 Couveuses en plus | 149 R$ | +2 couveuses |
+| 📖 Grande collection | 149 R$ | +100 créatures |
+
+Developer Products : packs de Coins (25 / 99 / 299 R$, montant selon le niveau), agrandissement
+(99 R$ ; Coins si déjà au maximum), éclosion immédiate (25 R$), tours de roue (19 R$ / 5 pour
+79 R$), boosts 30 min de 15 à 49 R$ (pousse, production, Coins, XP, vitesse, capture, force).
+
+Roue (total des poids = 100, donc poids = %) : Coins 25 %, fraises 14 %, gros Coins 10 %,
+boost Coins 8 %, boost XP 8 %, XP 8 %, fruit du dragon 6 %, boost pousse 6 %, rations 5 %,
+boost capture 4 %, œuf Forêt 2,5 %, fleur étoile 2 %, œuf Montagne 1 %, créature du Désert 0,4 %,
+**Astrelune 0,1 %**.
+
+Cosmétiques : 25 à 150 R$ ; environ la moitié se débloque en jouant (niveaux 8 à 25, Index de zone,
+Coins).

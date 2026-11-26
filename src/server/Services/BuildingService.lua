@@ -34,6 +34,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
+local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local CurrencyService = require(script.Parent.CurrencyService)
@@ -41,6 +42,7 @@ local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
 local XPService = require(script.Parent.XPService)
+local BoostService = require(script.Parent.BoostService)
 
 local Settings = Config.BuildingSettings
 local LEVELS = Config.BuildingLevels
@@ -124,8 +126,9 @@ local function outputTotal(building: { [string]: any }): number
 	return total
 end
 
-function BuildingService:GetSpeedMultiplier(_player: Player): number
-	return 1 -- phase 7 (rebirth) / phase 8 (game pass)
+-- Boost "Production" (Developer Product) : bâtiments plus rapides
+function BuildingService:GetSpeedMultiplier(player: Player): number
+	return BoostService:GetMultiplier(player, "Production")
 end
 
 -- Raison pour laquelle le bâtiment ne peut pas être construit (nil = constructible)
@@ -246,6 +249,8 @@ local function buildVisual(state: State, buildingId: string)
 	end
 	-- Repère de l'emprise ; le bâtiment est reculé de 1 stud pour laisser la place devant la porte
 	local base = PlotService:ToWorld(state.Plot, 0, 0) * PlacementUtil.LocalCFrame(building.X, building.Z, building.Rot or 0)
+	-- Cosmétique "Couleurs des bâtiments" (Classique = couleurs d'origine de chaque bâtiment)
+	local palette = CosmeticUtil.Equipped(state.Data, "BuildingPalette") or {}
 	local origin = base * CFrame.new(0, 0, 1)
 
 	local model = Instance.new("Model")
@@ -259,7 +264,7 @@ local function buildVisual(state: State, buildingId: string)
 		Name = "Walls",
 		Size = Vector3.new(def.Width, wallHeight, def.Depth),
 		CFrame = origin * CFrame.new(0, wallHeight / 2, 0),
-		Color = def.WallColor,
+		Color = palette.Wall or def.WallColor,
 		Material = Enum.Material.SmoothPlastic,
 		Parent = model,
 	})
@@ -273,7 +278,7 @@ local function buildVisual(state: State, buildingId: string)
 		-- Un WedgePart est haut côté +Z local et descend vers -Z : on tourne la pente "+Z"
 		-- de 180° pour que les deux pentes montent vers le faîte (au centre)
 		roof.CFrame = origin * CFrame.new(0, wallHeight + 1.5, side * (def.Depth / 4 + 0.25)) * CFrame.Angles(0, if side > 0 then math.pi else 0, 0)
-		roof.Color = def.RoofColor
+		roof.Color = palette.Roof or def.RoofColor
 		roof.Material = Enum.Material.SmoothPlastic
 		roof.Parent = model
 	end

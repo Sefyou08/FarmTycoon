@@ -193,7 +193,7 @@ local function rebuild()
 	local income = StateController.Get("DisplayIncome") or 0
 	summary.Text = ("%d / %d créatures  •  🏛️ %d socle(s) libre(s)  •  +%s Coins/s  •  ⭐ %d/%d en vitrine"):format(
 		#creatures,
-		Config.Expeditions.MaxCreatures,
+		CreatureUtil.MaxCreatures(game:GetService("Players").LocalPlayer),
 		freePedestals,
 		Format.Number(income),
 		#picks,

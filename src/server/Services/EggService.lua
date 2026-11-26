@@ -3,7 +3,7 @@
 	==============
 	Œufs de créatures (récompenses de donjon, Config.Eggs).
 	  • RemoteFunction "Hatch"(eggId, variante) : retire l'œuf du sac et le met à
-	    couver (Config.EggSettings.Incubators œufs en même temps).
+	    couver (CreatureUtil.Incubators : 3, +2 avec le Game Pass "Couveuses en plus").
 	  • data.Hatching = { { Id, Egg, ReadyAt = os.time() } } : l'éclosion continue
 	    hors ligne.
 	  • À l'éclosion, une créature de la zone de l'œuf est tirée avec des raretés
@@ -32,9 +32,23 @@ local EggService = {}
 
 local warnedFull: { [Player]: boolean } = {}
 
--- Phase 9 (Robux) : éclosion plus rapide
+-- Vitesse d'éclosion (1 = normale) ; l'achat Robux "Éclosion immédiate" utilise HatchAllNow
 function EggService:GetHatchSpeedMultiplier(_player: Player): number
 	return 1
+end
+
+-- Tous les œufs en couveuse éclosent tout de suite (Developer Product). Renvoie le nombre d'œufs.
+function EggService:HatchAllNow(player: Player): number
+	local data = DataService:GetData(player)
+	if not data then
+		return 0
+	end
+	local now = os.time()
+	for _, entry in data.Hatching do
+		entry.ReadyAt = math.min(tonumber(entry.ReadyAt) or now, now)
+	end
+	SyncService:Set(player, "Hatching", data.Hatching)
+	return #data.Hatching
 end
 
 local function onHatch(player: Player, eggId: any, variant: any): (boolean, string)
@@ -49,8 +63,9 @@ local function onHatch(player: Player, eggId: any, variant: any): (boolean, stri
 	if not data then
 		return false, "Données pas encore chargées."
 	end
-	if #data.Hatching >= Config.EggSettings.Incubators then
-		return false, ("Tes %d couveuses sont occupées."):format(Config.EggSettings.Incubators)
+	local incubators = CreatureUtil.Incubators(player)
+	if #data.Hatching >= incubators then
+		return false, ("Tes %d couveuses sont occupées."):format(incubators)
 	end
 	if not InventoryService:RemoveItem(player, eggId, variant, 1) then
 		return false, "Tu n'as pas cet œuf."
@@ -71,7 +86,7 @@ local function hatchReady(player: Player, data: { [string]: any })
 			table.remove(data.Hatching, i)
 			changed = true
 		elseif now >= (tonumber(entry.ReadyAt) or 0) then
-			if #data.Creatures >= Config.Expeditions.MaxCreatures then
+			if #data.Creatures >= CreatureUtil.MaxCreatures(player) then
 				if not warnedFull[player] then
 					warnedFull[player] = true
 					SyncService:Notify(player, "🐣 Un œuf est prêt mais ta collection est pleine : vends ou expose des créatures !", "Error")

@@ -84,6 +84,18 @@ function CreatureUtil.Label(creatureId: string, mutationId: string?): string
 	return def.DisplayName .. (if adjective ~= "" then " " .. adjective else "")
 end
 
+-- Taille max de la collection (+ bonus du Game Pass "Grande collection")
+function CreatureUtil.MaxCreatures(player: Player?): number
+	local bonus = if player and player:GetAttribute("Pass_BigCollection") then Config.Monetization.GamePasses.BigCollection.Bonus else 0
+	return Config.Expeditions.MaxCreatures + bonus
+end
+
+-- Nombre de couveuses (+ bonus du Game Pass "Couveuses en plus")
+function CreatureUtil.Incubators(player: Player?): number
+	local bonus = if player and player:GetAttribute("Pass_ExtraIncubators") then Config.Monetization.GamePasses.ExtraIncubators.Bonus else 0
+	return Config.EggSettings.Incubators + bonus
+end
+
 -- Coins / seconde d'une créature exposée = revenu de la rareté x zone x mutation
 function CreatureUtil.GetIncome(creatureId: string, mutationId: string?): number
 	local def = Config.Creatures[creatureId]

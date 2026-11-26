@@ -120,7 +120,7 @@ function InventoryService:GetItemCount(player: Player): number
 end
 
 function InventoryService:GetFreeSpace(player: Player): number
-	return math.max(0, FarmConfig.InventoryCapacity - self:GetItemCount(player))
+	return math.max(0, ItemUtil.Capacity(player) - self:GetItemCount(player))
 end
 
 function InventoryService:HasRoom(player: Player, amount: number?): boolean

@@ -39,9 +39,9 @@ type State = {
 
 local states: { [Player]: State } = {}
 
--- Phase 9 : Game Pass "aides premium" -> 2
-function HelperService:GetSpeedMultiplier(_player: Player): number
-	return 1
+-- Game Pass "Aides premium" : tournées 2x plus rapides (attribut posé par MonetizationService)
+function HelperService:GetSpeedMultiplier(player: Player): number
+	return if player:GetAttribute("Pass_PremiumHelpers") then 2 else 1
 end
 
 local function makePart(props: { [string]: any }): Part

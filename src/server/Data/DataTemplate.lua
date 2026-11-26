@@ -28,6 +28,9 @@ return {
 	Helpers = {}, -- aides PNJ : { Farmer = niveau, Caretaker = niveau } (absent = pas acheté)
 	Hatching = {}, -- œufs en train d'éclore : { { Id, Egg = "ForestEgg", ReadyAt = os.time() } }
 	DungeonClears = {}, -- victoires par donjon : { [dungeonId] = nombre }
+	Wheel = { LastFree = 0, ExtraSpins = 0 }, -- roue quotidienne : dernier tour gratuit (os.time), tours achetés
+	PendingAnimals = {}, -- animaux gagnés en attente d'un enclos libre : { { Species, Variant } }
+	Cosmetics = { Owned = {}, Equipped = {} }, -- cosmétiques achetés et équipés ({ [catégorie] = id })
 
 	Inventory = {}, -- produits récoltés : { [cropId] = { [variante] = quantité } } (variante "Normal" ou mutation en phase 3)
 	Seeds = {}, -- graines possédées : { [cropId] = quantité }

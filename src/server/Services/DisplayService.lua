@@ -35,6 +35,7 @@ local CreatureUtil = require(ReplicatedStorage.Shared.CreatureUtil)
 local Format = require(ReplicatedStorage.Shared.Format)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
+local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local CreatureBuilder = require(script.Parent.Parent.Util.CreatureBuilder)
@@ -65,6 +66,7 @@ type ShowcaseSlot = {
 	Label: TextLabel,
 	Top: CFrame,
 	Content: Model?,
+	FX: ParticleEmitter?, -- cosmétique "Effets de vitrine"
 }
 
 local states: { [any]: State } = {}
@@ -346,6 +348,10 @@ local function clearShowcase(plot: any)
 			slot.Content:Destroy()
 			slot.Content = nil
 		end
+		if slot.FX then
+			slot.FX:Destroy()
+			slot.FX = nil
+		end
 		slot.Ring.Color = Color3.fromRGB(120, 120, 130)
 		slot.Light.Enabled = false
 		slot.Label.Text = ""
@@ -358,7 +364,8 @@ local function renderShowcase(state: State)
 	for _, entry in entries do
 		table.insert(keys, entry.Key .. "|" .. (entry.Mutation or entry.Variant or ""))
 	end
-	local signature = table.concat(keys, ",")
+	local fxId = CosmeticUtil.EquippedId(state.Data, "ShowcaseFX") or ""
+	local signature = table.concat(keys, ",") .. "|" .. fxId
 	if signature == state.ShowcaseSignature then
 		return -- rien n'a changé
 	end
@@ -395,6 +402,27 @@ local function renderShowcase(state: State)
 			slot.Light.Color = color
 			slot.Light.Enabled = true
 			slot.Label.Text = text
+		end
+		-- Effet cosmétique autour de chaque socle de la vitrine
+		local fx = Config.Cosmetics[fxId]
+		if fx and fx.Rate then
+			local particles = Instance.new("ParticleEmitter")
+			particles.Color = if fx.Rainbow
+				then ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 80, 80)),
+					ColorSequenceKeypoint.new(0.33, Color3.fromRGB(255, 230, 80)),
+					ColorSequenceKeypoint.new(0.66, Color3.fromRGB(80, 220, 120)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 140, 255)),
+				})
+				else ColorSequence.new(fx.ParticleColor)
+			particles.LightEmission = 1
+			particles.Rate = fx.Rate
+			particles.Lifetime = NumberRange.new(1.2, 2.2)
+			particles.Speed = NumberRange.new(0.5, 1.5)
+			particles.SpreadAngle = Vector2.new(180, 30)
+			particles.Size = NumberSequence.new(0.3, 0)
+			particles.Parent = slot.Ring
+			slot.FX = particles
 		end
 	end
 

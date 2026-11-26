@@ -52,6 +52,8 @@ Remotes.FunctionNames = {
 	"DungeonAction", -- Client -> Serveur : ("Enter", dungeonId) | ("Leave") -> (ok, message)
 	"Hatch", -- Client -> Serveur : (eggId, variante) mettre un œuf à couver -> (ok, message)
 	"MountAction", -- Client -> Serveur : ("Mount", kind, id) | ("Dismount") | ("List") -> résultat
+	"SpinWheel", -- Client -> Serveur : () tourner la roue -> { Ok, Index, Text, Jackpot, Message }
+	"CosmeticAction", -- Client -> Serveur : ("Buy" | "Equip", cosmeticId) -> (ok, message)
 }
 
 local folder: Folder? = nil

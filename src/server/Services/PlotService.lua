@@ -34,6 +34,7 @@ local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local DataService = require(script.Parent.DataService)
@@ -194,6 +195,20 @@ local function applyLevel(plot: Plot, level: number)
 		plot.ExpandPrompt.ActionText = ("Agrandir : %s Coins"):format(Format.Number(EXPANSIONS[level + 1].Price))
 		plot.ExpandPrompt.ObjectText = ("Parcelle niveau %d → %d"):format(level, level + 1)
 	end
+
+	-- Cosmétiques du propriétaire : sol et panneau (valeurs par défaut si parcelle libre)
+	local data = plot.Owner and DataService:GetData(plot.Owner)
+	local floor = CosmeticUtil.Equipped(data, "PlotFloor")
+	plot.Base.Color = if floor and floor.Color then floor.Color else PlotConfig.GroundColor
+	plot.Base.Material = if floor and floor.Material then floor.Material else Enum.Material.Grass
+	local sign = CosmeticUtil.Equipped(data, "SignStyle")
+	for _, child in plot.Model:GetChildren() do
+		if child:IsA("BasePart") and (child.Name == "SignPost" or child.Name == "SignBoard") then
+			child.Color = if sign and sign.Color then sign.Color else PlotConfig.SignColor
+			child.Material = if sign and sign.Material then sign.Material else Enum.Material.WoodPlanks
+		end
+	end
+	plot.OwnerLabel.TextColor3 = if sign and sign.TextColor then sign.TextColor else Color3.new(1, 1, 1)
 end
 
 local function buildPlot(id: number, folder: Folder): Plot

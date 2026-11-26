@@ -35,11 +35,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
+local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local InventoryService = require(script.Parent.InventoryService)
 local XPService = require(script.Parent.XPService)
+local BoostService = require(script.Parent.BoostService)
 
 local PenConfig = Config.Pens
 
@@ -151,8 +153,9 @@ local function syncPens(state: { [string]: any })
 	SyncService:Set(state.Player, "Pens", state.Data.Pens)
 end
 
-function AnimalService:GetProductionMultiplier(_player: Player): number
-	return 1 -- phase 7 (rebirth) / phase 8 (game pass)
+-- Boost "Production" (Developer Product) : animaux plus rapides
+function AnimalService:GetProductionMultiplier(player: Player): number
+	return BoostService:GetMultiplier(player, "Production")
 end
 
 --------------------------------------------------------------------------
@@ -329,6 +332,44 @@ local function buildAnimalModel(speciesId: string, variantId: string, groundCFra
 	nameLabel.Text = species.DisplayName .. (if adjective ~= "" then " " .. adjective else "")
 	nameLabel.TextColor3 = if variantId == "Normal" then Color3.new(1, 1, 1) else variant.Color
 
+	-- Animal céleste (Astrelune, exclusif à la roue) : corne d'étoile, auréole, crinière
+	-- arc-en-ciel animée, lumière et poussière d'étoiles, quelle que soit sa variante
+	if species.Celestial then
+		local headPart = model:FindFirstChild("Head") :: BasePart?
+		if headPart then
+			local hornCFrame = headPart.CFrame * CFrame.new(0, head.Y / 2 + 0.55, -head.Z * 0.2) * CFrame.Angles(math.rad(-25), 0, 0)
+			local horn = part("StarHorn", Vector3.new(0.3, 1.2, 0.3), CFrame.new(), Color3.fromRGB(255, 240, 150), false)
+			horn.CFrame = hornCFrame
+			horn.Material = Enum.Material.Neon
+			for i = 1, 10 do
+				local angle = i / 10 * math.pi * 2
+				local halo = part("Halo", Vector3.new(0.35, 0.08, 0.12), CFrame.new(), Color3.fromRGB(255, 230, 120), false)
+				halo.CFrame = headPart.CFrame * CFrame.new(math.cos(angle) * 0.8, head.Y / 2 + 1.2, math.sin(angle) * 0.8) * CFrame.Angles(0, -angle, 0)
+				halo.Material = Enum.Material.Neon
+			end
+		end
+		local mane = model:FindFirstChild("Mane") :: BasePart?
+		if mane then
+			mane:SetAttribute("HueOffset", 0)
+			CollectionService:AddTag(mane, RAINBOW_TAG)
+			mane.Material = Enum.Material.Neon
+		end
+		local light = Instance.new("PointLight")
+		light.Color = Color3.fromRGB(255, 200, 255)
+		light.Range = 16
+		light.Brightness = 2.5
+		light.Parent = bodyPart
+		local stars = Instance.new("ParticleEmitter")
+		stars.Color = ColorSequence.new(Color3.fromRGB(255, 240, 180), Color3.fromRGB(200, 150, 255))
+		stars.LightEmission = 1
+		stars.Rate = 18
+		stars.Lifetime = NumberRange.new(1, 2)
+		stars.Speed = NumberRange.new(0.5, 2)
+		stars.SpreadAngle = Vector2.new(180, 180)
+		stars.Size = NumberSequence.new(0.4, 0)
+		stars.Parent = bodyPart
+	end
+
 	model:SetAttribute("Variant", variantId)
 	return model
 end
@@ -342,6 +383,46 @@ end
 -- Visuels des enclos
 --------------------------------------------------------------------------
 
+-- Cosmétique "Chapeaux des animaux" : un petit accessoire posé sur la tête
+local function addHat(model: Model, hat: any)
+	local head = model:FindFirstChild("Head") :: BasePart?
+	if not hat or not hat.Shape or not head then
+		return
+	end
+	local top = head.CFrame * CFrame.new(0, head.Size.Y / 2, 0)
+	local function hatPart(name: string, shape: Enum.PartType, size: Vector3, offset: CFrame, material: Enum.Material?)
+		local p = Instance.new("Part")
+		p.Name = name
+		p.Shape = shape
+		p.Size = size
+		p.CFrame = top * offset
+		p.Color = hat.Color
+		p.Material = material or Enum.Material.SmoothPlastic
+		p.Anchored = true
+		p.CanCollide = false
+		p.CanQuery = false
+		p.CanTouch = false
+		p.Parent = model
+	end
+	local w = head.Size.X
+	if hat.Shape == "Hat" then
+		hatPart("HatBrim", Enum.PartType.Cylinder, Vector3.new(0.1, w * 1.6, w * 1.6), CFrame.new(0, 0.05, 0) * CFrame.Angles(0, 0, math.rad(90)))
+		hatPart("HatTop", Enum.PartType.Cylinder, Vector3.new(w * 0.5, w * 0.8, w * 0.8), CFrame.new(0, w * 0.25, 0) * CFrame.Angles(0, 0, math.rad(90)))
+	elseif hat.Shape == "Ring" then
+		for i = 1, 6 do
+			local angle = i / 6 * math.pi * 2
+			hatPart("Flower", Enum.PartType.Ball, Vector3.one * w * 0.3, CFrame.new(math.cos(angle) * w * 0.4, 0.1, math.sin(angle) * w * 0.4))
+		end
+	elseif hat.Shape == "Cone" then
+		hatPart("PartyHat", Enum.PartType.Block, Vector3.new(w * 0.45, w * 0.9, w * 0.45), CFrame.new(0, w * 0.45, 0) * CFrame.Angles(0, math.rad(45), 0))
+	elseif hat.Shape == "Crown" then
+		for i = 1, 5 do
+			local angle = i / 5 * math.pi * 2
+			hatPart("Crown", Enum.PartType.Block, Vector3.new(w * 0.15, w * 0.35, w * 0.15), CFrame.new(math.cos(angle) * w * 0.35, w * 0.17, math.sin(angle) * w * 0.35), Enum.Material.Foil)
+		end
+	end
+end
+
 local function spawnAnimalVisual(state: State, key: string, animal: { [string]: any })
 	local visual = state.Visuals[key]
 	local pen = state.Data.Pens[key]
@@ -354,6 +435,7 @@ local function spawnAnimalVisual(state: State, key: string, animal: { [string]: 
 	local ground = visual.Center * CFrame.new(math.cos(angle) * distance, 0, math.sin(angle) * distance) * CFrame.Angles(0, math.random() * math.pi * 2, 0)
 
 	local model = buildAnimalModel(pen.Species, animal.Variant, ground)
+	addHat(model, CosmeticUtil.Equipped(state.Data, "AnimalHat"))
 	model:SetAttribute("WanderCenter", visual.Center.Position)
 	model:SetAttribute("WanderRadius", radius)
 	model.Parent = visual.Folder
@@ -455,7 +537,10 @@ local function buildPenVisual(state: State, key: string)
 	-- Clôtures basses (on peut sauter par-dessus) + poteaux d'angle
 	local half = size / 2
 	local fenceHeight = 1.6
-	local fenceColor = Color3.fromRGB(150, 105, 60)
+	-- Cosmétique "Clôtures d'enclos"
+	local skin = CosmeticUtil.Equipped(state.Data, "PenSkin")
+	local fenceColor = if skin and skin.Color then skin.Color else Color3.fromRGB(150, 105, 60)
+	local fenceMaterial = if skin and skin.Material then skin.Material else Enum.Material.Wood
 	for _, side in {
 		{ Vector3.new(size, 0.3, 0.3), Vector3.new(0, 0, -half) },
 		{ Vector3.new(size, 0.3, 0.3), Vector3.new(0, 0, half) },
@@ -468,7 +553,7 @@ local function buildPenVisual(state: State, key: string)
 				Size = side[1],
 				CFrame = center * CFrame.new(side[2] + Vector3.new(0, y, 0)),
 				Color = fenceColor,
-				Material = Enum.Material.Wood,
+				Material = fenceMaterial,
 				Parent = folder,
 			})
 		end
@@ -480,7 +565,7 @@ local function buildPenVisual(state: State, key: string)
 				Size = Vector3.new(0.5, fenceHeight, 0.5),
 				CFrame = center * CFrame.new(sx * half, fenceHeight / 2, sz * half),
 				Color = fenceColor,
-				Material = Enum.Material.Wood,
+				Material = fenceMaterial,
 				Parent = folder,
 			})
 		end
@@ -727,6 +812,25 @@ function AnimalService:FindPenFor(player: Player, speciesId: string): (string?, 
 		return nil, "Construis d'abord un enclos : bouton 🔨 Construire !"
 	end
 	return nil, "Pas de place : construis (ou place) un enclos pour cette espèce."
+end
+
+-- Ajoute des rations dans la mangeoire de chaque enclos posé et occupé (récompense de la roue).
+-- Renvoie le nombre d'enclos remplis.
+function AnimalService:AddRationsAll(player: Player, amount: number): number
+	local state = states[player]
+	if not state then
+		return 0
+	end
+	local count = 0
+	for key, pen in state.Data.Pens do
+		if pen.Placed and pen.Species then
+			simulate(pen, os.time(), AnimalService:GetProductionMultiplier(player))
+			pen.Feed = math.min(PenConfig.FeedCapacity, pen.Feed + amount)
+			updatePenInfo(state, key)
+			count += 1
+		end
+	end
+	return count
 end
 
 -- Prix du prochain enclos, ou nil + raison

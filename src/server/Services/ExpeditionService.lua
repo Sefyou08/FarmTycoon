@@ -519,7 +519,7 @@ end
 
 local function giveCreature(player: Player, creatureId: string, mutationId: string): boolean
 	local data = DataService:GetData(player)
-	if not data or #data.Creatures >= Exp.MaxCreatures then
+	if not data or #data.Creatures >= CreatureUtil.MaxCreatures(player) then
 		return false
 	end
 	table.insert(data.Creatures, {
@@ -633,8 +633,8 @@ startCapture = function(player: Player, wild: Wild)
 	if not data then
 		return
 	end
-	if #data.Creatures >= Exp.MaxCreatures then
-		SyncService:Notify(player, ("Ta collection est pleine (%d) ! Vends des créatures."):format(Exp.MaxCreatures), "Error")
+	if #data.Creatures >= CreatureUtil.MaxCreatures(player) then
+		SyncService:Notify(player, ("Ta collection est pleine (%d) ! Vends des créatures."):format(CreatureUtil.MaxCreatures(player)), "Error")
 		return
 	end
 

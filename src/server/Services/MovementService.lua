@@ -23,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local CreatureUtil = require(ReplicatedStorage.Shared.CreatureUtil)
+local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
@@ -129,7 +130,8 @@ local function mount(player: Player, entry: { [string]: any }): (boolean, string
 		UseJumpPower = humanoid.UseJumpPower,
 		JumpPower = humanoid.JumpPower,
 	}
-	local model, body = MountBuilder.Build(entry.Species, entry.Variant)
+	local skin = CosmeticUtil.Equipped(DataService:GetData(player), "MountSkin") -- selle cosmétique
+	local model, body = MountBuilder.Build(entry.Species, entry.Variant, skin)
 	model:SetAttribute("OwnerUserId", player.UserId)
 	ride.Model = model
 

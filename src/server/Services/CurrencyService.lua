@@ -49,11 +49,12 @@ function CurrencyService:Refresh(player: Player)
 	SyncService:Set(player, "Rebirths", data.Rebirths)
 end
 
--- Multiplicateur des GAINS (vente, socles) : rebirths x boost "Coins"
+-- Multiplicateur des GAINS (vente, socles) : rebirths x boost "Coins" x Game Pass x2 Coins
 function CurrencyService:GetCoinMultiplier(player: Player): number
 	local data = DataService:GetData(player)
 	local rebirths = if data then data.Rebirths else 0
-	return (1 + Config.Rebirth.CoinMultiplierPerRebirth * rebirths) * BoostService:GetMultiplier(player, "Coins")
+	local pass = if player:GetAttribute("Pass_DoubleCoins") then 2 else 1 -- Game Pass x2 Coins
+	return (1 + Config.Rebirth.CoinMultiplierPerRebirth * rebirths) * BoostService:GetMultiplier(player, "Coins") * pass
 end
 
 function CurrencyService:GetCoins(player: Player): number
