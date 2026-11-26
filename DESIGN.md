@@ -86,8 +86,8 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 6 | Collection et exposition (socles, Coins/s, visite, Index, classement) + vitrine de prestige + rareté Divine | ✅ fait |
 | 7 | Progression + ressources et recettes rares + consommables, boosts, XP + aides PNJ | ✅ fait |
 | 8 | Donjon (ennemis, boss, combat simple, récompenses rares) + œufs de créatures | ✅ fait |
-| 9 | Monétisation (Game Passes, Developer Products, IDs factices) + roue quotidienne + personnalisation cosmétique | 🧪 codée, à tester |
-| 10 | Direction artistique complète (créatures, animaux, zones, ferme, bâtiments) | à faire |
+| 9 | Monétisation (Game Passes, Developer Products, IDs factices) + roue quotidienne + personnalisation cosmétique | ✅ fait |
+| 10 | Direction artistique complète (créatures, animaux, zones, ferme, bâtiments, donjons) + motifs cosmétiques + mascotte | 🧪 codée, à tester |
 
 ### Phase 3 : Animaux de ferme
 - **Enclos** construits sur sa parcelle, prix croissant. Un enclos accueille **une seule espèce**,
@@ -317,6 +317,32 @@ Le gameplay est là ; il faut maintenant une vraie identité visuelle.
   bâtiment, derrière une interface commune. On pourra ainsi remplacer un modèle généré par un vrai
   modèle 3D (MeshPart importé, rangé dans ReplicatedStorage) **un par un**, sans toucher au
   gameplay.
+
+**Réalisé (phase 10)** — tout en Parts / Terrain, chaque modèle derrière une fonction dédiée :
+- **Ferme** (`FarmScenery`) : Terrain d'herbe animée à la place du Baseplate, anneau de montagnes
+  enneigées, ruisseau nord-sud + étang, pont arrondi à lanternes, chemins de terre bordés de
+  cailloux, chênes / sapins / pommiers, buissons, fleurs, clôture, place pavée du spawn avec la
+  statue de la mascotte et un panneau d'accueil, éclairage chaud.
+- **Éclairage par lieu** (`LightingController`, `Config.Art.Lighting`) : ferme, 4 zones, donjon,
+  transition douce, particules d'ambiance (pollen, lucioles, flocons, sable, braises), musique
+  par lieu (`Config.Art.Music`).
+- **Bâtiments** (`BuildingBuilder`) : boulangerie, laiterie, fromagerie, filature, atelier ;
+  fumée / feu / lait seulement en production, roues / aiguille animées par le client
+  (`BuildingAnimator`, attribut `Working`). **Stands** décorés (`StandBuilder`, thèmes).
+- **Animaux** (`AnimalBuilder`) : vache, poule, canard, lapin, brebis, chèvre, cochon, chevaux ;
+  pattes, tête, queue, ailes animées (`AnimalController`, attributs `Anim` / `Hinge`).
+- **Créatures** (`CreatureBuilder`) : une fonction par créature sur 7 silhouettes (boule,
+  quadrupède, lézard, insecte, volant, oiseau, bipède), yeux expressifs, chevaux sauvages =
+  vrais chevaux. **Zones** (`ZoneScenery`) : identité complète par zone.
+- **Donjons** : décor thématique par arène (`ArenaDecor`), ennemis et boss redessinés
+  (`EnemyBuilder`, client) avec pattes / bras animés.
+- **Motifs cosmétiques** (`PatternBuilder`) : étoiles, cœurs, diamants, perles, fleurs, flammes,
+  nuages, damier, rayures, paillettes, licornes, mascotte — sur bâtiments, clôtures, sols,
+  panneaux, selles ; image facultative par motif (`Config.Art.Decals`, liste dans le README).
+- **Mascotte originale** : **Biscotte**, chaton fermier abricot (chapeau de paille, salopette
+  verte, carotte) — statue au spawn, motif, cosmétiques « Biscotte » (`MascotBuilder`).
+- **Remplacement par des modèles Toolbox** : `ServerStorage.CustomModels.<Catégorie>.<id>`
+  (Creatures, Animals, Buildings, Stands, Mascot) et `ReplicatedStorage.CustomModels.Enemies`.
 
 ---
 

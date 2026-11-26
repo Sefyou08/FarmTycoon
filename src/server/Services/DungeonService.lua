@@ -40,6 +40,7 @@ local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local CropUtil = require(ReplicatedStorage.Shared.CropUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local ArenaDecor = require(script.Parent.Parent.Util.ArenaDecor)
 local DataService = require(script.Parent.DataService)
 local SyncService = require(script.Parent.SyncService)
 local CurrencyService = require(script.Parent.CurrencyService)
@@ -623,6 +624,7 @@ local function onDungeonAction(player: Player, action: any, dungeonId: any): (bo
 	for _, wall in arena.Walls do
 		wall.Color = def.WallColor
 	end
+	ArenaDecor.Apply(arena :: any, dungeonId) -- décor thématique (phase 10)
 	runs[player] = run
 	MovementService:Dismount(player) -- on descend de cheval en passant le portail
 	player:SetAttribute("InDungeon", dungeonId)
@@ -654,6 +656,36 @@ local function buildPortal()
 	for i = 1, 16 do
 		local angle = i / 16 * math.pi * 2
 		makePart({ Name = "Ring", Size = Vector3.new(2.6, 0.9, 0.9), CFrame = center * CFrame.new(math.cos(angle) * radius, math.sin(angle) * radius, 0) * CFrame.Angles(0, 0, angle + math.pi / 2), Color = Color3.fromRGB(230, 40, 40), Material = Enum.Material.Neon, CanCollide = false, Parent = folder })
+	end
+	-- Arche de pierre sombre à pointes, braseros de chaque côté (phase 10)
+	for i = 1, 16 do
+		local angle = i / 16 * math.pi * 2
+		makePart({ Name = "Stone", Size = Vector3.new(3.2, 1.6, 1.6), CFrame = center * CFrame.new(math.cos(angle) * (radius + 1.1), math.sin(angle) * (radius + 1.1), 0.2) * CFrame.Angles(0, 0, angle + math.pi / 2), Color = Color3.fromRGB(55, 45, 50), Material = Enum.Material.Basalt, CanCollide = false, Parent = folder })
+		if i % 4 == 0 and math.sin(angle) > -0.5 then
+			local spike = Instance.new("WedgePart")
+			spike.Anchored = true
+			spike.CanCollide = false
+			spike.Size = Vector3.new(0.8, 2, 1)
+			spike.CFrame = center * CFrame.new(math.cos(angle) * (radius + 2.6), math.sin(angle) * (radius + 2.6), 0.2) * CFrame.Angles(0, 0, angle - math.pi / 2)
+			spike.Color = Color3.fromRGB(230, 40, 40)
+			spike.Material = Enum.Material.Neon
+			spike.Parent = folder
+		end
+	end
+	for _, sx in { -1, 1 } do
+		local base = cframe * CFrame.new(sx * (radius + 4.5), 0, 0)
+		makePart({ Name = "BrazierStand", Shape = Enum.PartType.Cylinder, Size = Vector3.new(4, 0.8, 0.8), CFrame = base * CFrame.new(0, 2, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(60, 55, 55), Material = Enum.Material.Metal, Parent = folder })
+		local fire = makePart({ Name = "BrazierFire", Shape = Enum.PartType.Ball, Size = Vector3.one * 1.6, CFrame = base * CFrame.new(0, 4.6, 0), Color = Color3.fromRGB(255, 90, 40), Material = Enum.Material.Neon, CanCollide = false, Parent = folder })
+		local flames = Instance.new("ParticleEmitter")
+		flames.Color = ColorSequence.new(Color3.fromRGB(255, 200, 60), Color3.fromRGB(255, 50, 20))
+		flames.LightEmission = 1
+		flames.Rate = 14
+		flames.Lifetime = NumberRange.new(0.4, 0.8)
+		flames.Speed = NumberRange.new(2, 3)
+		flames.Size = NumberSequence.new(0.7, 0)
+		flames.EmissionDirection = Enum.NormalId.Top
+		flames.SpreadAngle = Vector2.new(15, 15)
+		flames.Parent = fire
 	end
 	local disc = makePart({ Name = "Disc", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, radius * 2 - 1, radius * 2 - 1), CFrame = center * CFrame.Angles(0, math.pi / 2, 0), Color = Color3.fromRGB(120, 0, 0), Material = Enum.Material.Neon, Transparency = 0.5, CanCollide = false, Parent = folder })
 	local light = Instance.new("PointLight")

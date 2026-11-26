@@ -24,6 +24,7 @@ local Debris = game:GetService("Debris")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local EnemyBuilder = require(script.Parent.EnemyBuilder)
 
 local DungeonRenderer = {}
 
@@ -35,7 +36,8 @@ type View = {
 	Def: any,
 	Model: Model,
 	Body: BasePart,
-	Parts: { { Part: BasePart, Color: Color3, Material: Enum.Material } },
+	Parts: { { Part: BasePart, Color: Color3, Material: Enum.Material } }, -- pièces qui changent de couleur
+	Joints: { any }, -- pattes / bras animés (EnemyBuilder)
 	HPFill: Frame,
 	Particles: ParticleEmitter,
 	HitSound: Sound,
@@ -105,33 +107,14 @@ local function buildView(id: number, key: string, cframe: CFrame): View?
 	if not def then
 		return nil
 	end
-	local model = Instance.new("Model")
-	model.Name = def.DisplayName
-	local s = def.Size
-	local bodySize = if def.Body == "Ball" then Vector3.one * s else Vector3.new(s * 0.9, s * 0.8, s)
+	-- Modèle cartoon de l'ennemi (EnemyBuilder, phase 10)
+	local model, body, flashParts, joints = EnemyBuilder.Build(key, cframe)
+	local bodySize = body.Size
 	local parts = {}
-	local function part(name: string, shape: Enum.PartType, size: Vector3, offset: CFrame, color: Color3, material: Enum.Material?): Part
-		local p = makePart({ Name = name, Shape = shape, Size = size, CFrame = cframe * offset, Color = color, Material = material or Enum.Material.SmoothPlastic, Parent = model })
-		table.insert(parts, { Part = p, Color = color, Material = p.Material })
-		return p
-	end
-
-	local body = part("Body", if def.Body == "Ball" then Enum.PartType.Ball else Enum.PartType.Block, bodySize, CFrame.new(0, bodySize.Y / 2, 0), def.Color)
-	model.PrimaryPart = body
-	model.WorldPivot = cframe
-	for _, sx in { -1, 1 } do
-		part("Eye", Enum.PartType.Ball, Vector3.one * s * 0.22, CFrame.new(sx * s * 0.2, bodySize.Y * 0.65, -bodySize.Z / 2), Color3.fromRGB(255, 230, 80), Enum.Material.Neon)
-		part("Brow", Enum.PartType.Block, Vector3.new(s * 0.28, s * 0.06, s * 0.08), CFrame.new(sx * s * 0.2, bodySize.Y * 0.8, -bodySize.Z / 2 - 0.05) * CFrame.Angles(0, 0, sx * math.rad(20)), Color3.fromRGB(20, 20, 20))
-		part("Foot", Enum.PartType.Ball, Vector3.one * s * 0.3, CFrame.new(sx * s * 0.28, s * 0.1, 0), def.Accent)
-	end
-	for i = -1, 1 do
-		part("Spike", Enum.PartType.Block, Vector3.new(s * 0.15, s * 0.35, s * 0.15), CFrame.new(i * s * 0.25, bodySize.Y + s * 0.1, 0) * CFrame.Angles(0, 0, math.rad(i * 15)), def.Accent)
+	for _, p in flashParts do
+		table.insert(parts, { Part = p, Color = p.Color, Material = p.Material })
 	end
 	if def.Boss then
-		for i = 1, 6 do
-			local angle = i / 6 * math.pi * 2
-			part("Crown", Enum.PartType.Block, Vector3.new(s * 0.12, s * 0.3, s * 0.12), CFrame.new(math.cos(angle) * s * 0.3, bodySize.Y + s * 0.3, math.sin(angle) * s * 0.3), Color3.fromRGB(255, 210, 60), Enum.Material.Neon)
-		end
 		local light = Instance.new("PointLight")
 		light.Color = def.Accent
 		light.Range = 18
@@ -141,7 +124,7 @@ local function buildView(id: number, key: string, cframe: CFrame): View?
 	-- Barre de vie
 	local gui = Instance.new("BillboardGui")
 	gui.Size = UDim2.fromScale(math.max(4, s * 1.2), 1.4)
-	gui.StudsOffsetWorldSpace = Vector3.new(0, bodySize.Y / 2 + 2, 0)
+	gui.StudsOffsetWorldSpace = Vector3.new(0, bodySize.Y / 2 + 1.5, 0)
 	gui.MaxDistance = 140
 	gui.LightInfluence = 0
 	gui.Parent = body
@@ -186,6 +169,7 @@ local function buildView(id: number, key: string, cframe: CFrame): View?
 		Model = model,
 		Body = body,
 		Parts = parts,
+		Joints = joints,
 		HPFill = fill,
 		Particles = particles,
 		HitSound = makeSound(body, Effects.HitSound, 0.6),
@@ -207,10 +191,8 @@ end
 
 local function setColor(view: View, color: Color3?, material: Enum.Material?)
 	for _, entry in view.Parts do
-		if entry.Part.Name == "Body" or entry.Part.Name == "Spike" then
-			entry.Part.Color = color or entry.Color
-			entry.Part.Material = material or entry.Material
-		end
+		entry.Part.Color = color or entry.Color
+		entry.Part.Material = material or entry.Material
 	end
 end
 
@@ -457,7 +439,27 @@ function DungeonRenderer.Init(playerHitCallback: (number) -> (), dodgedCallback:
 				end
 			end
 
-			view.Model:PivotTo(view.Current * CFrame.new(0, up, -forward) * CFrame.Angles(tilt, 0, 0))
+			local pivot = view.Current * CFrame.new(0, up, -forward) * CFrame.Angles(tilt, 0, 0)
+			view.Model:PivotTo(pivot)
+			-- Pattes et bras : balancent quand l'ennemi avance, les bras s'élancent à l'attaque
+			if #view.Joints > 0 then
+				local partsList, cframes = {}, {}
+				local swing = if moving and view.State == "Chase" then math.sin(now * 12) else 0
+				-- Bras : en avant pendant l'élan (angle > 0), en arrière pendant l'armement
+				local armBoost = if lunge < 0.25 then math.sin(lunge / 0.25 * math.pi) * 1.2 elseif view.State == "WindUp" then -0.8 else 0
+				for _, j in view.Joints do
+					local angle
+					if j.Kind == "Arm" then
+						angle = if armBoost ~= 0 then armBoost else swing * 0.4 * (if j.Phase == 0 then 1 else -1)
+					else
+						angle = if moving then math.sin(now * 12 + j.Phase) * 0.5 else 0
+					end
+					local hingePos = j.Local.Position + j.Hinge
+					table.insert(partsList, j.Part)
+					table.insert(cframes, pivot * CFrame.new(hingePos) * CFrame.Angles(angle, 0, 0) * CFrame.new(-hingePos) * j.Local)
+				end
+				Workspace:BulkMoveTo(partsList, cframes, Enum.BulkMoveMode.FireCFrameChanged)
+			end
 		end
 	end)
 

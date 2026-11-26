@@ -32,8 +32,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - [x] Phase 6 : collection, exposition, vitrine, Index, classement
 - [x] Phase 7 : progression, ressources rares, consommables, aides PNJ
 - [x] Phase 8 : donjon + œufs de créatures
-- [ ] Phase 9 : monétisation, roue quotidienne, cosmétiques (à tester)
-- [ ] Phase 10 : direction artistique
+- [x] Phase 9 : monétisation, roue quotidienne, cosmétiques
+- [ ] Phase 10 : direction artistique (à tester)
 
 ## Boucle de jeu actuelle
 1. Stand **🌱 GRAINES** (à gauche du spawn) : acheter des graines.
@@ -71,3 +71,55 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - Developer Products : `Config.Monetization.Products.<Nom>.Id`
 - Cosmétiques payants : `Config.Cosmetics.<Nom>.Unlock.ProductId` (un Developer Product par cosmétique)
 - Un Id à `0` affiche « Bientôt disponible ». `GrantAllPassesInStudio = true` donne tous les passes dans Studio pour tester.
+
+## Remplacer un modèle par un modèle de la Toolbox
+Chaque modèle généré peut être remplacé, un par un, sans toucher au gameplay :
+1. Dans Studio, crée `ServerStorage > CustomModels` (Folder), puis dedans un Folder par catégorie :
+   `Creatures`, `Animals`, `Buildings`, `Stands`, `Mascot`.
+   Pour les ennemis de donjon (dessinés par le client) : `ReplicatedStorage > CustomModels > Enemies`.
+2. Mets-y ton Model, renommé EXACTEMENT comme l'id : `Cow`, `Chicken`, `Horse`, `Pharaonix`, `Bakery`,
+   `SeedShop`, `SellStand`, `AnimalShop`, `Biscotte`, `Slime`... (ids dans `Config.lua`).
+3. Le modèle doit regarder vers -Z (bouton « Front » de Studio), avoir ses pieds au niveau de
+   son pivot, et à peu près la taille du modèle généré.
+Le jeu ajoute tout seul ce qu'il faut (zone cliquable, panneau, effets de rareté / variante).
+
+## Images et sons (facultatif)
+Tous les motifs existent déjà en 3D (petites Parts). Une image (Decal) les rend plus fins :
+quand un ID est mis dans `Config.Art.Decals`, l'image remplace le motif 3D, répétée en mosaïque.
+
+| Nom dans Config.Art.Decals | Ce que l'image doit montrer | Taille conseillée |
+|---|---|---|
+| `Stars` | petites étoiles dorées éparpillées | 512 x 512 |
+| `Hearts` | petits cœurs roses / rouges | 512 x 512 |
+| `Diamonds` | diamants bleu clair brillants | 512 x 512 |
+| `Pearls` | rangées de perles nacrées | 512 x 512 |
+| `Flowers` | petites fleurs roses à cœur jaune | 512 x 512 |
+| `Flames` | flammes orange et jaunes stylisées | 512 x 512 |
+| `Clouds` | nuages blancs cartoon | 512 x 512 |
+| `Checker` | damier noir et blanc (2 x 2 cases) | 256 x 256 |
+| `Stripes` | rayures verticales (2 couleurs) | 256 x 256 |
+| `Glitter` | paillettes scintillantes | 512 x 512 |
+| `Unicorn` | têtes de licorne mignonnes (corne dorée, crinière rose) | 512 x 512 |
+| `Mascot` | tête de Biscotte (chaton abricot, chapeau de paille) | 512 x 512 |
+| `MascotLogo` | logo du jeu : Biscotte + « Farm Tycoon » (panneau du spawn) | 1024 x 512 |
+
+Règles : PNG à fond transparent, motif qui se répète sans couture sur les bords (« tileable »),
+dessin 100 % original (aucun personnage ni logo existant).
+
+Étapes :
+1. Crée l'image : dessine-la (Krita, Photopea, Canva...) ou génère-la avec un outil d'images par IA
+   (ex. : « motif répétable de petites étoiles dorées, style cartoon, fond transparent »).
+   Recadre à la taille conseillée et exporte en PNG.
+2. Dans Studio : menu **Affichage (View) > Asset Manager**, bouton **Importer** (Bulk Import),
+   choisis tes PNG. Attends la fin de la modération Roblox.
+3. Dans l'Asset Manager, dossier **Images** : clic droit sur l'image > **Copy ID to Clipboard**.
+4. Colle le nombre dans `src/shared/Config.lua`, par exemple `Stars = 1234567890,`, puis relance.
+   (Astuce : si tu as un ID de « Decal » du site et qu'il ne s'affiche pas, colle-le dans la
+   propriété Texture d'un Decal dans Studio : Studio le convertit en ID d'image, à recopier.)
+
+Musiques d'ambiance (une par lieu) : **Toolbox > Audio**, cherche une musique libre (ex. celles
+publiées par Roblox), clic droit > **Copy Asset ID**, colle-le dans `Config.Art.Music`
+(`Farm`, `Forest`, `Mountain`, `Desert`, `Volcano`, `Dungeon`). 0 = pas de musique.
+
+Conseil éclairage : dans l'Explorer, sélectionne **Lighting** et mets **Technology = Future**
+pour des lumières (torches, lave, cristaux) plus jolies.
