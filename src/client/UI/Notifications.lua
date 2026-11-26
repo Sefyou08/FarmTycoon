@@ -8,6 +8,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
 local TweenService = game:GetService("TweenService")
 
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
@@ -104,6 +105,19 @@ function Notifications.Init()
 	Remotes.Get("Notify").OnClientEvent:Connect(function(text: string, kind: string?)
 		if type(text) == "string" then
 			Notifications.Show(text, kind)
+		end
+	end)
+
+	-- Message système dans le chat (ex. créature Secrète capturée)
+	Remotes.Get("ChatAnnounce").OnClientEvent:Connect(function(text: string, colorHex: string?)
+		if type(text) ~= "string" then
+			return
+		end
+		local channels = TextChatService:FindFirstChild("TextChannels")
+		local general = channels and channels:FindFirstChild("RBXGeneral")
+		if general and general:IsA("TextChannel") then
+			local safe = text:gsub("<", "&lt;"):gsub(">", "&gt;")
+			general:DisplaySystemMessage(('<font color="#%s"><b>%s</b></font>'):format(colorHex or "FFD700", safe))
 		end
 	end)
 end

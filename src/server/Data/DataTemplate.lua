@@ -43,7 +43,10 @@ return {
 	--     LastUpdate = os.time() } }
 	Buildings = {},
 	Upgrades = {}, -- (phase 7) améliorations : { [upgradeId] = niveau } (ex. ExtraTiles, collecteurs)
-	Creatures = {}, -- (phase 5) créatures capturées en expédition
+	-- Créatures capturées : { { Id, Creature = "Mousselin", Mutation = "Normal", CaughtAt = os.time() } }
+	Creatures = {},
+	CreatureIndex = {}, -- créatures déjà découvertes : { [creatureId] = true } (Index, phase 6)
+	UnlockedZones = { Forest = true }, -- zones d'expédition débloquées
 	Displayed = {}, -- (phase 6) créatures exposées sur les socles
 
 	Stats = {

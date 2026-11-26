@@ -489,6 +489,166 @@ Config.BuildingSettings = {
 }
 
 --------------------------------------------------------------------------
+-- EXPÉDITIONS : PORTAIL ET ZONES
+--   Les zones sont des zones lointaines de la MÊME place (pas de TeleportService).
+--   Center     : centre de la zone (le sol est à Y = Center.Y)
+--   Size       : côté de la zone (studs)
+--   UnlockPrice: prix pour débloquer l'accès (0 = gratuit)
+--   ValueMultiplier : multiplie la valeur des créatures de la zone
+--   Props      : décor simple ("Trees", "Rocks", "Cacti", "Lava")
+--------------------------------------------------------------------------
+Config.Expeditions = {
+	PortalPosition = Vector3.new(0, 0, 26), -- portail principal, devant le spawn
+	PortalInteractDistance = 12,
+
+	MaxWildPerZone = 10, -- créatures sauvages max en même temps dans une zone
+	SpawnInterval = 4, -- secondes entre deux apparitions (si des joueurs sont dans la zone)
+	WildLifetime = 150, -- secondes avant qu'une créature sauvage reparte
+	WildWanderRadius = 6,
+	CaptureDistance = 12, -- distance max pour lancer une capture
+
+	MaxCreatures = 100, -- créatures max dans la collection
+	MaxMisses = 2, -- ratés autorisés pendant le mini-jeu
+	CaptureTimeout = 20, -- secondes max pour finir le mini-jeu
+	MaxLatency = 1.0, -- tolérance réseau (s) sur le moment du clic envoyé par le client
+	HitTolerance = 0.02, -- marge (en fraction de barre) autour de la zone verte
+}
+
+Config.Zones = {
+	Forest = {
+		DisplayName = "Forêt", Icon = "🌲", Order = 1, Feminine = true,
+		UnlockPrice = 0, ValueMultiplier = 1,
+		Center = Vector3.new(-900, 0, 1400), Size = 320,
+		GroundColor = Color3.fromRGB(80, 150, 60), GroundMaterial = Enum.Material.Grass,
+		WallColor = Color3.fromRGB(60, 100, 50), Props = "Trees",
+	},
+	Mountain = {
+		DisplayName = "Montagne", Icon = "⛰️", Order = 2, Feminine = true,
+		UnlockPrice = 25000, ValueMultiplier = 4,
+		Center = Vector3.new(-300, 0, 1400), Size = 320,
+		GroundColor = Color3.fromRGB(150, 150, 160), GroundMaterial = Enum.Material.Slate,
+		WallColor = Color3.fromRGB(230, 235, 245), Props = "Rocks",
+	},
+	Desert = {
+		DisplayName = "Désert", Icon = "🏜️", Order = 3,
+		UnlockPrice = 100000, ValueMultiplier = 15,
+		Center = Vector3.new(300, 0, 1400), Size = 320,
+		GroundColor = Color3.fromRGB(235, 205, 140), GroundMaterial = Enum.Material.Sand,
+		WallColor = Color3.fromRGB(200, 150, 90), Props = "Cacti",
+	},
+	Volcano = {
+		DisplayName = "Volcan", Icon = "🌋", Order = 4,
+		UnlockPrice = 400000, ValueMultiplier = 50,
+		Center = Vector3.new(900, 0, 1400), Size = 320,
+		GroundColor = Color3.fromRGB(60, 45, 45), GroundMaterial = Enum.Material.Basalt,
+		WallColor = Color3.fromRGB(40, 30, 30), Props = "Lava",
+	},
+}
+
+--------------------------------------------------------------------------
+-- RARETÉS DES CRÉATURES
+--   Weight    : poids d'apparition (en % si le total fait 100)
+--   BaseValue : valeur de base (x zone x mutation) ; sert à la vente et aux revenus (phase 6)
+--   Capture   : Hits = clics réussis nécessaires, Width = largeur de la zone verte (0-1),
+--               Speed = allers par seconde du curseur, Chance = tirage final après le mini-jeu
+--   Announce  : "Server" = bannière à tout le serveur, "Chat" = chat + bannière
+--------------------------------------------------------------------------
+Config.CreatureRarities = {
+	Common = {
+		DisplayName = "Commune", Order = 1, Color = Color3.fromRGB(200, 200, 200),
+		Weight = 60, BaseValue = 100,
+		Capture = { Hits = 1, Width = 0.30, Speed = 0.8, Chance = 1.0 },
+	},
+	Rare = {
+		DisplayName = "Rare", Order = 2, Color = Color3.fromRGB(70, 150, 255),
+		Weight = 25, BaseValue = 400,
+		Capture = { Hits = 2, Width = 0.24, Speed = 1.0, Chance = 0.9 },
+	},
+	Epic = {
+		DisplayName = "Épique", Order = 3, Color = Color3.fromRGB(170, 80, 240),
+		Weight = 10, BaseValue = 1500,
+		Capture = { Hits = 2, Width = 0.18, Speed = 1.25, Chance = 0.75 },
+	},
+	Legendary = {
+		DisplayName = "Légendaire", Order = 4, Color = Color3.fromRGB(255, 180, 30),
+		Weight = 4, BaseValue = 6000,
+		Capture = { Hits = 3, Width = 0.15, Speed = 1.5, Chance = 0.55 },
+	},
+	Mythic = {
+		DisplayName = "Mythique", Order = 5, Color = Color3.fromRGB(255, 70, 120),
+		Weight = 0.9, BaseValue = 25000, Announce = "Server",
+		Capture = { Hits = 3, Width = 0.12, Speed = 1.8, Chance = 0.4 },
+	},
+	Secret = {
+		DisplayName = "Secrète", Order = 6, Color = Color3.fromRGB(20, 255, 200),
+		Weight = 0.1, BaseValue = 120000, Announce = "Chat",
+		Capture = { Hits = 4, Width = 0.10, Speed = 2.1, Chance = 0.3 },
+	},
+}
+
+-- Mutations des créatures sauvages (tirées à l'apparition)
+Config.CreatureMutations = {
+	Normal = { Order = 1, DisplayName = "", DisplayNameF = "", Chance = 0, ValueMultiplier = 1, Color = Color3.new(1, 1, 1) },
+	Gold = { Order = 2, DisplayName = "Doré", DisplayNameF = "Dorée", Chance = 0.06, ValueMultiplier = 2, Color = Color3.fromRGB(255, 205, 50), Gold = true },
+	Giant = { Order = 3, DisplayName = "Géant", DisplayNameF = "Géante", Chance = 0.04, ValueMultiplier = 3, Color = Color3.fromRGB(255, 140, 60), Scale = 2 },
+	Rainbow = { Order = 4, DisplayName = "Arc-en-ciel", DisplayNameF = "Arc-en-ciel", Chance = 0.02, ValueMultiplier = 5, Color = Color3.fromRGB(255, 120, 220), Rainbow = true },
+	Spectral = { Order = 5, DisplayName = "Spectral", DisplayNameF = "Spectrale", Chance = 0.005, ValueMultiplier = 10, Color = Color3.fromRGB(150, 255, 255), Spectral = true },
+}
+
+--------------------------------------------------------------------------
+-- CRÉATURES (originales, inventées pour ce jeu)
+--   Body : "Ball" | "Block" ; Size : taille du corps (studs)
+--   Color / Accent : couleurs principale et secondaire
+--   Features : détails en Parts ("Ears", "Horns", "Wings", "Tail", "Leaf", "Hat",
+--              "Spots", "Spikes", "Legs", "Glow")
+--------------------------------------------------------------------------
+local function creature(zone, rarity, order, name, body, size, color, accent, features, feminine)
+	return {
+		DisplayName = name, Zone = zone, Rarity = rarity, Order = order, Body = body, Size = size,
+		Color = color, Accent = accent, Features = features, Feminine = feminine,
+	}
+end
+local rgb = Color3.fromRGB
+
+Config.Creatures = {
+	-- 🌲 Forêt
+	Mousselin = creature("Forest", "Common", 1, "Mousselin", "Ball", 2, rgb(110, 180, 80), rgb(60, 130, 50), { "Leaf" }),
+	Glandinet = creature("Forest", "Common", 2, "Glandinet", "Ball", 1.8, rgb(170, 110, 60), rgb(110, 70, 40), { "Hat" }),
+	Champiloup = creature("Forest", "Rare", 3, "Champiloup", "Ball", 2.2, rgb(245, 230, 210), rgb(220, 50, 50), { "Hat", "Spots" }),
+	Lucifeuille = creature("Forest", "Epic", 4, "Lucifeuille", "Ball", 1.8, rgb(200, 240, 120), rgb(255, 255, 150), { "Wings", "Glow" }, true),
+	Cerfeuillu = creature("Forest", "Legendary", 5, "Cerfeuillu", "Block", 3, rgb(150, 110, 70), rgb(90, 180, 70), { "Horns", "Legs", "Leaf" }),
+	Racinor = creature("Forest", "Mythic", 6, "Racinor", "Block", 3.6, rgb(100, 75, 50), rgb(120, 255, 120), { "Spikes", "Legs", "Glow" }),
+	MurmureDesBois = creature("Forest", "Secret", 7, "Murmure-des-Bois", "Ball", 2.4, rgb(210, 255, 220), rgb(120, 255, 180), { "Wings", "Glow" }),
+
+	-- ⛰️ Montagne
+	Caillouteux = creature("Mountain", "Common", 1, "Caillouteux", "Ball", 2, rgb(140, 140, 150), rgb(100, 100, 110), { "Spikes" }),
+	Flocon = creature("Mountain", "Common", 2, "Flocon", "Ball", 1.9, rgb(250, 250, 255), rgb(200, 220, 255), { "Ears" }),
+	Bouquetonnerre = creature("Mountain", "Rare", 3, "Bouquetonnerre", "Block", 2.6, rgb(200, 190, 170), rgb(90, 90, 200), { "Horns", "Legs" }),
+	Givrelle = creature("Mountain", "Epic", 4, "Givrelle", "Ball", 2, rgb(170, 230, 255), rgb(120, 220, 255), { "Wings", "Glow" }, true),
+	Grizzlune = creature("Mountain", "Legendary", 5, "Grizzlune", "Block", 3.4, rgb(110, 80, 60), rgb(230, 230, 255), { "Ears", "Legs" }),
+	Aquilorage = creature("Mountain", "Mythic", 6, "Aquilorage", "Ball", 2.8, rgb(90, 80, 130), rgb(190, 120, 255), { "Wings", "Tail", "Glow" }),
+	Yetinou = creature("Mountain", "Secret", 7, "Yétinou", "Block", 2.6, rgb(245, 250, 255), rgb(140, 220, 255), { "Horns", "Legs", "Glow" }),
+
+	-- 🏜️ Désert
+	Dunelle = creature("Desert", "Common", 1, "Dunelle", "Ball", 1.9, rgb(230, 200, 140), rgb(200, 160, 100), { "Ears" }, true),
+	Scorpinou = creature("Desert", "Common", 2, "Scorpinou", "Block", 2, rgb(200, 80, 50), rgb(120, 40, 30), { "Tail", "Spikes", "Legs" }),
+	Cactouille = creature("Desert", "Rare", 3, "Cactouille", "Block", 2.4, rgb(90, 170, 80), rgb(255, 120, 180), { "Spikes" }, true),
+	Mirageon = creature("Desert", "Epic", 4, "Mirageon", "Block", 2.4, rgb(120, 200, 255), rgb(200, 240, 255), { "Tail", "Legs", "Glow" }),
+	Sphinxou = creature("Desert", "Legendary", 5, "Sphinxou", "Block", 3, rgb(230, 180, 80), rgb(60, 90, 200), { "Ears", "Tail", "Legs" }),
+	Pharaonix = creature("Desert", "Mythic", 6, "Pharaonix", "Ball", 2.8, rgb(255, 150, 40), rgb(255, 230, 80), { "Wings", "Tail", "Glow" }),
+	Oasien = creature("Desert", "Secret", 7, "Oasien", "Ball", 2.4, rgb(80, 200, 255), rgb(150, 255, 230), { "Leaf", "Glow" }),
+
+	-- 🌋 Volcan
+	Braisou = creature("Volcano", "Common", 1, "Braisou", "Ball", 1.8, rgb(255, 120, 40), rgb(255, 200, 60), { "Glow" }),
+	Cendrou = creature("Volcano", "Common", 2, "Cendrou", "Ball", 2, rgb(110, 105, 105), rgb(255, 110, 50), { "Ears" }),
+	Magmoche = creature("Volcano", "Rare", 3, "Magmoche", "Block", 2.6, rgb(70, 40, 35), rgb(255, 90, 20), { "Spikes", "Glow" }),
+	Salamandrix = creature("Volcano", "Epic", 4, "Salamandrix", "Block", 2.4, rgb(220, 50, 40), rgb(255, 200, 50), { "Tail", "Legs", "Glow" }, true),
+	Pyrodrake = creature("Volcano", "Legendary", 5, "Pyrodrake", "Block", 3.4, rgb(170, 30, 30), rgb(255, 150, 30), { "Wings", "Horns", "Tail", "Legs" }),
+	Volcanosaure = creature("Volcano", "Mythic", 6, "Volcanosaure", "Block", 4, rgb(50, 35, 35), rgb(255, 80, 20), { "Spikes", "Horns", "Legs", "Glow" }),
+	CoeurDeLave = creature("Volcano", "Secret", 7, "Cœur-de-Lave", "Ball", 2.6, rgb(255, 60, 20), rgb(255, 240, 120), { "Spikes", "Glow" }),
+}
+
+--------------------------------------------------------------------------
 -- MONÉTISATION (préparée, DÉSACTIVÉE : activée en phase 8)
 -- Remplace les Id = 0 par les vrais IDs créés sur le Creator Dashboard.
 --------------------------------------------------------------------------

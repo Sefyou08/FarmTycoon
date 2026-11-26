@@ -3,8 +3,9 @@
 	====================
 	Animations purement visuelles des animaux, calculées par le client (aucun
 	trafic réseau, aucun effet sur le gameplay) :
-	  • les modèles tagués "FarmAnimal" se promènent au hasard dans leur enclos
-	    (attributs WanderCenter / WanderRadius posés par le serveur) ;
+	  • les modèles tagués "FarmAnimal" (animaux de ferme et créatures sauvages)
+	    se promènent au hasard autour de leur point d'origine (attributs
+	    WanderCenter / WanderRadius posés par le serveur ; arrêt si "Frozen") ;
 	  • les parts taguées "RainbowPart" changent de couleur en continu
 	    (variantes Arc-en-ciel et Mythique).
 ]]
@@ -44,6 +45,9 @@ local function wander(model: Model)
 			local radius = model:GetAttribute("WanderRadius")
 			if not model.Parent or typeof(center) ~= "Vector3" or type(radius) ~= "number" then
 				continue
+			end
+			if model:GetAttribute("Frozen") then
+				continue -- créature en cours de capture : elle ne bouge plus
 			end
 
 			local from = model:GetPivot()

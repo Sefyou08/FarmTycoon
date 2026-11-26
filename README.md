@@ -26,8 +26,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - [x] Phase 1 : setup Rojo, parcelles, argent, sauvegarde
 - [x] Phase 2 : planter, pousse (3 stades), récolte, vente
 - [x] Phase 3 : animaux de ferme, enclos, variantes, agrandissement de parcelle
-- [ ] Phase 4 : bâtiments de transformation, vitesse de marche et sprint (à tester)
-- [ ] Phase 5 : expéditions
+- [x] Phase 4 : bâtiments de transformation, vitesse de marche et sprint
+- [ ] Phase 5 : expéditions (à tester)
 - [ ] Phase 6 : collection et exposition
 - [ ] Phase 7 : progression (boutique tournante, rebirth...)
 - [ ] Phase 8 : monétisation et UI
@@ -45,3 +45,4 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 9. Bouton bleu à l'entrée de ta parcelle : **agrandir** la parcelle.
 10. Boutons orange au fond de ta parcelle : construire les **bâtiments** (boulangerie, filature...). **E** sur la porte pour lancer des recettes, récupérer les produits et améliorer le bâtiment.
 11. **Maj** pour courir.
+12. **Portail violet** derrière le spawn : partir en expédition (Forêt gratuite, autres zones à débloquer). **E** sur une créature, puis **Espace** (ou le bouton) quand le curseur est dans la zone verte. Bouton **📖 Créatures** pour voir ou vendre ta collection.

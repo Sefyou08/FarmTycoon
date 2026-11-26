@@ -80,7 +80,7 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 | 2 | Planter, pousse en 3 stades, récolte, vente, boutique de graines | ✅ fait |
 | 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | ✅ fait |
 | 4 | Bâtiments de transformation (machines, recettes, files de production) + vitesse de marche et sprint | ✅ fait |
-| 5 | Expéditions (portail, zones, créatures sauvages, capture) | ⏳ en cours |
+| 5 | Expéditions (portail, zones, créatures sauvages, capture) | 🧪 codée, à tester |
 | 6 | Collection et exposition (socles, Coins/s, Index, classement) | à faire |
 | 7 | Progression (boutique tournante, plantes rares et mutations, collecteurs, rebirth, monture) | à faire |
 | 8 | Monétisation (Game Passes, Developer Products, IDs factices) et finitions de l'UI | à faire |
