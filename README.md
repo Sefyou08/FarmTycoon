@@ -65,9 +65,9 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 24. **Chevaux sauvages** : un par zone d'expédition (Mousseval, Givrecrin, Sablecrin, Brasecrin), capturables ; 🐾 dans la collection pour le mettre en enclos.
 25. **🎡 Roue** : 1 tour gratuit par jour (chances affichées) ; 0,1 % de gagner l'Astrelune 🦄, animal exclusif.
 26. **💎 Boutique** : Game Passes et achats Robux (IDs à mettre dans `Config.Monetization`).
+27. **🎨 Personnaliser** : clôtures, sol, bâtiments, champs, panneau, vitrine, traces, titre, chapeaux, selle (visuel uniquement).
 28. **🎯 Tutoriel** : une quête affichée en haut de l'écran, avec une flèche vers l'objectif (passer / relancer depuis **❓ Guide**).
 29. **❓ Guide** : explication de chaque système. **🎁 Temps de jeu** (en haut à gauche) : cadeaux à 15 min, 30 min, 1 h et 2 h.
-27. **🎨 Personnaliser** : clôtures, sol, bâtiments, champs, panneau, vitrine, traces, titre, chapeaux, selle (visuel uniquement).
 
 ## Achats Robux : où mettre les IDs
 - Game Passes : `Config.Monetization.GamePasses.<Nom>.Id`
