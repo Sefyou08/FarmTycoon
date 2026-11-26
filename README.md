@@ -43,7 +43,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
    (aperçu vert / rouge, **R** pour tourner, clic pour valider). Cliquer sur un élément posé
    permet de le déplacer ou de le ranger.
 5. **E** sur une case grise d'un champ pour la débloquer.
-6. Stand **🐄 ANIMAUX** (devant le spawn) : acheter un animal (chance de variante rare).
+6. Stand **🐄 ANIMAUX** (devant le spawn) : acheter un animal (chance de variante rare). Il arrive dans
+   **🐾 Mes animaux** : choisis l'enclos où le placer (et retire-le quand tu veux). ⭐ = le montrer dans la vitrine.
 7. **E** sur la mangeoire pour la remplir avec tes récoltes, **E** sur la caisse pour ramasser la production.
 8. Le **fumier** du cheval sert d'engrais : **E** sur une plante qui pousse.
 9. **E** sur la porte d'un bâtiment : lancer des recettes, récupérer, améliorer.
@@ -64,6 +65,8 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 24. **Chevaux sauvages** : un par zone d'expédition (Mousseval, Givrecrin, Sablecrin, Brasecrin), capturables ; 🐾 dans la collection pour le mettre en enclos.
 25. **🎡 Roue** : 1 tour gratuit par jour (chances affichées) ; 0,1 % de gagner l'Astrelune 🦄, animal exclusif.
 26. **💎 Boutique** : Game Passes et achats Robux (IDs à mettre dans `Config.Monetization`).
+28. **🎯 Tutoriel** : une quête affichée en haut de l'écran, avec une flèche vers l'objectif (passer / relancer depuis **❓ Guide**).
+29. **❓ Guide** : explication de chaque système. **🎁 Temps de jeu** (en haut à gauche) : cadeaux à 15 min, 30 min, 1 h et 2 h.
 27. **🎨 Personnaliser** : clôtures, sol, bâtiments, champs, panneau, vitrine, traces, titre, chapeaux, selle (visuel uniquement).
 
 ## Achats Robux : où mettre les IDs

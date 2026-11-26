@@ -344,6 +344,19 @@ Le gameplay est là ; il faut maintenant une vraie identité visuelle.
 - **Remplacement par des modèles Toolbox** : `ServerStorage.CustomModels.<Catégorie>.<id>`
   (Creatures, Animals, Buildings, Stands, Mascot) et `ReplicatedStorage.CustomModels.Enemies`.
 
+**Corrections après la phase 10** :
+- Herbe 3D du Terrain désactivée, terre sous les parcelles : sols, champs, enclos et socles bien visibles ;
+  le cosmétique de sol s'applique au sol de la parcelle.
+- **🐾 Mes animaux** (`data.AnimalInventory`, RemoteFunction `AnimalAction`) : tout animal acheté / gagné
+  arrive dans l'inventaire ; on choisit l'enclos, on peut le retirer ; ⭐ l'épingle dans la vitrine.
+  La vitrine ne montre plus d'animaux par défaut (seulement s'ils sont épinglés).
+- Donjons bien éclairés (`Config.Art.Lighting.Dungeon` + lumières d'arène) et contour `Highlight` sur
+  les ennemis et les boss.
+- **Tutoriel** (`TutorialService`, `Config.Tutorial`) : 17 quêtes avec récompense, flèche (Beam + flèche
+  3D) ou bouton du HUD qui clignote, objectif en haut de l'écran, passer / relancer. Les services
+  signalent les actions par `GameEvents`.
+- **❓ Guide** (`GuideUI`) et **récompenses de temps de jeu** (`PlaytimeService`, `Config.Playtime`).
+
 ---
 
 ## 5. Équilibrage de base

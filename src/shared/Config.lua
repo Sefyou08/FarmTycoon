@@ -1465,6 +1465,54 @@ Config.Art = {
 }
 
 --------------------------------------------------------------------------
+-- TUTORIEL : suite de quêtes pour les nouveaux joueurs
+--   Event   : action qui valide la quête (GameEvents, côté serveur) ; Arg = précision (bâtiment)
+--   Check   : déjà fait ? (validée tout de suite) : HasPen | HasAnimal | HasAnimalInPen |
+--             HasBuilding (Arg) | HasPedestal | HasExhibit
+--   Target  : où pointe la flèche : { Kind = "World", Position } | { Kind = "Plot", Prefix, Part? }
+--             (objet de TA parcelle) | { Kind = "Button", Name } (bouton du HUD qui clignote)
+--   Reward  : { Coins, XP, Seeds = { Id, Amount }, Item = { Id, Amount }, Boost = { Type, Power, Duration },
+--             WheelSpins } (donnée UNE seule fois, même si on relance le tutoriel)
+--------------------------------------------------------------------------
+local stands = Config.Stands
+Config.Tutorial = {
+	Quests = {
+		{ Id = "BuySeed", Event = "BuySeed", Text = "Achète des graines au stand 🌱 GRAINES", Target = { Kind = "World", Position = stands.SeedShopPosition }, Reward = { Coins = 100 } },
+		{ Id = "Plant", Event = "Plant", Text = "Plante une graine : choisis-la en bas de l'écran, puis E sur une case de terre", Target = { Kind = "Plot", Prefix = "Field_" }, Reward = { Coins = 100, XP = 20 } },
+		{ Id = "Harvest", Event = "Harvest", Text = "Attends qu'elle pousse, puis récolte-la (E quand c'est « Prêt ! »)", Target = { Kind = "Plot", Prefix = "Field_" }, Reward = { Coins = 150, XP = 20 } },
+		{ Id = "Sell", Event = "Sell", Text = "Vends ta récolte au stand 💰 VENTE", Target = { Kind = "World", Position = stands.SellStandPosition }, Reward = { Coins = 200 } },
+		{ Id = "BuildPen", Event = "BuildPen", Check = "HasPen", Text = "Construis un enclos : 🔨 Construire > Enclos, puis pose-le sur ta parcelle", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 300 } },
+		{ Id = "BuyAnimal", Event = "BuyAnimal", Check = "HasAnimal", Text = "Achète un animal au stand 🐄 ANIMAUX (une poule pour commencer)", Target = { Kind = "World", Position = stands.AnimalShopPosition }, Reward = { Coins = 200 } },
+		{ Id = "PlaceAnimal", Event = "PlaceAnimal", Check = "HasAnimalInPen", Text = "Ouvre 🐾 Mes animaux et place ton animal dans l'enclos", Target = { Kind = "Button", Name = "AnimalsButton" }, Reward = { Coins = 200, XP = 30 } },
+		{ Id = "Feed", Event = "Feed", Text = "Remplis la mangeoire : E sur la mangeoire de l'enclos (avec des récoltes qu'il aime)", Target = { Kind = "Plot", Prefix = "Pen_", Part = "Trough" }, Reward = { Coins = 300, Seeds = { Id = "Wheat", Amount = 6 } } },
+		{ Id = "BuildBakery", Event = "BuildBuilding", Arg = "Bakery", Check = "HasBuilding", Text = "Construis la 🥖 Boulangerie : 🔨 Construire > Bâtiments", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 500 } },
+		{ Id = "Recipe", Event = "QueueRecipe", Arg = "Bakery", Text = "Lance une recette : E sur la porte de la boulangerie, choisis Pain, puis « Lancer » (4 blés)", Target = { Kind = "Plot", Prefix = "Building_Bakery", Part = "Door" }, Reward = { Coins = 300, XP = 50 } },
+		{ Id = "Collect", Event = "CollectRecipe", Arg = "Bakery", Text = "Quand le pain est prêt, récupère-le : E sur la porte > Récupérer", Target = { Kind = "Plot", Prefix = "Building_Bakery", Part = "Door" }, Reward = { Coins = 300 } },
+		{ Id = "Consume", Event = "Consume", Text = "Mange un produit pour un boost : 🎒 Sac, bouton 🍴 à côté du pain", Target = { Kind = "Button", Name = "InventoryButton" }, Reward = { Boost = { Type = "Speed", Power = 0.2, Duration = 600 } } },
+		{ Id = "Travel", Event = "Travel", Text = "Pars en expédition : portail violet 🧭 EXPÉDITIONS, puis la Forêt", Target = { Kind = "World", Position = Config.Expeditions.PortalPosition }, Reward = { Coins = 500 } },
+		{ Id = "Capture", Event = "Capture", Text = "Capture une créature : approche-toi, E, puis clique quand le curseur est dans la zone verte", Target = nil, Reward = { Coins = 800, XP = 80 } },
+		{ Id = "Pedestal", Event = "BuildPedestal", Check = "HasPedestal", Text = "De retour à la ferme, construis un socle : 🔨 Construire > Socle", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 500 } },
+		{ Id = "Exhibit", Event = "Exhibit", Check = "HasExhibit", Text = "Expose ta créature : 📖 Créatures > 🏛️ Exposer (elle rapporte des Coins/s)", Target = { Kind = "Button", Name = "CollectionButton" }, Reward = { Coins = 1000 } },
+		{ Id = "Dungeon", Event = "DungeonWin", Text = "Termine un donjon au portail rouge ⚔️ DONJONS (dès le niveau 8)", Target = { Kind = "World", Position = stands.DungeonPortalPosition }, Reward = { Coins = 5000, WheelSpins = 1 } },
+	},
+	FinalReward = { Coins = 3000, Boost = { Type = "Coins", Power = 0.5, Duration = 900 } },
+}
+
+--------------------------------------------------------------------------
+-- RÉCOMPENSES DE TEMPS DE JEU (dans la session en cours, vérifiées par le serveur)
+--   Minutes : temps de jeu nécessaire depuis l'arrivée ; Reward : comme le tutoriel
+--   (CoinsPerLevel = Coins en plus par niveau du joueur)
+--------------------------------------------------------------------------
+Config.Playtime = {
+	Rewards = {
+		{ Minutes = 15, Reward = { Coins = 2000, CoinsPerLevel = 300 } },
+		{ Minutes = 30, Reward = { Seeds = { Id = "Dragonfruit", Amount = 3 }, Boost = { Type = "Coins", Power = 0.5, Duration = 900 } } },
+		{ Minutes = 60, Reward = { WheelSpins = 1, Coins = 8000, CoinsPerLevel = 800, Boost = { Type = "XP", Power = 0.5, Duration = 1200 } } },
+		{ Minutes = 120, Reward = { Item = { Id = "MountainEgg", Amount = 1 }, Seeds = { Id = "StarFlower", Amount = 1 }, Coins = 25000, CoinsPerLevel = 2500 } },
+	},
+}
+
+--------------------------------------------------------------------------
 -- SAUVEGARDE
 --------------------------------------------------------------------------
 Config.Data = {
