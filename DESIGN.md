@@ -78,7 +78,7 @@ plus d'animaux et de bâtiments, et à partir en expédition.
 |---|---|---|
 | 1 | Setup Rojo, parcelles, argent, sauvegarde | ✅ fait |
 | 2 | Planter, pousse en 3 stades, récolte, vente, boutique de graines | ✅ fait |
-| 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | ⏳ en cours |
+| 3 | Animaux de ferme, enclos, variantes rares, parcelles agrandissables | 🧪 codée, à tester |
 | 4 | Bâtiments de transformation (machines, recettes, files de production) | à faire |
 | 5 | Expéditions (portail, zones, créatures sauvages, capture) | à faire |
 | 6 | Collection et exposition (socles, Coins/s, Index, classement) | à faire |

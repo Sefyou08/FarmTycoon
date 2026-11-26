@@ -23,7 +23,9 @@ local SERVICE_ORDER = {
 	"PlotService",
 	"InventoryService",
 	"FarmService",
+	"AnimalService",
 	"ShopService",
+	"AnimalShopService",
 	"SellService",
 }
 
@@ -47,4 +49,4 @@ for _, name in SERVICE_ORDER do
 	end
 end
 
-print("[FarmTycoon] Serveur démarré ✅ (Phase 2)")
+print("[FarmTycoon] Serveur démarré ✅ (Phase 3)")

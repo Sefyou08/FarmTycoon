@@ -1,16 +1,17 @@
 --[[
 	InventoryUI.lua
 	===============
-	Fenêtre "🎒 Inventaire" : produits récoltés, quantité, valeur estimée,
-	et remplissage (ex. 12 / 200). La vente se fait au stand 💰 VENTE.
+	Fenêtre "🎒 Inventaire" : récoltes et ressources animales (avec leur variante),
+	quantité, valeur estimée, et remplissage (ex. 12 / 300). La vente se fait au
+	stand 💰 VENTE.
 	La valeur affichée n'est qu'une estimation : le serveur calcule le vrai prix.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local CropUtil = require(ReplicatedStorage.Shared.CropUtil)
 local Format = require(ReplicatedStorage.Shared.Format)
+local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local Theme = require(script.Parent.Theme)
 
 local InventoryUI = {}
@@ -20,8 +21,6 @@ local list: ScrollingFrame
 local summary: TextLabel
 local hudButton: TextButton?
 
-local VARIANT_NAMES = { Normal = "" } -- phase 3 : "Dorée", "Arc-en-ciel"...
-
 local function rebuild(inventory: { [string]: { [string]: number } }?)
 	for _, child in list:GetChildren() do
 		if child:IsA("Frame") then
@@ -30,29 +29,32 @@ local function rebuild(inventory: { [string]: { [string]: number } }?)
 	end
 
 	local totalCount, totalValue = 0, 0
-	for order, cropId in CropUtil.SortedIds() do
-		local variants = inventory and inventory[cropId]
+	local variantOrder = ItemUtil.SortedVariants()
+	for itemOrder, itemId in ItemUtil.SortedIds() do
+		local variants = inventory and inventory[itemId]
 		if variants then
-			local crop = CropUtil.Get(cropId)
-			for variant, count in variants do
+			for variantIndex, variant in variantOrder do
+				local count = variants[variant] or 0
 				if count > 0 then
 					totalCount += count
-					local value = crop.SellPrice * count
+					local value = ItemUtil.UnitValue(itemId, variant) * count
 					totalValue += value
 
 					local row = Instance.new("Frame")
 					row.Size = UDim2.new(1, -8, 0, 44)
-					row.LayoutOrder = order
+					row.LayoutOrder = itemOrder * 10 + variantIndex
 					row.BackgroundColor3 = Color3.fromRGB(50, 56, 75)
 					row.Parent = list
 					Theme.Corner(row, 8)
+					if variant ~= "Normal" then
+						Theme.Stroke(row, 2, ItemUtil.GetVariant(variant).Color)
+					end
 
-					local variantName = VARIANT_NAMES[variant] or variant
 					Theme.Label({
 						Size = UDim2.new(0.6, -10, 1, -10),
 						Position = UDim2.fromOffset(10, 5),
 						TextXAlignment = Enum.TextXAlignment.Left,
-						Text = ("%s %s  x%d"):format(CropUtil.Label(cropId), variantName, count),
+						Text = ("%s  x%d"):format(ItemUtil.Label(itemId, variant), count),
 						Parent = row,
 					})
 					Theme.Label({

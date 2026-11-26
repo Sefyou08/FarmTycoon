@@ -9,7 +9,8 @@
 	    débloquées en phase 4.
 	  • Chaque case a un ProximityPrompt géré PAR LE SERVEUR :
 	      vide  -> "Planter : <graine choisie>"
-	      pousse -> prompt masqué (un minuteur s'affiche au-dessus de la plante)
+	      pousse -> "Mettre de l'engrais" si le joueur a du fumier (cheval), sinon masqué
+	                (un minuteur s'affiche au-dessus de la plante)
 	      mûre  -> "Récolter"
 	  • Les plantes sont sauvegardées dans data.Plants avec des horodatages
 	    os.time() : elles continuent de pousser quand le joueur est hors ligne
@@ -28,6 +29,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local CropUtil = require(ReplicatedStorage.Shared.CropUtil)
+local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
+local Format = require(ReplicatedStorage.Shared.Format)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local DataService = require(script.Parent.DataService)
@@ -241,7 +244,15 @@ local function renderTile(farm: Farm, tile: Tile, now: number)
 		tile.Prompt.ObjectText = CropUtil.Label(plant.CropId)
 		tile.Prompt.Enabled = true
 	else
-		tile.Prompt.Enabled = false
+		-- En pousse : engrais possible une fois, si le joueur a du fumier
+		local manure = InventoryService:GetAmount(farm.Player, Config.Fertilizer.ItemId)
+		if manure > 0 and not plant.Fertilized then
+			tile.Prompt.ActionText = "Mettre de l'engrais"
+			tile.Prompt.ObjectText = ("%s (x%d)"):format(ItemUtil.Label(Config.Fertilizer.ItemId), manure)
+			tile.Prompt.Enabled = true
+		else
+			tile.Prompt.Enabled = false
+		end
 	end
 end
 
@@ -327,15 +338,39 @@ local function harvestTile(farm: Farm, tile: Tile)
 		return
 	end
 
-	-- Phase 3 : tirage de mutation ici (Dorée, Arc-en-ciel...)
+	-- Phase 7 : tirage de mutation de plante ici (Dorée, Arc-en-ciel...)
 	local variant = "Normal"
-	if not InventoryService:AddCrop(player, plant.CropId, variant, 1) then
+	if not InventoryService:AddItem(player, plant.CropId, variant, 1) then
 		return
 	end
+	farm.Data.Stats.TotalHarvested += 1
 
 	farm.Data.Plants[tile.Key] = nil
 	renderTile(farm, tile, now)
 	SyncService:Notify(player, ("+1 %s"):format(CropUtil.Label(plant.CropId)), "Success")
+end
+
+-- Fumier : retire une partie du temps de pousse restant (une seule fois par plante).
+local function fertilizeTile(farm: Farm, tile: Tile)
+	local player = farm.Player
+	local plant = farm.Data.Plants[tile.Key]
+	local now = os.time()
+	if not plant or now >= plant.ReadyAt or plant.Fertilized then
+		return
+	end
+	if InventoryService:RemoveAnyVariant(player, Config.Fertilizer.ItemId, 1) < 1 then
+		SyncService:Notify(player, "Il te faut du fumier (produit par les chevaux) !", "Error")
+		return
+	end
+
+	local remaining = plant.ReadyAt - now
+	plant.ReadyAt = now + math.ceil(remaining * (1 - Config.Fertilizer.TimeReduction))
+	plant.Fertilized = true
+	if tile.Model then
+		tile.Model:SetAttribute("ReadyAt", plant.ReadyAt) -- met à jour le minuteur client
+	end
+	renderTile(farm, tile, now)
+	SyncService:Notify(player, ("Engrais ! -%s de pousse"):format(Format.Time(remaining - (plant.ReadyAt - now))), "Success")
 end
 
 local function onTileTriggered(plot: any, tile: Tile, player: Player)
@@ -354,10 +389,13 @@ local function onTileTriggered(plot: any, tile: Tile, player: Player)
 		return
 	end
 
-	if farm.Data.Plants[tile.Key] then
+	local plant = farm.Data.Plants[tile.Key]
+	if not plant then
+		plantSeed(farm, tile)
+	elseif os.time() >= plant.ReadyAt then
 		harvestTile(farm, tile)
 	else
-		plantSeed(farm, tile)
+		fertilizeTile(farm, tile)
 	end
 end
 
@@ -365,15 +403,9 @@ end
 -- Activation / désactivation d'une ferme
 --------------------------------------------------------------------------
 
--- Appelé quand le joueur a À LA FOIS une parcelle et des données chargées
--- (les deux arrivent dans un ordre qui peut varier).
-local function tryActivate(player: Player)
-	if farms[player] or not player.Parent then
-		return
-	end
-	local plot = PlotService:GetPlot(player)
-	local data = DataService:GetData(player)
-	if not plot or not data then
+-- Appelé par PlotService quand le joueur a À LA FOIS sa parcelle et ses données.
+local function activate(player: Player, plot: any, data: { [string]: any })
+	if farms[player] then
 		return
 	end
 
@@ -436,14 +468,14 @@ local function buildTiles(plot: any)
 
 	local columns, rows = FarmConfig.GridColumns, FarmConfig.GridRows
 	local step = FarmConfig.TileSize + FarmConfig.TileGap
-	local groundY = Config.Plots.Size.Y / 2
+	local groundY = Config.Plots.BaseHeight / 2
 
 	local tiles: { Tile } = {}
 	for index = 1, columns * rows do
 		local column = (index - 1) % columns
 		local row = (index - 1) // columns -- rangée 0 = la plus proche de l'entrée
 		local localX = (column - (columns - 1) / 2) * step
-		local localZ = FarmConfig.GridOffsetZ + (row - (rows - 1) / 2) * step
+		local localZ = FarmConfig.GridStartZ + row * step -- +Z = vers le fond de la parcelle
 
 		local part = makePart({
 			Name = "Tile_" .. index,
@@ -492,13 +524,16 @@ function FarmService:Init()
 		buildTiles(plot)
 	end
 
-	DataService:OnProfileLoaded(function(player)
-		tryActivate(player)
-	end)
-	PlotService:OnPlotAssigned(function(player)
-		tryActivate(player)
-	end)
+	PlotService:OnPlotReady(activate)
 	PlotService:OnPlotReleased(deactivate)
+
+	-- L'inventaire change (ex. fumier récupéré) : met à jour les prompts "engrais"
+	InventoryService:OnItemsChanged(function(player)
+		local farm = farms[player]
+		if farm then
+			renderFarm(farm)
+		end
+	end)
 end
 
 function FarmService:Start()

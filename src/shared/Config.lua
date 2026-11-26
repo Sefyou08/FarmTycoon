@@ -23,7 +23,7 @@ Config.Currency = {
 }
 
 --------------------------------------------------------------------------
--- RARETÉS (utilisées pour l'affichage ; la boutique tournante arrive en phase 3)
+-- RARETÉS des graines (affichage ; la boutique tournante arrive en phase 7)
 --------------------------------------------------------------------------
 Config.Rarities = {
 	Common = { DisplayName = "Commune", Color = Color3.fromRGB(190, 190, 190), Order = 1 },
@@ -37,9 +37,25 @@ Config.Rarities = {
 --   SeedPrice : prix d'UNE graine (Coins)
 --   SellPrice : prix de vente d'UN produit récolté (Coins)
 --   GrowTime  : temps de pousse total en secondes (3 stades : petite / moyenne / mûre)
+--   FeedValue : nombre de rations données aux animaux pour UN produit
+--               (≈ 1 ration pour 9 Coins de valeur de vente)
 --   FruitShape : "Ball" | "Block" | "Cylinder" (forme du fruit, en Parts simples)
+--   Feminine  : true si le nom est féminin ("Carotte Dorée" / "Blé Doré")
 --------------------------------------------------------------------------
 Config.Crops = {
+	Wheat = {
+		DisplayName = "Blé",
+		Icon = "🌾",
+		Rarity = "Common",
+		Order = 0,
+		SeedPrice = 5,
+		SellPrice = 8,
+		GrowTime = 15,
+		FeedValue = 1,
+		Color = Color3.fromRGB(230, 200, 110),
+		FruitShape = "Block",
+		FruitSize = Vector3.new(0.5, 1.6, 0.5),
+	},
 	Carrot = {
 		DisplayName = "Carotte",
 		Icon = "🥕",
@@ -48,6 +64,8 @@ Config.Crops = {
 		SeedPrice = 10,
 		SellPrice = 18,
 		GrowTime = 20,
+		FeedValue = 2,
+		Feminine = true,
 		Color = Color3.fromRGB(255, 140, 30),
 		FruitShape = "Cylinder",
 		FruitSize = Vector3.new(1.6, 0.8, 0.8),
@@ -60,6 +78,8 @@ Config.Crops = {
 		SeedPrice = 30,
 		SellPrice = 55,
 		GrowTime = 45,
+		FeedValue = 6,
+		Feminine = true,
 		Color = Color3.fromRGB(230, 40, 40),
 		FruitShape = "Ball",
 		FruitSize = Vector3.new(1.3, 1.3, 1.3),
@@ -72,6 +92,7 @@ Config.Crops = {
 		SeedPrice = 80,
 		SellPrice = 150,
 		GrowTime = 90,
+		FeedValue = 16,
 		Color = Color3.fromRGB(255, 220, 60),
 		FruitShape = "Block",
 		FruitSize = Vector3.new(0.8, 1.8, 0.8),
@@ -84,6 +105,8 @@ Config.Crops = {
 		SeedPrice = 200,
 		SellPrice = 400,
 		GrowTime = 180,
+		FeedValue = 40,
+		Feminine = true,
 		Color = Color3.fromRGB(235, 110, 20),
 		FruitShape = "Ball",
 		FruitSize = Vector3.new(2.2, 2.2, 2.2),
@@ -91,51 +114,250 @@ Config.Crops = {
 }
 
 --------------------------------------------------------------------------
--- FERME (cases de terre, inventaire)
+-- FERME (cases de terre, inventaire, engrais)
 --------------------------------------------------------------------------
 Config.Farm = {
 	StartingTiles = 6, -- cases de terre débloquées au départ
-	GridColumns = 6, -- grille max = 6 x 4 = 24 cases (les autres se débloquent en phase 4)
+	GridColumns = 6, -- grille max = 6 x 4 = 24 cases (les autres se débloquent en phase 7)
 	GridRows = 4,
 	TileSize = 6, -- taille d'une case (studs)
 	TileGap = 2, -- espace entre deux cases
-	GridOffsetZ = 4, -- décale la grille vers le fond de la parcelle
+	GridStartZ = 12, -- distance entre l'entrée de la parcelle et la 1re rangée de cases
 	SoilColor = Color3.fromRGB(105, 70, 40),
 
 	InteractDistance = 10, -- distance max pour planter / récolter
 	ActionCooldown = 0.15, -- secondes entre deux actions planter/récolter (anti-spam)
 
-	InventoryCapacity = 200, -- nombre max de produits récoltés dans l'inventaire
+	InventoryCapacity = 300, -- nombre max de produits (récoltes + ressources) dans l'inventaire
 	MaxSeedsPerCrop = 999, -- nombre max de graines d'un même type
 
 	-- Pack de départ donné UNE seule fois à chaque joueur
-	StarterSeeds = { Carrot = 5 },
+	StarterSeeds = { Carrot = 5, Wheat = 5 },
+}
+
+-- Fumier du cheval utilisé comme engrais sur une plante qui pousse
+Config.Fertilizer = {
+	ItemId = "Manure",
+	TimeReduction = 0.5, -- retire 50 % du temps de pousse restant (une fois par plante)
 }
 
 --------------------------------------------------------------------------
--- STANDS (boutique de graines et stand de vente, au centre de la map)
+-- VARIANTES (animaux, et plus tard ressources / produits / créatures)
+--   Chance             : probabilité à l'achat d'un animal (Normal = le reste)
+--   SpeedMultiplier    : vitesse de production de l'animal
+--   ValueMultiplier    : multiplicateur du prix de vente des ressources produites
+--   DisplayName(F)     : adjectif masculin / féminin ("Lait Doré", "Laine Dorée")
+--   Effect             : effet visuel ("Gold", "Rainbow", "Aura")
+--------------------------------------------------------------------------
+Config.Variants = {
+	Normal = {
+		Order = 1,
+		DisplayName = "",
+		DisplayNameF = "",
+		Chance = 0,
+		SpeedMultiplier = 1,
+		ValueMultiplier = 1,
+		Color = Color3.fromRGB(255, 255, 255),
+	},
+	Gold = {
+		Order = 2,
+		DisplayName = "Doré",
+		DisplayNameF = "Dorée",
+		Chance = 0.05,
+		SpeedMultiplier = 1.25,
+		ValueMultiplier = 2,
+		Color = Color3.fromRGB(255, 205, 50),
+		Gold = true,
+	},
+	Rainbow = {
+		Order = 3,
+		DisplayName = "Arc-en-ciel",
+		DisplayNameF = "Arc-en-ciel",
+		Chance = 0.015,
+		SpeedMultiplier = 1.5,
+		ValueMultiplier = 4,
+		Color = Color3.fromRGB(255, 120, 220),
+		Rainbow = true,
+	},
+	Legendary = {
+		Order = 4,
+		DisplayName = "Légendaire",
+		DisplayNameF = "Légendaire",
+		Chance = 0.004,
+		SpeedMultiplier = 2,
+		ValueMultiplier = 8,
+		Color = Color3.fromRGB(255, 170, 30),
+		Gold = true,
+		Aura = Color3.fromRGB(255, 220, 90),
+	},
+	Mythic = {
+		Order = 5,
+		DisplayName = "Mythique",
+		DisplayNameF = "Mythique",
+		Chance = 0.001,
+		SpeedMultiplier = 3,
+		ValueMultiplier = 20,
+		Color = Color3.fromRGB(190, 90, 255),
+		Rainbow = true,
+		Aura = Color3.fromRGB(180, 80, 255),
+		AnnounceToServer = true, -- message à tous les joueurs du serveur
+	},
+}
+
+--------------------------------------------------------------------------
+-- RESSOURCES produites par les animaux
+--------------------------------------------------------------------------
+Config.Resources = {
+	Egg = { DisplayName = "Œuf", Icon = "🥚", Order = 1, SellPrice = 20 },
+	Fur = { DisplayName = "Fourrure", Icon = "🐾", Order = 2, SellPrice = 45, Feminine = true },
+	Feather = { DisplayName = "Plume", Icon = "🪶", Order = 3, SellPrice = 70, Feminine = true },
+	Wool = { DisplayName = "Laine", Icon = "🧶", Order = 4, SellPrice = 120, Feminine = true },
+	GoatMilk = { DisplayName = "Lait de chèvre", Icon = "🍼", Order = 5, SellPrice = 190 },
+	Milk = { DisplayName = "Lait", Icon = "🥛", Order = 6, SellPrice = 350 },
+	Manure = { DisplayName = "Fumier", Icon = "💩", Order = 7, SellPrice = 60 },
+	Truffle = { DisplayName = "Truffe", Icon = "🍄", Order = 8, SellPrice = 800, Feminine = true },
+}
+
+--------------------------------------------------------------------------
+-- ANIMAUX DE FERME
+--   Price          : prix d'achat au stand 🐄 ANIMAUX
+--   Resource       : ressource produite (Config.Resources)
+--   ProductionTime : secondes pour produire 1 ressource (variante Normale)
+--   FeedPerProduct : rations consommées par ressource produite
+--   Diet           : récoltes acceptées dans la mangeoire (dans l'ordre de préférence)
+--   Visuel en Parts : BodySize, HeadSize, LegHeight, Color, HeadColor, + détails optionnels
+--------------------------------------------------------------------------
+Config.Animals = {
+	Chicken = {
+		DisplayName = "Poule", Icon = "🐔", Feminine = true, Order = 1,
+		Price = 150, Resource = "Egg", ProductionTime = 30, FeedPerProduct = 1,
+		Diet = { "Wheat", "Corn" },
+		BodySize = Vector3.new(1.4, 1.2, 1.6), HeadSize = Vector3.new(0.8, 0.8, 0.8), LegHeight = 0.6,
+		Color = Color3.fromRGB(245, 245, 240), HeadColor = Color3.fromRGB(245, 245, 240),
+		Beak = true, Crest = true,
+	},
+	Rabbit = {
+		DisplayName = "Lapin", Icon = "🐰", Order = 2,
+		Price = 400, Resource = "Fur", ProductionTime = 45, FeedPerProduct = 2,
+		Diet = { "Carrot" },
+		BodySize = Vector3.new(1.2, 1.1, 1.6), HeadSize = Vector3.new(0.9, 0.9, 0.9), LegHeight = 0.3,
+		Color = Color3.fromRGB(200, 180, 160), HeadColor = Color3.fromRGB(210, 190, 170),
+		Ears = true,
+	},
+	Duck = {
+		DisplayName = "Canard", Icon = "🦆", Order = 3,
+		Price = 800, Resource = "Feather", ProductionTime = 60, FeedPerProduct = 3,
+		Diet = { "Wheat", "Carrot" },
+		BodySize = Vector3.new(1.4, 1.1, 1.9), HeadSize = Vector3.new(0.8, 0.8, 0.8), LegHeight = 0.5,
+		Color = Color3.fromRGB(240, 240, 235), HeadColor = Color3.fromRGB(40, 130, 60),
+		Beak = true,
+	},
+	Sheep = {
+		DisplayName = "Brebis", Icon = "🐑", Feminine = true, Order = 4,
+		Price = 1500, Resource = "Wool", ProductionTime = 90, FeedPerProduct = 5,
+		Diet = { "Wheat", "Carrot" },
+		BodySize = Vector3.new(2.4, 2, 3), HeadSize = Vector3.new(1, 1, 1.1), LegHeight = 1,
+		Color = Color3.fromRGB(240, 240, 240), HeadColor = Color3.fromRGB(60, 55, 55),
+	},
+	Goat = {
+		DisplayName = "Chèvre", Icon = "🐐", Feminine = true, Order = 5,
+		Price = 3000, Resource = "GoatMilk", ProductionTime = 100, FeedPerProduct = 8,
+		Diet = { "Carrot", "Tomato", "Wheat" },
+		BodySize = Vector3.new(1.8, 1.7, 2.8), HeadSize = Vector3.new(0.9, 1, 1.2), LegHeight = 1.3,
+		Color = Color3.fromRGB(190, 170, 140), HeadColor = Color3.fromRGB(180, 160, 130),
+		Horns = true,
+	},
+	Cow = {
+		DisplayName = "Vache", Icon = "🐄", Feminine = true, Order = 6,
+		Price = 6000, Resource = "Milk", ProductionTime = 120, FeedPerProduct = 12,
+		Diet = { "Wheat", "Corn" },
+		BodySize = Vector3.new(2.6, 2.3, 4.2), HeadSize = Vector3.new(1.4, 1.4, 1.6), LegHeight = 1.6,
+		Color = Color3.fromRGB(250, 250, 250), HeadColor = Color3.fromRGB(250, 250, 250),
+		Spots = Color3.fromRGB(30, 30, 30), Horns = true,
+	},
+	Horse = {
+		DisplayName = "Cheval", Icon = "🐴", Order = 7,
+		Price = 8000, Resource = "Manure", ProductionTime = 90, FeedPerProduct = 3,
+		Diet = { "Carrot", "Wheat" },
+		BodySize = Vector3.new(2, 2.2, 4.4), HeadSize = Vector3.new(1, 1.3, 2), LegHeight = 2.6,
+		Color = Color3.fromRGB(130, 80, 45), HeadColor = Color3.fromRGB(120, 75, 40),
+		Mane = Color3.fromRGB(40, 30, 25),
+	},
+	Pig = {
+		DisplayName = "Cochon", Icon = "🐷", Order = 8,
+		Price = 15000, Resource = "Truffle", ProductionTime = 180, FeedPerProduct = 25,
+		Diet = { "Pumpkin", "Tomato", "Corn" },
+		BodySize = Vector3.new(2.2, 1.8, 3.2), HeadSize = Vector3.new(1.4, 1.3, 1.1), LegHeight = 0.8,
+		Color = Color3.fromRGB(250, 170, 180), HeadColor = Color3.fromRGB(250, 165, 175),
+		Snout = true,
+	},
+}
+
+--------------------------------------------------------------------------
+-- ENCLOS
+--------------------------------------------------------------------------
+Config.Pens = {
+	Size = 20, -- côté de l'enclos (studs)
+	Capacity = 4, -- animaux max par enclos (une seule espèce par enclos)
+	FeedCapacity = 300, -- rations max dans la mangeoire
+	StorageCapacity = 30, -- ressources max dans la caisse avant de devoir les récupérer
+	MaxOfflineSeconds = 8 * 3600, -- production hors ligne plafonnée à 8 h
+	InteractDistance = 10,
+
+	-- Prix du 1er, 2e, 3e... enclos construit
+	Prices = { 300, 1500, 5000, 15000, 40000, 100000, 250000, 600000 },
+
+	-- Emplacements sur la parcelle, en coordonnées locales :
+	--   X = gauche/droite depuis le centre, Z = profondeur depuis l'entrée.
+	--   RequiredLevel = niveau de parcelle nécessaire (voir Config.Plots.Expansions)
+	Slots = {
+		{ X = -37, Z = 20, RequiredLevel = 1 },
+		{ X = 37, Z = 20, RequiredLevel = 1 },
+		{ X = -37, Z = 46, RequiredLevel = 2 },
+		{ X = 37, Z = 46, RequiredLevel = 2 },
+		{ X = -37, Z = 72, RequiredLevel = 3 },
+		{ X = 37, Z = 72, RequiredLevel = 3 },
+		{ X = -37, Z = 98, RequiredLevel = 4 },
+		{ X = 37, Z = 98, RequiredLevel = 4 },
+	},
+}
+
+--------------------------------------------------------------------------
+-- STANDS (au centre de la map)
 --------------------------------------------------------------------------
 Config.Stands = {
 	SeedShopPosition = Vector3.new(-30, 0, 0),
 	SellStandPosition = Vector3.new(30, 0, 0),
+	AnimalShopPosition = Vector3.new(0, 0, -24),
 	MaxDistance = 16, -- distance max pour acheter / vendre (vérifiée par le serveur)
 }
 
 Config.Shop = {
-	BuyAmounts = { 1, 5 }, -- boutons d'achat affichés dans la boutique
+	BuyAmounts = { 1, 5 }, -- boutons d'achat affichés dans la boutique de graines
 	MaxBuyAmount = 25, -- quantité max par requête
 	BuyCooldown = 0.2,
 }
 
 --------------------------------------------------------------------------
 -- PARCELLES (générées en Parts simples au démarrage du serveur)
+--   Le point d'origine d'une parcelle est le MILIEU DE SON ENTRÉE (côté allée).
+--   Elle s'agrandit vers le fond et sur les côtés, l'entrée ne bouge pas.
 --------------------------------------------------------------------------
 Config.Plots = {
 	Count = 6, -- nombre de parcelles sur la map (= nombre max de joueurs conseillé)
 	Columns = 3, -- 2 rangées de 3 parcelles, face à face
-	Size = Vector3.new(60, 1, 60), -- taille du sol d'une parcelle (studs)
-	SpacingX = 80, -- distance entre les centres de deux parcelles voisines (axe X)
-	RowOffsetZ = 75, -- distance entre le centre de la map et une rangée (axe Z)
+	SpacingX = 180, -- distance entre les centres de deux parcelles voisines (axe X)
+	FrontOffsetZ = 40, -- distance entre le centre de la map et l'entrée d'une parcelle
+	BaseHeight = 1, -- épaisseur du sol de la parcelle
+
+	-- Étapes d'agrandissement (Width = largeur, Depth = profondeur, Price en Coins)
+	Expansions = {
+		{ Width = 98, Depth = 64, Price = 0 },
+		{ Width = 118, Depth = 90, Price = 3000 },
+		{ Width = 138, Depth = 116, Price = 20000 },
+		{ Width = 158, Depth = 142, Price = 100000 },
+	},
+	ExpandInteractDistance = 10,
 
 	GroundColor = Color3.fromRGB(106, 170, 70),
 	BorderColor = Color3.fromRGB(110, 75, 45),
@@ -143,6 +365,18 @@ Config.Plots = {
 
 	FreeLabel = "Parcelle libre",
 	OwnerLabelFormat = "Ferme de %s", -- %s = DisplayName du joueur
+}
+
+--------------------------------------------------------------------------
+-- MONÉTISATION (préparée, DÉSACTIVÉE : activée en phase 8)
+-- Remplace les Id = 0 par les vrais IDs créés sur le Creator Dashboard.
+--------------------------------------------------------------------------
+Config.Monetization = {
+	Enabled = false,
+	Products = {
+		-- Débloque l'étape d'agrandissement suivante sans payer de Coins
+		PlotExpansion = { Id = 0, Enabled = false },
+	},
 }
 
 --------------------------------------------------------------------------

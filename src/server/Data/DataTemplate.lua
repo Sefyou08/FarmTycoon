@@ -27,6 +27,15 @@ return {
 	Seeds = {}, -- graines possédées : { [cropId] = quantité }
 	Plants = {}, -- plantes en terre : { ["indexCase"] = { CropId, PlantedAt, ReadyAt } } (os.time, continue de pousser hors ligne)
 	StarterPackGiven = false, -- pack de graines de départ déjà donné ?
+
+	PlotLevel = 1, -- niveau d'agrandissement de la parcelle (Config.Plots.Expansions)
+	-- Enclos construits : { ["indexEmplacement"] = {
+	--     Species = "Cow" | nil (nil = enclos vide),
+	--     Animals = { { Id, Variant, Progress } },  -- Progress = secondes accumulées vers la prochaine ressource
+	--     Feed = rations dans la mangeoire,
+	--     Storage = { [variante] = quantité } dans la caisse,
+	--     LastUpdate = os.time() de la dernière simulation (production hors ligne) } }
+	Pens = {},
 	Upgrades = {}, -- (phase 4) améliorations débloquées : { [upgradeId] = niveau }
 	Pets = {}, -- (phase 5) liste des familiers possédés : { { Id = "...", PetType = "..." } }
 	EquippedPets = {}, -- (phase 5) liste des Id équipés

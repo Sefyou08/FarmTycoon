@@ -2,20 +2,30 @@
 	PlotService.lua
 	===============
 	Génère la map (sol, spawn central, 6 parcelles) en Parts simples, attribue
-	automatiquement une parcelle libre à chaque joueur qui rejoint et la libère
-	quand il part.
+	automatiquement une parcelle libre à chaque joueur qui rejoint, gère
+	l'AGRANDISSEMENT de la parcelle, et la libère quand le joueur part.
+
+	Repère d'une parcelle (plot.CFrame) : le MILIEU DE SON ENTRÉE, au niveau
+	du sol, regard (-Z local) tourné vers l'allée centrale. L'intérieur de la
+	parcelle est donc vers +Z local. Elle s'agrandit vers le fond et sur les
+	côtés (Config.Plots.Expansions) : l'entrée ne bouge jamais.
 
 	Chaque parcelle est un Model "Plot_<id>" dans Workspace.Plots avec :
-	  - attribut PlotId (number)
-	  - attribut OwnerUserId (0 = libre)
-	  - Base (sol), bordures, panneau avec le nom du propriétaire, Spawn (invisible)
-	Le joueur reçoit l'attribut "PlotId" (lisible par le client).
+	  - attribut PlotId, attribut OwnerUserId (0 = libre), attribut Level
+	  - Base (sol), Borders, panneau avec le nom du propriétaire, Spawn (invisible)
+	  - ExpandPad : bouton tycoon "Agrandir la parcelle"
+
+	Événements pour les autres services (callbacks, voir plus bas) :
+	  OnPlotReady(player, plot, data)  : le joueur a sa parcelle ET ses données chargées
+	  OnPlotReleased(player, plot)     : juste avant la libération (déconnexion)
+	  OnPlotLevelChanged(player, plot, level)
 
 	API :
 	  PlotService:GetPlot(player) -> plot | nil
-	  PlotService:TeleportHome(player)
-
-	Remplacer les visuels plus tard : modifie seulement les fonctions build*().
+	  PlotService:GetAllPlots() -> { plot }
+	  PlotService:GetLevel(player) -> number
+	  PlotService:ToWorld(plot, x, z, height?) -> CFrame (coordonnées locales -> monde)
+	  PlotService:GrantExpansion(player) -> boolean  (Developer Product, phase 8)
 ]]
 
 local Players = game:GetService("Players")
@@ -23,44 +33,66 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Format = require(ReplicatedStorage.Shared.Format)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local DataService = require(script.Parent.DataService)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 
 local PlotConfig = Config.Plots
+local EXPANSIONS = PlotConfig.Expansions
+local MAX_LEVEL = #EXPANSIONS
 
 local PlotService = {}
 
 export type Plot = {
 	Id: number,
 	Model: Model,
-	CFrame: CFrame, -- centre du sol, regard (-Z) tourné vers l'allée centrale
+	CFrame: CFrame, -- milieu de l'entrée, au centre de l'épaisseur du sol
 	SpawnCFrame: CFrame,
 	Owner: Player?,
 	OwnerLabel: TextLabel,
+	Level: number,
+	Base: Part,
+	Borders: Folder,
+	ExpandPad: Part,
+	ExpandPrompt: ProximityPrompt,
 }
 
 local plots: { Plot } = {} -- liste ordonnée par Id
 local plotByPlayer: { [Player]: Plot } = {}
+local readyPlayers: { [Player]: boolean } = {}
 
--- Callbacks des autres services (FarmService, etc.).
+-- Callbacks des autres services.
 -- (Pas de BindableEvent : il COPIE les tables, on perdrait la référence à la parcelle.)
-local assignedCallbacks: { (Player, Plot) -> () } = {}
+local readyCallbacks: { (Player, Plot, { [string]: any }) -> () } = {}
 local releasedCallbacks: { (Player, Plot) -> () } = {}
+local levelCallbacks: { (Player, Plot, number) -> () } = {}
 
--- callback(player, plot) : appelé quand un joueur reçoit une parcelle
-function PlotService:OnPlotAssigned(callback: (Player, Plot) -> ())
-	table.insert(assignedCallbacks, callback)
+local function runCallbacks(list: { any }, ...)
+	for _, callback in list do
+		local ok, err = pcall(callback, ...)
+		if not ok then
+			warn("[PlotService] Erreur dans un callback : " .. tostring(err))
+		end
+	end
 end
 
--- callback(player, plot) : appelé (synchroniquement) juste AVANT la libération d'une parcelle
+function PlotService:OnPlotReady(callback: (Player, Plot, { [string]: any }) -> ())
+	table.insert(readyCallbacks, callback)
+end
+
 function PlotService:OnPlotReleased(callback: (Player, Plot) -> ())
 	table.insert(releasedCallbacks, callback)
 end
 
+function PlotService:OnPlotLevelChanged(callback: (Player, Plot, number) -> ())
+	table.insert(levelCallbacks, callback)
+end
+
 --------------------------------------------------------------------------
--- Construction de la map
+-- Construction
 --------------------------------------------------------------------------
 
 local function makePart(props: { [string]: any }): Part
@@ -75,12 +107,23 @@ local function makePart(props: { [string]: any }): Part
 	return part
 end
 
+-- Coordonnées locales de parcelle -> CFrame monde.
+-- x : gauche/droite, z : profondeur depuis l'entrée (vers l'intérieur), height : au-dessus du sol.
+function PlotService:ToWorld(plot: Plot, x: number, z: number, height: number?): CFrame
+	-- plot.CFrame regarde l'allée (-Z local) : +Z local va donc vers l'intérieur de la parcelle.
+	return plot.CFrame * CFrame.new(x, PlotConfig.BaseHeight / 2 + (height or 0), z)
+end
+
 local function buildWorld()
+	local maxDepth = EXPANSIONS[MAX_LEVEL].Depth
+	local mapWidth = PlotConfig.SpacingX * PlotConfig.Columns + 120
+	local mapDepth = (PlotConfig.FrontOffsetZ + maxDepth) * 2 + 80
+
 	-- Sol général si la place n'a pas déjà un Baseplate
 	if not Workspace:FindFirstChild("Baseplate") and not Workspace:FindFirstChild("FarmGround") then
 		makePart({
 			Name = "FarmGround",
-			Size = Vector3.new(512, 2, 512),
+			Size = Vector3.new(mapWidth, 2, mapDepth),
 			Position = Vector3.new(0, -1, 0),
 			Color = Color3.fromRGB(90, 140, 60),
 			Material = Enum.Material.Grass,
@@ -88,10 +131,10 @@ local function buildWorld()
 		})
 	end
 
-	-- Allée centrale + spawn d'arrivée
+	-- Allée centrale entre les deux rangées de parcelles
 	makePart({
 		Name = "CentralPath",
-		Size = Vector3.new(PlotConfig.SpacingX * PlotConfig.Columns, 0.2, PlotConfig.RowOffsetZ * 2 - PlotConfig.Size.Z - 4),
+		Size = Vector3.new(PlotConfig.SpacingX * PlotConfig.Columns, 0.2, PlotConfig.FrontOffsetZ * 2 - 4),
 		Position = Vector3.new(0, 0.1, 0),
 		Color = Color3.fromRGB(200, 180, 140),
 		Material = Enum.Material.Sand,
@@ -111,29 +154,69 @@ local function buildWorld()
 	end
 end
 
+-- Redimensionne le sol et les bordures selon le niveau d'agrandissement.
+local function applyLevel(plot: Plot, level: number)
+	plot.Level = level
+	plot.Model:SetAttribute("Level", level)
+
+	local size = EXPANSIONS[level]
+	local height = PlotConfig.BaseHeight
+	plot.Base.Size = Vector3.new(size.Width, height, size.Depth)
+	plot.Base.CFrame = plot.CFrame * CFrame.new(0, 0, size.Depth / 2)
+
+	-- Bordures basses (on peut marcher par-dessus), recréées à chaque niveau
+	plot.Borders:ClearAllChildren()
+	local borderHeight, thickness = 0.6, 1
+	local y = height / 2 + borderHeight / 2
+	local halfW = size.Width / 2
+	local sides = {
+		{ Vector3.new(size.Width, borderHeight, thickness), Vector3.new(0, y, 0) }, -- entrée
+		{ Vector3.new(size.Width, borderHeight, thickness), Vector3.new(0, y, size.Depth) }, -- fond
+		{ Vector3.new(thickness, borderHeight, size.Depth), Vector3.new(-halfW, y, size.Depth / 2) },
+		{ Vector3.new(thickness, borderHeight, size.Depth), Vector3.new(halfW, y, size.Depth / 2) },
+	}
+	for i, side in sides do
+		makePart({
+			Name = "Border" .. i,
+			Size = side[1],
+			CFrame = plot.CFrame * CFrame.new(side[2]),
+			Color = PlotConfig.BorderColor,
+			Material = Enum.Material.Wood,
+			Parent = plot.Borders,
+		})
+	end
+
+	-- Bouton d'agrandissement : visible seulement si la parcelle a un propriétaire et n'est pas au max
+	local canExpand = plot.Owner ~= nil and level < MAX_LEVEL
+	plot.ExpandPad.Transparency = if canExpand then 0.2 else 1
+	plot.ExpandPrompt.Enabled = canExpand
+	if level < MAX_LEVEL then
+		plot.ExpandPrompt.ActionText = ("Agrandir : %s Coins"):format(Format.Number(EXPANSIONS[level + 1].Price))
+		plot.ExpandPrompt.ObjectText = ("Parcelle niveau %d → %d"):format(level, level + 1)
+	end
+end
+
 local function buildPlot(id: number, folder: Folder): Plot
 	local index = id - 1
 	local column = index % PlotConfig.Columns
 	local row = index // PlotConfig.Columns -- 0 = rangée sud, 1 = rangée nord
 
-	local size = PlotConfig.Size
 	local x = (column - (PlotConfig.Columns - 1) / 2) * PlotConfig.SpacingX
-	local z = if row == 0 then -PlotConfig.RowOffsetZ else PlotConfig.RowOffsetZ
-	local center = Vector3.new(x, size.Y / 2, z)
+	local frontZ = if row == 0 then -PlotConfig.FrontOffsetZ else PlotConfig.FrontOffsetZ
+	local origin = Vector3.new(x, PlotConfig.BaseHeight / 2, frontZ)
 
-	-- Le "devant" (-Z local) de la parcelle regarde l'allée centrale
-	local facing = Vector3.new(0, 0, if z < 0 then 1 else -1)
-	local plotCFrame = CFrame.lookAt(center, center + facing)
+	-- -Z local regarde l'allée ; l'intérieur de la parcelle est vers +Z local (loin de l'allée)
+	local towardRoad = Vector3.new(0, 0, if frontZ < 0 then 1 else -1)
+	local plotCFrame = CFrame.lookAt(origin, origin + towardRoad)
 
 	local model = Instance.new("Model")
 	model.Name = "Plot_" .. id
 	model:SetAttribute("PlotId", id)
 	model:SetAttribute("OwnerUserId", 0)
 
-	-- Sol
 	local base = makePart({
 		Name = "Base",
-		Size = size,
+		Size = Vector3.new(10, PlotConfig.BaseHeight, 10),
 		CFrame = plotCFrame,
 		Color = PlotConfig.GroundColor,
 		Material = Enum.Material.Grass,
@@ -141,28 +224,12 @@ local function buildPlot(id: number, folder: Folder): Plot
 	})
 	model.PrimaryPart = base
 
-	-- Bordures basses (on peut marcher par-dessus)
-	local borderHeight, borderThickness = 0.6, 1
-	local topY = size.Y / 2 + borderHeight / 2
-	local borders = {
-		{ Vector3.new(size.X, borderHeight, borderThickness), Vector3.new(0, topY, -size.Z / 2) },
-		{ Vector3.new(size.X, borderHeight, borderThickness), Vector3.new(0, topY, size.Z / 2) },
-		{ Vector3.new(borderThickness, borderHeight, size.Z), Vector3.new(-size.X / 2, topY, 0) },
-		{ Vector3.new(borderThickness, borderHeight, size.Z), Vector3.new(size.X / 2, topY, 0) },
-	}
-	for i, border in borders do
-		makePart({
-			Name = "Border" .. i,
-			Size = border[1],
-			CFrame = plotCFrame * CFrame.new(border[2]),
-			Color = PlotConfig.BorderColor,
-			Material = Enum.Material.Wood,
-			Parent = model,
-		})
-	end
+	local borders = Instance.new("Folder")
+	borders.Name = "Borders"
+	borders.Parent = model
 
-	-- Panneau à l'entrée (2 poteaux + planche)
-	local signLocal = CFrame.new(0, size.Y / 2, -size.Z / 2 - 2)
+	-- Panneau devant l'entrée (2 poteaux + planche)
+	local signLocal = CFrame.new(0, PlotConfig.BaseHeight / 2, -3)
 	for _, offsetX in { -6, 6 } do
 		makePart({
 			Name = "SignPost",
@@ -185,7 +252,6 @@ local function buildPlot(id: number, folder: Folder): Plot
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "OwnerGui"
 	billboard.Size = UDim2.fromScale(14, 3) -- en studs
-	billboard.StudsOffset = Vector3.new(0, 0, 0)
 	billboard.MaxDistance = 250
 	billboard.LightInfluence = 0
 	billboard.Adornee = board
@@ -202,8 +268,8 @@ local function buildPlot(id: number, folder: Folder): Plot
 	label.Text = PlotConfig.FreeLabel
 	label.Parent = billboard
 
-	-- Point d'apparition (invisible), juste à l'entrée, tourné vers l'intérieur
-	local spawnCFrame = plotCFrame * CFrame.new(0, size.Y / 2 + 3, -size.Z / 2 + 5) * CFrame.Angles(0, math.pi, 0)
+	-- Point d'apparition (invisible), juste après l'entrée, tourné vers l'intérieur
+	local spawnCFrame = plotCFrame * CFrame.new(0, PlotConfig.BaseHeight / 2 + 3, 6) * CFrame.Angles(0, math.pi, 0)
 	makePart({
 		Name = "Spawn",
 		Size = Vector3.new(2, 1, 2),
@@ -215,6 +281,26 @@ local function buildPlot(id: number, folder: Folder): Plot
 		Parent = model,
 	})
 
+	-- Bouton tycoon "Agrandir la parcelle" (à gauche de l'entrée)
+	local firstWidth = EXPANSIONS[1].Width
+	local expandPad = makePart({
+		Name = "ExpandPad",
+		Size = Vector3.new(5, 0.4, 5),
+		CFrame = plotCFrame * CFrame.new(-(firstWidth / 2 - 6), PlotConfig.BaseHeight / 2 + 0.2, 4),
+		Color = Color3.fromRGB(60, 200, 255),
+		Material = Enum.Material.Neon,
+		Transparency = 1,
+		CanCollide = false,
+		Parent = model,
+	})
+	local expandPrompt = Instance.new("ProximityPrompt")
+	expandPrompt.HoldDuration = 0.4 -- petit appui long : évite les achats par erreur
+	expandPrompt.MaxActivationDistance = PlotConfig.ExpandInteractDistance
+	expandPrompt.RequiresLineOfSight = false
+	expandPrompt.Enabled = false
+	expandPrompt:SetAttribute("OwnerOnly", true)
+	expandPrompt.Parent = expandPad
+
 	model.Parent = folder
 
 	local plot: Plot = {
@@ -224,17 +310,23 @@ local function buildPlot(id: number, folder: Folder): Plot
 		SpawnCFrame = spawnCFrame,
 		Owner = nil,
 		OwnerLabel = label,
+		Level = 1,
+		Base = base,
+		Borders = borders,
+		ExpandPad = expandPad,
+		ExpandPrompt = expandPrompt,
 	}
+	applyLevel(plot, 1)
 	return plot
 end
 
--- Pad jaune de test : donne des coins (pour vérifier la sauvegarde en Phase 1)
+-- Pad jaune de test : donne des coins (Config.Debug)
 local function buildDebugCoinPad(plot: Plot)
-	local size = PlotConfig.Size
+	local firstWidth = EXPANSIONS[1].Width
 	local pad = makePart({
 		Name = "DebugCoinPad",
 		Size = Vector3.new(4, 0.4, 4),
-		CFrame = plot.CFrame * CFrame.new(size.X / 2 - 6, size.Y / 2 + 0.2, -size.Z / 2 + 6),
+		CFrame = plot.CFrame * CFrame.new(firstWidth / 2 - 6, PlotConfig.BaseHeight / 2 + 0.2, 4),
 		Color = Color3.fromRGB(255, 210, 40),
 		Material = Enum.Material.Neon,
 		Parent = plot.Model,
@@ -250,7 +342,6 @@ local function buildDebugCoinPad(plot: Plot)
 	prompt.Parent = pad
 
 	prompt.Triggered:Connect(function(player: Player)
-		-- Toute la validation est faite ici, côté serveur
 		if plot.Owner ~= player then
 			SyncService:Notify(player, "Ce n'est pas ta parcelle !", "Error")
 			return
@@ -266,6 +357,56 @@ local function buildDebugCoinPad(plot: Plot)
 			SyncService:Notify(player, ("+%d Coins"):format(added), "Success")
 		end
 	end)
+end
+
+--------------------------------------------------------------------------
+-- Agrandissement
+--------------------------------------------------------------------------
+
+function PlotService:GetLevel(player: Player): number
+	local plot = plotByPlayer[player]
+	return if plot then plot.Level else 1
+end
+
+-- Passe la parcelle du joueur au niveau suivant (sans paiement : à appeler APRÈS avoir payé).
+local function expand(player: Player): boolean
+	local plot = plotByPlayer[player]
+	local data = DataService:GetData(player)
+	if not plot or not data or not readyPlayers[player] or plot.Level >= MAX_LEVEL then
+		return false
+	end
+	data.PlotLevel = plot.Level + 1
+	applyLevel(plot, data.PlotLevel)
+	runCallbacks(levelCallbacks, player, plot, data.PlotLevel)
+	SyncService:Notify(player, ("Parcelle agrandie : niveau %d ! Nouveaux emplacements débloqués."):format(data.PlotLevel), "Success")
+	return true
+end
+
+-- Emplacement pour le Developer Product "PlotExpansion" (phase 8, désactivé).
+-- Sera appelé par MonetizationService dans ProcessReceipt, après un achat Robux validé.
+function PlotService:GrantExpansion(player: Player): boolean
+	return expand(player)
+end
+
+local function onExpandTriggered(plot: Plot, player: Player)
+	if plot.Owner ~= player or not readyPlayers[player] then
+		return
+	end
+	if plot.Level >= MAX_LEVEL then
+		return
+	end
+	if not RemoteGuard.IsNear(player, plot.ExpandPad.Position, PlotConfig.ExpandInteractDistance + 4) then
+		return
+	end
+	if not RemoteGuard.CheckCooldown(player, "ExpandPlot", 1) then
+		return
+	end
+	local price = EXPANSIONS[plot.Level + 1].Price
+	if not CurrencyService:SpendCoins(player, price, "ExpandPlot") then
+		SyncService:Notify(player, ("Il te faut %s Coins pour agrandir."):format(Format.Number(price)), "Error")
+		return
+	end
+	expand(player)
 end
 
 --------------------------------------------------------------------------
@@ -288,6 +429,25 @@ function PlotService:TeleportHome(player: Player)
 	end
 end
 
+-- Déclenche OnPlotReady quand le joueur a sa parcelle ET ses données (ordre variable).
+local function tryReady(player: Player)
+	if readyPlayers[player] or not player.Parent then
+		return
+	end
+	local plot = plotByPlayer[player]
+	local data = DataService:GetData(player)
+	if not plot or not data then
+		return
+	end
+	readyPlayers[player] = true
+
+	local level = math.clamp(math.floor(tonumber(data.PlotLevel) or 1), 1, MAX_LEVEL)
+	data.PlotLevel = level
+	applyLevel(plot, level)
+
+	runCallbacks(readyCallbacks, player, plot, data)
+end
+
 local function assignPlot(player: Player)
 	if plotByPlayer[player] then
 		return
@@ -301,9 +461,7 @@ local function assignPlot(player: Player)
 			plotByPlayer[player] = plot
 			player:SetAttribute("PlotId", plot.Id)
 			print(("[PlotService] Parcelle %d attribuée à %s"):format(plot.Id, player.Name))
-			for _, callback in assignedCallbacks do
-				task.spawn(callback, player, plot)
-			end
+			tryReady(player)
 			return
 		end
 	end
@@ -318,16 +476,15 @@ local function releasePlot(player: Player)
 	if not plot then
 		return
 	end
-	for _, callback in releasedCallbacks do
-		local ok, err = pcall(callback, player, plot) -- ex. FarmService retire les plantes affichées
-		if not ok then
-			warn("[PlotService] Erreur dans un callback de libération : " .. tostring(err))
-		end
+	if readyPlayers[player] then
+		runCallbacks(releasedCallbacks, player, plot) -- les services retirent plantes, enclos...
 	end
+	readyPlayers[player] = nil
 	plotByPlayer[player] = nil
 	plot.Owner = nil
 	plot.Model:SetAttribute("OwnerUserId", 0)
 	plot.OwnerLabel.Text = PlotConfig.FreeLabel
+	applyLevel(plot, 1)
 	print(("[PlotService] Parcelle %d libérée (départ de %s)"):format(plot.Id, player.Name))
 end
 
@@ -367,8 +524,15 @@ function PlotService:Init()
 		if Config.Debug.Enabled then
 			buildDebugCoinPad(plot)
 		end
+		plot.ExpandPrompt.Triggered:Connect(function(player)
+			onExpandTriggered(plot, player)
+		end)
 	end
 	print(("[PlotService] %d parcelles générées"):format(#plots))
+
+	DataService:OnProfileLoaded(function(player)
+		tryReady(player)
+	end)
 end
 
 function PlotService:Start()

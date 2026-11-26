@@ -3,15 +3,17 @@
 	===============
 	Stand de vente : "Tout vendre" via un ProximityPrompt (validé côté serveur).
 
-	Prix d'un produit = SellPrice de la culture
-	                    x multiplicateur de variante (phase 3 : mutations)
-	                    x multiplicateur du joueur (phase 4 : rebirth, phase 5 : familiers / game pass)
+	Vend TOUT l'inventaire : récoltes, ressources animales (et produits en phase 4).
+	Prix d'un objet = SellPrice (Config.Crops / Config.Resources)
+	                  x multiplicateur de variante (Config.Variants : Doré x2, ...)
+	                  x multiplicateur du joueur (phase 7 : rebirth, phase 8 : game pass x2)
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
+local ItemUtil = require(ReplicatedStorage.Shared.ItemUtil)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local StandBuilder = require(script.Parent.Parent.Util.StandBuilder)
 local CurrencyService = require(script.Parent.CurrencyService)
@@ -22,12 +24,8 @@ local SellService = {}
 
 local standPosition: Vector3
 
-function SellService:GetVariantMultiplier(_variant: string): number
-	return 1 -- phase 3 : Dorée x3, Arc-en-ciel x10...
-end
-
 function SellService:GetPlayerSellMultiplier(_player: Player): number
-	return 1 -- phase 4/5 : rebirths, familiers, game pass x2
+	return 1 -- phase 7 : rebirths ; phase 8 : game pass x2
 end
 
 local function onSellTriggered(player: Player)
@@ -38,19 +36,16 @@ local function onSellTriggered(player: Player)
 		return
 	end
 	if InventoryService:GetItemCount(player) <= 0 then
-		SyncService:Notify(player, "Rien à vendre ! Récolte d'abord tes plantes.", "Error")
+		SyncService:Notify(player, "Rien à vendre ! Récolte tes plantes ou ramasse la production de tes animaux.", "Error")
 		return
 	end
 
-	local items = InventoryService:TakeAllCrops(player)
+	local items = InventoryService:TakeAllItems(player)
 	local total, count = 0, 0
-	for cropId, variants in items do
-		local crop = Config.Crops[cropId]
-		if crop then
-			for variant, amount in variants do
-				total += crop.SellPrice * SellService:GetVariantMultiplier(variant) * amount
-				count += amount
-			end
+	for itemId, variants in items do
+		for variant, amount in variants do
+			total += ItemUtil.UnitValue(itemId, variant) * amount
+			count += amount
 		end
 	end
 	total *= SellService:GetPlayerSellMultiplier(player)
