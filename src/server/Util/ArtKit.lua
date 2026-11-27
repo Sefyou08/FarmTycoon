@@ -24,7 +24,9 @@
 	  Le jeu s'occupe de tout : il SUPPRIME les scripts (sécurité), ancre les pièces, enlève les
 	  collisions, met le modèle à la bonne taille, le centre et le pose sur le sol. Le modèle doit
 	  regarder vers -Z (son avant) ; sinon, ajoute-lui un attribut nombre "YawOffset" (degrés,
-	  ex. 90 ou 180) pour le tourner. Tout le gameplay reste identique.
+	  ex. 90 ou 180) pour le tourner. S'il est couché, "PitchOffset" (bascule avant/arrière,
+	  axe X) et "RollOffset" (bascule sur le côté, axe Z), en degrés, le redressent.
+	  Tout le gameplay reste identique.
 ]]
 
 local ServerStorage = game:GetService("ServerStorage")
@@ -242,8 +244,20 @@ function ArtKit.Custom(category: string, id: string): Model?
 	return nil
 end
 
--- Prépare un modèle importé : ancré, sans collision, tourné (-Z = avant ; attribut facultatif
--- "YawOffset" en degrés sur le modèle pour le corriger), mis à la taille voulue (targetSize =
+-- Correction d'orientation d'un modèle importé, lue sur ses attributs (en degrés) :
+--   YawOffset   : tourne autour de la verticale (avant du modèle vers -Z)
+--   PitchOffset : bascule avant/arrière (axe X) — pour un modèle couché sur le dos ou le ventre
+--   RollOffset  : bascule sur le côté (axe Z) — pour un modèle couché sur le flanc
+-- Ordre : d'abord on redresse (pitch, puis roll), ensuite on tourne (yaw).
+function ArtKit.OrientOffset(model: Instance): CFrame
+	local function deg(name: string): number
+		return math.rad(tonumber(model:GetAttribute(name)) or 0)
+	end
+	return CFrame.Angles(0, deg("YawOffset"), 0) * CFrame.Angles(deg("PitchOffset"), 0, 0) * CFrame.Angles(0, 0, deg("RollOffset"))
+end
+
+-- Prépare un modèle importé : ancré, sans collision, tourné et redressé (-Z = avant ; attributs
+-- facultatifs "YawOffset", "PitchOffset", "RollOffset" en degrés, voir OrientOffset), mis à la taille voulue (targetSize =
 -- plus grande dimension, en studs), centré sur groundCFrame et posé sur le sol.
 function ArtKit.PlaceCustom(model: Model, groundCFrame: CFrame, anchored: boolean?, targetSize: number?)
 	local primary = model.PrimaryPart
@@ -255,8 +269,7 @@ function ArtKit.PlaceCustom(model: Model, groundCFrame: CFrame, anchored: boolea
 			d.CanQuery = d == primary
 		end
 	end
-	local yaw = tonumber(model:GetAttribute("YawOffset")) or 0
-	model:PivotTo(groundCFrame * CFrame.Angles(0, math.rad(yaw), 0))
+	model:PivotTo(groundCFrame * ArtKit.OrientOffset(model))
 	if targetSize and targetSize > 0 then
 		local extents = model:GetExtentsSize()
 		local biggest = math.max(extents.X, extents.Y, extents.Z)

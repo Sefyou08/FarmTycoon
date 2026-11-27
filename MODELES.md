@@ -4,6 +4,24 @@ Crée les dossiers dans Studio (ils ne sont jamais effacés par Rojo). Mets un *
 Le jeu supprime les scripts, les Humanoid, les ProximityPrompt et ClickDetector, ancre les pièces, enlève les collisions, ajuste la taille, centre le modèle et le pose sur le sol.
 L'avant du modèle doit regarder vers -Z (bouton « Front » de Studio) ; sinon ajoute au Model un attribut nombre `YawOffset` (ex. 90, 180, -90).
 
+### Redresser un modèle couché ou mal tourné (toutes catégories)
+
+Ajoute au **Model** (pas à une pièce) un ou plusieurs attributs de type **number**, en degrés :
+
+| Attribut | Effet | Quand l'utiliser |
+|---|---|---|
+| `YawOffset` | tourne sur lui-même (autour de la verticale) | il est debout mais regarde dans la mauvaise direction |
+| `PitchOffset` | bascule vers l'avant ou l'arrière | il est couché sur le dos ou sur le ventre |
+| `RollOffset` | bascule sur le côté | il est couché sur le flanc |
+
+Comment faire dans Studio :
+1. Sélectionne le Model dans l'Explorer (ex. `ServerStorage > CustomModels > Props > Pedestal`).
+2. Fenêtre Properties, tout en bas : **Attributes > +** (Add Attribute), nom `PitchOffset`, type **Number**, valeur `90`.
+3. Lance le jeu (Play) et regarde le modèle. S'il est maintenant la tête en bas ou couché de l'autre côté, essaie `-90` (ou `180`). S'il est toujours couché mais sur le flanc, enlève `PitchOffset` et essaie `RollOffset` = `90` puis `-90`.
+4. Une fois debout, s'il regarde dans le mauvais sens, ajuste `YawOffset` (90, 180, -90).
+
+Valeurs utiles : presque toujours `90`, `-90` ou `180`. Le jeu redresse d'abord, puis tourne, puis remet la taille et pose le modèle sur le sol : tu n'as rien à recaler toi-même.
+
 ## Cultures : `ServerStorage > CustomModels > Crops` (11)
 
 Un seul modèle par culture, utilisé pour les 3 stades (petit, moyen, mûr). Taille mûre : `Config.Farm.CustomCropSize` (ou `ModelSize` dans la culture).

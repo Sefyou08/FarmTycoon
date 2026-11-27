@@ -412,8 +412,13 @@ function EnemyBuilder.Build(enemyId: string, cframe: CFrame): (Model, BasePart, 
 				table.insert(ctx.Flash, p)
 			end
 		end
-		-- Orientation (-Z = avant, attribut "YawOffset" en degrés pour corriger) et taille
-		model:PivotTo(cframe * CFrame.Angles(0, math.rad(tonumber(model:GetAttribute("YawOffset")) or 0), 0))
+		-- Orientation (-Z = avant) et taille ; attributs en degrés pour corriger :
+		-- "YawOffset" (tourner), "PitchOffset" (bascule avant/arrière), "RollOffset" (sur le côté)
+		local function deg(name: string): number
+			return math.rad(tonumber(model:GetAttribute(name)) or 0)
+		end
+		local orient = CFrame.Angles(0, deg("YawOffset"), 0) * CFrame.Angles(deg("PitchOffset"), 0, 0) * CFrame.Angles(0, 0, deg("RollOffset"))
+		model:PivotTo(cframe * orient)
 		local extents = model:GetExtentsSize()
 		local biggest = math.max(extents.X, extents.Y, extents.Z)
 		if biggest > 0.01 then
