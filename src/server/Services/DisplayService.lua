@@ -8,7 +8,7 @@
 	    Une créature exposée sur un socle POSÉ rapporte des Coins / seconde
 	    (CreatureUtil.GetIncome), versés toutes les Config.Display.IncomeInterval
 	    secondes, et aussi pendant l'absence du joueur (plafonné).
-	  • VITRINE DE PRESTIGE : le long de la clôture gauche de chaque parcelle (suit l'agrandissement),
+	  • VITRINE DE PRESTIGE : devant chaque parcelle (côté allée), à gauche de l'entrée (suit l'agrandissement),
 	    Config.Showcase.Slots socles éclairés montrent d'abord ce que le joueur a épinglé
 	    (data.ShowcasePicks : créatures, ou animaux "A:<id>"), puis ses créatures les plus
 	    prestigieuses. Un animal n'y apparaît QUE s'il est épinglé. Tout le monde la voit.
@@ -470,7 +470,7 @@ local function renderShowcase(state: State)
 	end
 end
 
--- Vitrine le long de la clôture GAUCHE de la parcelle (PlacementUtil.ShowcaseSpots), qui suit
+-- Vitrine DEVANT la parcelle, à côté de l'entrée (PlacementUtil.ShowcaseSpots), qui suit
 -- l'agrandissement : reconstruite quand le niveau de la parcelle change.
 local function buildShowcase(plot: any, level: number?)
 	local old = plot.Model:FindFirstChild("Showcase")
@@ -483,8 +483,9 @@ local function buildShowcase(plot: any, level: number?)
 
 	local slots: { ShowcaseSlot } = {}
 	for i, spot in PlacementUtil.ShowcaseSpots(level or 1) do
-		-- Sur le sol de la parcelle ; les modèles regardent -Z, donc vers l'allée et les passants
-		local ground = PlotService:ToWorld(plot, spot.X, spot.Y)
+		-- Côté allée, posé au niveau du sol de la map (sous l'épaisseur de la parcelle).
+		-- Les modèles regardent -Z, donc vers l'allée et les passants.
+		local ground = PlotService:ToWorld(plot, spot.X, spot.Y, -Config.Plots.BaseHeight)
 		makePart({
 			Name = "ShowcaseBase",
 			Shape = Enum.PartType.Cylinder,
@@ -722,7 +723,7 @@ function DisplayService:Init()
 	end
 	PlotService:OnPlotReady(activate)
 	PlotService:OnPlotReleased(deactivate)
-	-- Agrandissement : la vitrine se décale avec la clôture gauche
+	-- Agrandissement : la vitrine se décale avec la façade de la parcelle
 	PlotService:OnPlotLevelChanged(function(player, plot, level)
 		clearShowcase(plot)
 		buildShowcase(plot, level)

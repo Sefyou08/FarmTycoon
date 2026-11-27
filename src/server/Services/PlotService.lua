@@ -171,10 +171,10 @@ local function applyLevel(plot: Plot, level: number)
 		TycoonPad.SetVisible(pad, plot.Owner ~= nil)
 	end
 
-	-- Panneau du propriétaire : côté DROIT de la parcelle, juste derrière la bande d'entrée,
-	-- tourné vers l'allée ; il suit l'agrandissement (PlacementUtil.SignSpot)
+	-- Panneau du propriétaire : DEVANT la parcelle (côté allée), à droite de l'entrée, tourné vers
+	-- l'allée et posé sur le sol de la map ; il suit l'agrandissement (PlacementUtil.SignSpot)
 	local signSpot = PlacementUtil.SignSpot(level)
-	local signFrame = plot.CFrame * CFrame.new(signSpot.X, height / 2, signSpot.Y)
+	local signFrame = plot.CFrame * CFrame.new(signSpot.X, -height / 2, signSpot.Y)
 	local signWidth = Config.Showcase.SignWidth
 	local postIndex = 0
 	for _, child in plot.Model:GetChildren() do

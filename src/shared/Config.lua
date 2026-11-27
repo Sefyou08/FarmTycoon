@@ -918,13 +918,14 @@ Config.Display = {
 }
 
 Config.Showcase = {
-	Slots = 5, -- socles de la vitrine, alignés le long de la clôture GAUCHE (côté boutons d'agrandissement)
+	-- Vitrine de prestige et panneau du propriétaire : DEVANT la parcelle (côté allée), de part
+	-- et d'autre de l'entrée, qui reste libre. Chacun est centré entre le portail et le coin de
+	-- la clôture, donc suit l'agrandissement. Ils ne prennent aucune place dans la parcelle.
+	Side = -1, -- côté de la vitrine : -1 = gauche (côté boutons d'agrandissement), 1 = droite ; le panneau va en face
+	Slots = 5, -- socles de la vitrine, alignés face à l'allée
 	Spacing = 7, -- écart entre deux socles (studs)
-	Inset = 4, -- distance entre la clôture gauche et le centre des socles
-	StartZ = 15, -- profondeur du 1er socle (juste derrière la bande d'entrée)
-	-- Panneau du propriétaire : côté DROIT, juste derrière la bande d'entrée, tourné vers l'allée
-	SignInset = 8, -- distance entre la clôture droite et le centre du panneau
-	SignZ = 13,
+	FrontDistance = 7, -- distance entre la clôture avant et le centre des socles (côté allée)
+	SignDistance = 5, -- distance entre la clôture avant et le panneau (côté allée)
 	SignWidth = 12,
 	RefreshInterval = 3, -- secondes entre deux vérifications du contenu de la vitrine
 }

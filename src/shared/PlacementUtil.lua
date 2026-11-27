@@ -89,42 +89,40 @@ function PlacementUtil.Collect(data: { [string]: any }): { { [string]: any } }
 	return list
 end
 
--- Vérifie un placement. candidate = { Type, Id?, Kind?, X, Z, Rot }.
--- Renvoie (true) ou (false, raison). L'élément d'id candidate.Id est ignoré (déplacement).
 --------------------------------------------------------------------------
--- Disposition fixe de la parcelle (suit l'agrandissement) : vitrine à gauche, panneau à droite
+-- Façade de la parcelle (suit l'agrandissement) : vitrine et panneau devant, entrée libre
 --------------------------------------------------------------------------
 
--- Positions locales (x, z) des socles de la vitrine pour ce niveau de parcelle
-function PlacementUtil.ShowcaseSpots(level: number): { Vector2 }
+-- DEVANT la parcelle (côté allée, z < 0), de part et d'autre de l'entrée qui reste libre :
+-- vitrine d'un côté, panneau du propriétaire de l'autre (Config.Showcase.Side). Chacun est
+-- centré dans la moitié de façade comprise entre le portail et le coin de la clôture : il suit
+-- donc l'agrandissement. Rien de tout ça n'est DANS la parcelle : la zone constructible est entière.
+local function frontCenterX(level: number): number
 	local expansion = Config.Plots.Expansions[math.clamp(level, 1, #Config.Plots.Expansions)]
+	return (Config.Plots.GateWidth / 2 + expansion.Width / 2) / 2
+end
+
+-- Positions locales (x, z) des socles de la vitrine de prestige, alignés face à l'allée
+function PlacementUtil.ShowcaseSpots(level: number): { Vector2 }
 	local show = Config.Showcase
+	local center = show.Side * frontCenterX(level)
 	local spots = {}
 	for i = 1, show.Slots do
-		table.insert(spots, Vector2.new(-expansion.Width / 2 + show.Inset, show.StartZ + (i - 1) * show.Spacing))
+		-- Du côté de l'entrée vers le coin de la clôture
+		local offset = (i - (show.Slots + 1) / 2) * show.Spacing
+		table.insert(spots, Vector2.new(center + show.Side * offset, -show.FrontDistance))
 	end
 	return spots
 end
 
--- Position locale (x, z) du centre du panneau du propriétaire
+-- Position locale (x, z) du centre du panneau du propriétaire (côté opposé à la vitrine)
 function PlacementUtil.SignSpot(level: number): Vector2
-	local expansion = Config.Plots.Expansions[math.clamp(level, 1, #Config.Plots.Expansions)]
-	return Vector2.new(expansion.Width / 2 - Config.Showcase.SignInset, Config.Showcase.SignZ)
-end
-
--- Zones réservées (vitrine, panneau) : on ne peut rien construire dessus
-function PlacementUtil.ReservedRects(level: number): { { [string]: any } }
-	local expansion = Config.Plots.Expansions[math.clamp(level, 1, #Config.Plots.Expansions)]
 	local show = Config.Showcase
-	local half = expansion.Width / 2
-	local lastZ = show.StartZ + (show.Slots - 1) * show.Spacing
-	local sign = PlacementUtil.SignSpot(level)
-	return {
-		{ MinX = -half, MaxX = -half + show.Inset * 2 + 0.5, MinZ = 0, MaxZ = lastZ + 3.5, Label = "la vitrine de prestige" },
-		{ MinX = sign.X - show.SignWidth / 2 - 1, MaxX = half, MinZ = 0, MaxZ = sign.Y + 2.5, Label = "ton panneau" },
-	}
+	return Vector2.new(-show.Side * frontCenterX(level), -show.SignDistance)
 end
 
+-- Vérifie un placement. candidate = { Type, Id?, Kind?, X, Z, Rot }.
+-- Renvoie (true) ou (false, raison). L'élément d'id candidate.Id est ignoré (déplacement).
 function PlacementUtil.Check(level: number, placed: { { [string]: any } }, candidate: { [string]: any }): (boolean, string?)
 	local w = PlacementUtil.Footprint(candidate.Type, candidate.Kind)
 	if w <= 0 then
@@ -141,12 +139,6 @@ function PlacementUtil.Check(level: number, placed: { { [string]: any } }, candi
 	end
 	if minZ < bMinZ then
 		return false, "Trop près de l'entrée (la bande des boutons au sol doit rester libre) : recule-le."
-	end
-
-	for _, zone in PlacementUtil.ReservedRects(level) do
-		if minX < zone.MaxX and maxX > zone.MinX and minZ < zone.MaxZ and maxZ > zone.MinZ then
-			return false, ("Cet emplacement est réservé à %s : décale-le."):format(zone.Label)
-		end
 	end
 
 	for _, other in placed do
