@@ -91,6 +91,40 @@ end
 
 -- Vérifie un placement. candidate = { Type, Id?, Kind?, X, Z, Rot }.
 -- Renvoie (true) ou (false, raison). L'élément d'id candidate.Id est ignoré (déplacement).
+--------------------------------------------------------------------------
+-- Disposition fixe de la parcelle (suit l'agrandissement) : vitrine à gauche, panneau à droite
+--------------------------------------------------------------------------
+
+-- Positions locales (x, z) des socles de la vitrine pour ce niveau de parcelle
+function PlacementUtil.ShowcaseSpots(level: number): { Vector2 }
+	local expansion = Config.Plots.Expansions[math.clamp(level, 1, #Config.Plots.Expansions)]
+	local show = Config.Showcase
+	local spots = {}
+	for i = 1, show.Slots do
+		table.insert(spots, Vector2.new(-expansion.Width / 2 + show.Inset, show.StartZ + (i - 1) * show.Spacing))
+	end
+	return spots
+end
+
+-- Position locale (x, z) du centre du panneau du propriétaire
+function PlacementUtil.SignSpot(level: number): Vector2
+	local expansion = Config.Plots.Expansions[math.clamp(level, 1, #Config.Plots.Expansions)]
+	return Vector2.new(expansion.Width / 2 - Config.Showcase.SignInset, Config.Showcase.SignZ)
+end
+
+-- Zones réservées (vitrine, panneau) : on ne peut rien construire dessus
+function PlacementUtil.ReservedRects(level: number): { { [string]: any } }
+	local expansion = Config.Plots.Expansions[math.clamp(level, 1, #Config.Plots.Expansions)]
+	local show = Config.Showcase
+	local half = expansion.Width / 2
+	local lastZ = show.StartZ + (show.Slots - 1) * show.Spacing
+	local sign = PlacementUtil.SignSpot(level)
+	return {
+		{ MinX = -half, MaxX = -half + show.Inset * 2 + 0.5, MinZ = 0, MaxZ = lastZ + 3.5, Label = "la vitrine de prestige" },
+		{ MinX = sign.X - show.SignWidth / 2 - 1, MaxX = half, MinZ = 0, MaxZ = sign.Y + 2.5, Label = "ton panneau" },
+	}
+end
+
 function PlacementUtil.Check(level: number, placed: { { [string]: any } }, candidate: { [string]: any }): (boolean, string?)
 	local w = PlacementUtil.Footprint(candidate.Type, candidate.Kind)
 	if w <= 0 then
@@ -107,6 +141,12 @@ function PlacementUtil.Check(level: number, placed: { { [string]: any } }, candi
 	end
 	if minZ < bMinZ then
 		return false, "Trop près de l'entrée (la bande des boutons au sol doit rester libre) : recule-le."
+	end
+
+	for _, zone in PlacementUtil.ReservedRects(level) do
+		if minX < zone.MaxX and maxX > zone.MinX and minZ < zone.MaxZ and maxZ > zone.MinZ then
+			return false, ("Cet emplacement est réservé à %s : décale-le."):format(zone.Label)
+		end
 	end
 
 	for _, other in placed do

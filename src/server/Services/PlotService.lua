@@ -35,6 +35,7 @@ local Workspace = game:GetService("Workspace")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
+local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local FarmScenery = require(script.Parent.Parent.Util.FarmScenery)
@@ -170,6 +171,23 @@ local function applyLevel(plot: Plot, level: number)
 		TycoonPad.SetVisible(pad, plot.Owner ~= nil)
 	end
 
+	-- Panneau du propriétaire : côté DROIT de la parcelle, juste derrière la bande d'entrée,
+	-- tourné vers l'allée ; il suit l'agrandissement (PlacementUtil.SignSpot)
+	local signSpot = PlacementUtil.SignSpot(level)
+	local signFrame = plot.CFrame * CFrame.new(signSpot.X, height / 2, signSpot.Y)
+	local signWidth = Config.Showcase.SignWidth
+	local postIndex = 0
+	for _, child in plot.Model:GetChildren() do
+		if child:IsA("BasePart") and child.Name == "SignPost" then
+			local sx = if postIndex == 0 then -1 else 1
+			postIndex += 1
+			child.CFrame = signFrame * CFrame.new(sx * (signWidth / 2 - 1), 3.5, 0)
+		elseif child:IsA("BasePart") and child.Name == "SignBoard" then
+			child.Size = Vector3.new(signWidth, 3, 0.4)
+			child.CFrame = signFrame * CFrame.new(0, 6, 0)
+		end
+	end
+
 	-- Cosmétiques du propriétaire : sol et panneau (valeurs par défaut si parcelle libre)
 	local data = plot.Owner and DataService:GetData(plot.Owner)
 	local floor = CosmeticUtil.Equipped(data, "PlotFloor")
@@ -250,7 +268,7 @@ local function buildPlot(id: number, folder: Folder): Plot
 	borders.Name = "Borders"
 	borders.Parent = model
 
-	-- Panneau devant l'entrée (2 poteaux + planche)
+	-- Panneau du propriétaire (2 poteaux + planche) ; sa position est fixée par applyLevel
 	local signLocal = CFrame.new(0, PlotConfig.BaseHeight / 2, -3)
 	for _, offsetX in { -6, 6 } do
 		makePart({
@@ -273,7 +291,7 @@ local function buildPlot(id: number, folder: Folder): Plot
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "OwnerGui"
-	billboard.Size = UDim2.fromScale(14, 3) -- en studs
+	billboard.Size = UDim2.fromScale(12, 3) -- en studs (largeur du panneau)
 	billboard.MaxDistance = 250
 	billboard.LightInfluence = 0
 	billboard.Adornee = board

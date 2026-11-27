@@ -378,6 +378,11 @@ Le gameplay est là ; il faut maintenant une vraie identité visuelle.
 - Stand de vente : fenêtre `SellUI` (onglets, quantité par objet, sélection, tout vendre),
   RemoteFunction `SellItems` validée par le serveur.
 
+**Disposition des parcelles** : vitrine de prestige le long de la clôture gauche (côté boutons
+d'agrandissement), panneau du propriétaire à droite derrière la bande d'entrée ; les deux suivent
+l'agrandissement (`PlacementUtil.ShowcaseSpots` / `SignSpot`) et leurs zones sont réservées
+(`PlacementUtil.ReservedRects`) : on ne peut plus construire dessus. Réglages : `Config.Showcase`.
+
 ---
 
 ## 5. Équilibrage de base

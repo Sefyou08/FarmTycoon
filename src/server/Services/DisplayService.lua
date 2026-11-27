@@ -8,7 +8,7 @@
 	    Une créature exposée sur un socle POSÉ rapporte des Coins / seconde
 	    (CreatureUtil.GetIncome), versés toutes les Config.Display.IncomeInterval
 	    secondes, et aussi pendant l'absence du joueur (plafonné).
-	  • VITRINE DE PRESTIGE : devant l'entrée de chaque parcelle, côté allée,
+	  • VITRINE DE PRESTIGE : le long de la clôture gauche de chaque parcelle (suit l'agrandissement),
 	    Config.Showcase.Slots socles éclairés montrent d'abord ce que le joueur a épinglé
 	    (data.ShowcasePicks : créatures, ou animaux "A:<id>"), puis ses créatures les plus
 	    prestigieuses. Un animal n'y apparaît QUE s'il est épinglé. Tout le monde la voit.
@@ -470,18 +470,21 @@ local function renderShowcase(state: State)
 	end
 end
 
-local function buildShowcase(plot: any)
+-- Vitrine le long de la clôture GAUCHE de la parcelle (PlacementUtil.ShowcaseSpots), qui suit
+-- l'agrandissement : reconstruite quand le niveau de la parcelle change.
+local function buildShowcase(plot: any, level: number?)
+	local old = plot.Model:FindFirstChild("Showcase")
+	if old then
+		old:Destroy()
+	end
 	local folder = Instance.new("Folder")
 	folder.Name = "Showcase"
 	folder.Parent = plot.Model
 
 	local slots: { ShowcaseSlot } = {}
-	local count = ShowcaseConfig.Slots
-	for i = 1, count do
-		local x = (i - (count + 1) / 2) * ShowcaseConfig.Spacing
-		-- Côté allée (Z négatif), posé au niveau du sol de la map (sous l'épaisseur de la parcelle).
-		-- Les modèles regardent -Z, donc vers l'allée et les passants.
-		local ground = PlotService:ToWorld(plot, x, -ShowcaseConfig.DistanceFromEntrance, -Config.Plots.BaseHeight)
+	for i, spot in PlacementUtil.ShowcaseSpots(level or 1) do
+		-- Sur le sol de la parcelle ; les modèles regardent -Z, donc vers l'allée et les passants
+		local ground = PlotService:ToWorld(plot, spot.X, spot.Y)
 		makePart({
 			Name = "ShowcaseBase",
 			Shape = Enum.PartType.Cylinder,
@@ -653,6 +656,8 @@ local function activate(player: Player, plot: any, data: { [string]: any })
 	sanitize(data)
 	local state: State = { Player = player, Plot = plot, Data = data, Pedestals = {}, ShowcaseSignature = "", Income = -1 }
 	states[player] = state
+	clearShowcase(plot)
+	buildShowcase(plot, plot.Level) -- vitrine à la bonne place pour le niveau de la parcelle
 
 	for id in data.Pedestals do
 		buildPedestal(state, id)
@@ -683,6 +688,7 @@ local function deactivate(player: Player, plot: any)
 		end
 	end
 	clearShowcase(plot)
+	buildShowcase(plot, 1) -- parcelle libérée : elle repasse au niveau 1
 end
 
 local function incomeLoop()
@@ -716,6 +722,16 @@ function DisplayService:Init()
 	end
 	PlotService:OnPlotReady(activate)
 	PlotService:OnPlotReleased(deactivate)
+	-- Agrandissement : la vitrine se décale avec la clôture gauche
+	PlotService:OnPlotLevelChanged(function(player, plot, level)
+		clearShowcase(plot)
+		buildShowcase(plot, level)
+		local state = states[player]
+		if state then
+			state.ShowcaseSignature = ""
+			renderShowcase(state)
+		end
+	end)
 end
 
 function DisplayService:Start()

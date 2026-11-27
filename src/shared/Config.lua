@@ -918,9 +918,14 @@ Config.Display = {
 }
 
 Config.Showcase = {
-	Slots = 5, -- socles de la vitrine devant l'entrée de chaque parcelle
+	Slots = 5, -- socles de la vitrine, alignés le long de la clôture GAUCHE (côté boutons d'agrandissement)
 	Spacing = 7, -- écart entre deux socles (studs)
-	DistanceFromEntrance = 10, -- distance entre l'entrée de la parcelle et la vitrine (côté allée)
+	Inset = 4, -- distance entre la clôture gauche et le centre des socles
+	StartZ = 15, -- profondeur du 1er socle (juste derrière la bande d'entrée)
+	-- Panneau du propriétaire : côté DROIT, juste derrière la bande d'entrée, tourné vers l'allée
+	SignInset = 8, -- distance entre la clôture droite et le centre du panneau
+	SignZ = 13,
+	SignWidth = 12,
 	RefreshInterval = 3, -- secondes entre deux vérifications du contenu de la vitrine
 }
 
