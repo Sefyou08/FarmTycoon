@@ -639,3 +639,9 @@ boost capture 4 %, œuf Forêt 2,5 %, fleur étoile 2 %, œuf Montagne 1 %, cré
 
 Cosmétiques : 25 à 150 R$ ; environ la moitié se débloque en jouant (niveaux 8 à 25, Index de zone,
 Coins).
+
+**Montures importées** : `MountBuilder` utilise `CustomModels.Animals.<cheval>` s'il existe
+(redressé, mis à l'échelle, sans collision ni masse, soudé), mesure le dos par rayons pour placer le
+cavalier (`Layout` : AttachHeight, BackHeight, SeatZ), applique variante et selle. Animation côté
+client selon `MountRig` : Generated (pattes), Animated (animations du modèle), Simple (articulation
+`MountBob` : rebond + tangage). Sans modèle importé, le cheval généré reste utilisé.

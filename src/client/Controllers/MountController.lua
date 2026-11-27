@@ -8,9 +8,14 @@
 	  • Pose du cavalier : le joueur local joue l'animation "assis" de son personnage
 	    (celle du script Animate de Roblox) ; elle est répliquée, donc tout le monde voit
 	    le cavalier assis.
-	  • Animation des chevaux de TOUS les joueurs (tag "MountModel") : pattes qui
-	    alternent selon la vitesse réelle (pas -> galop), tête qui hoche, queue qui
-	    balance. Purement visuel, calculé par chaque client, aucun trafic réseau.
+	  • Animation des chevaux de TOUS les joueurs (tag "MountModel"), selon l'attribut MountRig :
+	      "Generated" : pattes qui alternent selon la vitesse réelle (pas -> galop), tête qui
+	                    hoche, queue qui balance ;
+	      "Animated"  : modèle importé avec squelette : ses animations (Idle / Walk / Run, dossier
+	                    MountAnimations) jouées et accélérées selon la vitesse ;
+	      "Simple"    : modèle importé sans animation : balancement de galop + léger rebond
+	                    (articulation "MountBob").
+	    Purement visuel, calculé par chaque client, aucun trafic réseau.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -31,7 +36,15 @@ local busy = false
 local sitTrack: AnimationTrack? = nil
 
 -- Articulations animées d'un cheval : { [Motor6D] = C0 d'origine }
-type MountRig = { Model: Model, Motors: { [string]: Motor6D }, Base: { [Motor6D]: CFrame }, Phase: number }
+type MountRig = {
+	Model: Model,
+	Kind: string,
+	Motors: { [string]: Motor6D },
+	Base: { [Motor6D]: CFrame },
+	Phase: number,
+	Tracks: { [string]: AnimationTrack },
+	Current: string?,
+}
 local rigs: { [Model]: MountRig } = {}
 
 local LEG_OFFSETS = { LegFL = 0, LegBR = 0, LegFR = math.pi, LegBL = math.pi } -- diagonales opposées
@@ -40,18 +53,72 @@ local LEG_OFFSETS = { LegFL = 0, LegBR = 0, LegFR = math.pi, LegBL = math.pi } -
 -- Animation des chevaux
 --------------------------------------------------------------------------
 
+local function loadTracks(model: Model, rig: MountRig)
+	local folder = model:FindFirstChild("MountAnimations")
+	local controller = model:FindFirstChildOfClass("AnimationController")
+	local animator = controller and controller:FindFirstChildOfClass("Animator")
+	if not folder or not animator then
+		return
+	end
+	for _, anim in folder:GetChildren() do
+		if anim:IsA("Animation") then
+			local ok, loaded = pcall(function()
+				return (animator :: Animator):LoadAnimation(anim)
+			end)
+			if ok and loaded then
+				loaded.Looped = true
+				loaded.Priority = Enum.AnimationPriority.Movement
+				rig.Tracks[anim.Name] = loaded
+			end
+		end
+	end
+end
+
 local function track(model: Instance)
 	if not model:IsA("Model") or rigs[model] then
 		return
 	end
-	local rig: MountRig = { Model = model, Motors = {}, Base = {}, Phase = math.random() * 10 }
+	local rig: MountRig = { Model = model, Kind = model:GetAttribute("MountRig") or "Generated", Motors = {}, Base = {}, Phase = math.random() * 10, Tracks = {} }
 	for _, motor in model:GetDescendants() do
 		if motor:IsA("Motor6D") then
 			rig.Motors[motor.Name] = motor
 			rig.Base[motor] = motor.C0
 		end
 	end
+	if rig.Kind == "Animated" then
+		loadTracks(model, rig)
+		if next(rig.Tracks) == nil then
+			rig.Kind = "Simple" -- animations illisibles : balancement simple à la place
+		end
+	end
 	rigs[model] = rig
+end
+
+-- Choisit l'animation importée selon la vitesse (arrêt / pas / galop) et l'accélère
+local function animateTracks(rig: MountRig, speed: number)
+	local wanted = if speed < 2 then "Idle" elseif speed < 30 then "Walk" else "Run"
+	-- Animation manquante : on prend la plus proche disponible
+	local order = { Idle = { "Idle", "Walk", "Run" }, Walk = { "Walk", "Run", "Idle" }, Run = { "Run", "Walk", "Idle" } }
+	local chosen
+	for _, name in order[wanted] do
+		if rig.Tracks[name] then
+			chosen = name
+			break
+		end
+	end
+	if not chosen then
+		return
+	end
+	if rig.Current ~= chosen then
+		if rig.Current and rig.Tracks[rig.Current] then
+			rig.Tracks[rig.Current]:Stop(0.25)
+		end
+		rig.Tracks[chosen]:Play(0.25)
+		rig.Current = chosen
+	end
+	local reference = if chosen == "Run" then 40 elseif chosen == "Walk" then 16 else 0
+	local trackSpeed = if reference > 0 and speed > 0.5 then math.clamp(speed / reference, 0.4, 2) elseif chosen == "Idle" then 1 else 0.4
+	rig.Tracks[chosen]:AdjustSpeed(trackSpeed)
 end
 
 local function animateRigs(dt: number)
@@ -67,6 +134,20 @@ local function animateRigs(dt: number)
 		local gait = math.clamp(speed / 30, 0, 1) -- 0 = arrêt, ~0,5 = pas, 1 = galop
 		rig.Phase += dt * (4 + speed * 0.35)
 
+		if rig.Kind == "Animated" then
+			animateTracks(rig, speed)
+			continue
+		end
+		local bobMotor = rig.Motors.MountBob
+		if rig.Kind == "Simple" and bobMotor then
+			-- Galop simple : rebond (deux appuis par foulée), tangage avant/arrière, respiration
+			local bounce = math.abs(math.sin(rig.Phase)) * 0.28 * gait
+			local pitch = math.sin(rig.Phase) * math.rad(5) * gait
+			local roll = math.sin(rig.Phase * 0.5) * math.rad(1.5) * gait
+			local breathe = math.sin(now * 2) * 0.04
+			bobMotor.C0 = rig.Base[bobMotor] * CFrame.new(0, bounce + breathe, 0) * CFrame.Angles(pitch, 0, roll)
+			continue
+		end
 		for name, offset in LEG_OFFSETS do
 			local motor = rig.Motors[name]
 			if motor then
@@ -261,7 +342,10 @@ function MountController.Init(screen: ScreenGui, HUD, theme, notifyFn: (string, 
 	for _, model in CollectionService:GetTagged("MountModel") do
 		track(model)
 	end
-	CollectionService:GetInstanceAddedSignal("MountModel"):Connect(track)
+	-- Attend que tout le modèle soit répliqué (articulations, animations) avant de l'analyser
+	CollectionService:GetInstanceAddedSignal("MountModel"):Connect(function(model)
+		task.delay(0.2, track, model)
+	end)
 	CollectionService:GetInstanceRemovedSignal("MountModel"):Connect(function(model)
 		rigs[model :: Model] = nil
 	end)

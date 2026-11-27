@@ -58,6 +58,12 @@ Un seul modèle par culture, utilisé pour les 3 stades (petit, moyen, mûr). Ta
 | `LavaHorse` | Brasecrin |
 | `Astrelune` | Astrelune |
 
+**Chevaux = aussi la monture.** Un modèle importé pour `Horse`, `ForestHorse`, `SnowHorse`, `SandHorse`, `LavaHorse` ou `Astrelune` est aussi utilisé quand tu montes ce cheval (🐴 Monture) :
+- même redressement (`YawOffset` / `PitchOffset` / `RollOffset`) et même taille que dans l'enclos ; l'avant doit regarder vers -Z ;
+- la hauteur du dos est mesurée sur le vrai modèle : le cavalier s'assoit au milieu du dos, les sabots touchent le sol ;
+- variante (Doré, Arc-en-ciel : couleur appliquée sur tout le modèle, textures retirées ; Légendaire / Mythique : aura) et selle cosmétique (selle, harnais, motif, étincelles) ajoutées automatiquement ;
+- animations : si ton modèle a un **squelette** (Motor6D ou Bone) et des objets **Animation** dont le nom contient `idle`, `walk` (ou `trot`) et `run` (ou `gallop`), elles sont jouées selon la vitesse. Sinon, le jeu ajoute un balancement de galop léger.
+
 ## Créatures : `ServerStorage > CustomModels > Creatures` (36)
 
 | Nom du Model | Créature | Zone | Rareté |

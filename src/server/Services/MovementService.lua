@@ -127,8 +127,6 @@ local function mount(player: Player, entry: { [string]: any }): (boolean, string
 	MovementService:Dismount(player)
 
 	-- Le personnage est levé pour être assis sur le dos du cheval ; le cheval est soudé dessous
-	local backHeight = MountBuilder.BackHeight(entry.Species)
-	local riderHeight = backHeight + Mounts.RiderOffset -- hauteur du centre du HumanoidRootPart
 	local ride: Ride = {
 		Model = nil :: any,
 		Humanoid = humanoid,
@@ -137,9 +135,13 @@ local function mount(player: Player, entry: { [string]: any }): (boolean, string
 		JumpPower = humanoid.JumpPower,
 	}
 	local skin = CosmeticUtil.Equipped(DataService:GetData(player), "MountSkin") -- selle cosmétique
-	local model, body = MountBuilder.Build(entry.Species, entry.Variant, skin)
+	-- Cheval généré, ou modèle importé (CustomModels.Animals.<espèce>) mesuré pour de vrai
+	local model, body, layout = MountBuilder.Build(entry.Species, entry.Variant, skin)
 	model:SetAttribute("OwnerUserId", player.UserId)
 	ride.Model = model
+	-- Hauteur du centre du HumanoidRootPart : assis sur le dos. Avec HipHeight ainsi réglé,
+	-- le personnage "flotte" à la bonne hauteur et les sabots du cheval touchent le sol.
+	local riderHeight = layout.BackHeight + Mounts.RiderOffset
 
 	humanoid.HipHeight = riderHeight - root.Size.Y / 2
 	humanoid.UseJumpPower = true
@@ -148,7 +150,8 @@ local function mount(player: Player, entry: { [string]: any }): (boolean, string
 	local weld = Instance.new("Weld")
 	weld.Part0 = root
 	weld.Part1 = body
-	weld.C0 = CFrame.new(0, MountBuilder.BodyCenterHeight(entry.Species) - riderHeight, 0.2)
+	-- Le siège (milieu du dos) est juste sous le cavalier
+	weld.C0 = CFrame.new(0, layout.AttachHeight - riderHeight, -layout.SeatZ)
 	weld.Parent = body
 	model.Parent = character
 
