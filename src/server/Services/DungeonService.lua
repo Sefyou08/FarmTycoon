@@ -42,6 +42,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local ArenaDecor = require(script.Parent.Parent.Util.ArenaDecor)
+local ArtKit = require(script.Parent.Parent.Util.ArtKit)
 local DataService = require(script.Parent.DataService)
 local SyncService = require(script.Parent.SyncService)
 local CurrencyService = require(script.Parent.CurrencyService)
@@ -731,6 +732,8 @@ local function buildPortal()
 	prompt.RequiresLineOfSight = false
 	prompt:SetAttribute("OpenUI", "Dungeon")
 	prompt.Parent = anchor
+	-- Modèle à toi : ServerStorage.CustomModels.Props.DungeonPortal
+	ArtKit.Swap("Props", "DungeonPortal", folder:GetChildren(), folder, cframe, 16)
 end
 
 -- Arène du donjon en cours (limites de la map) : (centre, côté, point d'entrée) ou nil

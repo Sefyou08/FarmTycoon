@@ -40,6 +40,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local CreatureBuilder = require(script.Parent.Parent.Util.CreatureBuilder)
+local ArtKit = require(script.Parent.Parent.Util.ArtKit)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
@@ -246,9 +247,16 @@ local function buildPedestal(state: State, id: string)
 	prompt:SetAttribute("OpenUI", "Collection") -- le client ouvre la fenêtre des créatures
 	prompt.Parent = base
 
+	-- Socle remplaçable : CustomModels.Props.Pedestal (la créature se pose sur son sommet)
+	local topHeight = 2.6
+	local customPedestal = ArtKit.Swap("Props", "Pedestal", model:GetChildren(), model, origin, 5.5)
+	if customPedestal then
+		topHeight = (ArtKit.TopOf(customPedestal).Position - origin.Position).Y + 0.05
+	end
+
 	local label = makeBillboard(base, Vector2.new(9, 2.6), Vector3.new(0, 7.5, 0), 70)
 	if entry then
-		local creature = CreatureBuilder.Build(entry.Creature, entry.Mutation, origin * CFrame.new(0, 2.6, 0))
+		local creature = CreatureBuilder.Build(entry.Creature, entry.Mutation, origin * CFrame.new(0, topHeight, 0))
 		creature.Parent = model
 		CollectionService:AddTag(creature, SPIN_TAG)
 		label.Text = ("%s\n💰 %s/s"):format(creatureTitle(entry.Creature, entry.Mutation), Format.Number(CreatureUtil.GetIncome(entry.Creature, entry.Mutation)))
@@ -500,7 +508,20 @@ local function buildShowcase(plot: any)
 		light.Parent = ring
 		local label = makeBillboard(ring, Vector2.new(8, 2.2), Vector3.new(0, 6.5, 0), 90)
 
-		slots[i] = { Ring = ring, Light = light, Label = label, Top = ground * CFrame.new(0, 2.8, 0), Content = nil }
+		-- Socle de vitrine remplaçable : CustomModels.Props.ShowcaseBase
+		local top = ground * CFrame.new(0, 2.8, 0)
+		local slotParts = {}
+		for _, child in folder:GetChildren() do
+			if (child.Name == "ShowcaseBase" or child.Name == "ShowcaseRing") and not child:GetAttribute("Slot") then
+				child:SetAttribute("Slot", i)
+				table.insert(slotParts, child)
+			end
+		end
+		local customBase = ArtKit.Swap("Props", "ShowcaseBase", slotParts, folder, ground, 4.5)
+		if customBase then
+			top = CFrame.new(ArtKit.TopOf(customBase).Position) * ground.Rotation
+		end
+		slots[i] = { Ring = ring, Light = light, Label = label, Top = top, Content = nil }
 	end
 	showcaseByPlotId[plot.Id] = slots
 end

@@ -952,7 +952,7 @@ Config.Progression = {
 		Capture = { Common = 10, Rare = 25, Epic = 60, Legendary = 150, Mythic = 400, Secret = 1000, Divine = 5000 },
 	},
 	-- Niveau requis pour débloquer
-	Unlocks = { Farmer = 5, Mount = 6, Caretaker = 8, Rebirth = 15 },
+	Unlocks = { Farmer = 5, Mount = 6, Caretaker = 8, Artisan = 12, Rebirth = 15 },
 }
 
 Config.Rebirth = {
@@ -1031,6 +1031,19 @@ Config.Helpers = {
 			{ Price = 100000, Interval = 20, Pens = 4 },
 			{ Price = 250000, Interval = 15, Pens = 6 },
 			{ Price = 600000, Interval = 10, Pens = 8 },
+		},
+	},
+	-- Artisan : récupère les produits finis des bâtiments et relance la dernière recette
+	-- choisie (jamais les recettes rares) ; désactivable bâtiment par bâtiment
+	Artisan = {
+		DisplayName = "Artisan", Icon = "🧰", Order = 3, Position = { X = 12, Z = 7 },
+		Color = Color3.fromRGB(120, 90, 200),
+		Levels = {
+			{ Price = 30000, Interval = 30, Buildings = 1 },
+			{ Price = 80000, Interval = 25, Buildings = 2 },
+			{ Price = 200000, Interval = 20, Buildings = 3 },
+			{ Price = 500000, Interval = 15, Buildings = 4 },
+			{ Price = 1200000, Interval = 10, Buildings = 5 },
 		},
 	},
 }
@@ -1202,7 +1215,7 @@ Config.Monetization = {
 	-- GAME PASSES : achetés une fois, effet permanent
 	GamePasses = {
 		DoubleCoins = { Id = 2102261881, Price = 199, Icon = "💰", Name = "x2 Coins", Description = "Tous tes gains de Coins (vente, socles) x2, pour toujours." },
-		PremiumHelpers = { Id = 2099580757, Price = 249, Icon = "🧑‍🌾", Name = "Aides premium", Description = "Le fermier et le soigneur font leurs tournées 2x plus vite." },
+		PremiumHelpers = { Id = 2099580757, Price = 249, Icon = "🧑‍🌾", Name = "Aides premium", Description = "Le fermier, le soigneur et l'artisan font leurs tournées 2x plus vite." },
 		BigBackpack = { Id = 2098854697, Price = 99, Icon = "🎒", Name = "Grand sac", Description = "+300 places dans ton sac.", Bonus = 300 },
 		ExtraIncubators = { Id = 2100228748, Price = 149, Icon = "🐣", Name = "Couveuses en plus", Description = "+2 œufs qui couvent en même temps.", Bonus = 2 },
 		BigCollection = { Id = 2098554806, Price = 149, Icon = "📖", Name = "Grande collection", Description = "+100 places pour tes créatures.", Bonus = 100 },

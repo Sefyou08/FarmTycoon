@@ -205,6 +205,27 @@ local function buildBridge()
 		ArtKit.Light(lamp, Color3.fromRGB(255, 200, 120), 16, 1.2)
 	end
 	model.Parent = folder
+	-- Pont et lanternes remplaçables : Scenery.Bridge (les planches invisibles gardent la
+	-- collision : on marche toujours dessus) et Scenery.Lantern
+	local bridgeParts, lanternParts = {}, {}
+	for _, child in model:GetChildren() do
+		if child.Name == "LanternPole" or child.Name == "Lantern" then
+			table.insert(lanternParts, child)
+		else
+			table.insert(bridgeParts, child)
+		end
+	end
+	ArtKit.Swap("Scenery", "Bridge", bridgeParts, model, CFrame.new(x, 0, 0) * CFrame.Angles(0, math.rad(90), 0), span + 2)
+	for _, sx in { -1, 1 } do
+		local spot = CFrame.new(x + sx * (span / 2 + 1.5), 0, width / 2 + 1)
+		local pieces = {}
+		for _, part in lanternParts do
+			if math.abs(part.Position.X - spot.Position.X) < 1 then
+				table.insert(pieces, part)
+			end
+		end
+		ArtKit.Swap("Scenery", "Lantern", pieces, model, spot, 7)
+	end
 end
 
 local function fenceRun(fromPos: Vector3, toPos: Vector3)
@@ -243,9 +264,24 @@ end
 -- Végétation
 --------------------------------------------------------------------------
 
+-- Décor remplaçable : un modèle par type dans ServerStorage.CustomModels.Scenery
+-- ("Tree", "Pine", "Bush", "Rock", "Flower", ...), réutilisé partout où le décor le place.
+local function sceneryCustom(id: string, ground: CFrame, size: number): boolean
+	local custom = ArtKit.Custom("Scenery", id)
+	if not custom then
+		return false
+	end
+	ArtKit.PlaceCustom(custom, ground * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), true, size)
+	custom.Parent = folder
+	return true
+end
+
 local LEAF_COLORS = { Color3.fromRGB(80, 170, 60), Color3.fromRGB(100, 185, 70), Color3.fromRGB(65, 150, 55) }
 
 local function oakTree(x: number, z: number)
+	if sceneryCustom("Tree", CFrame.new(x, 0, z), rng:NextNumber(12, 17)) then
+		return
+	end
 	local model = Instance.new("Model")
 	model.Name = "Tree"
 	local h = rng:NextNumber(7, 11)
@@ -269,6 +305,9 @@ local function oakTree(x: number, z: number)
 end
 
 local function pineTree(x: number, z: number)
+	if sceneryCustom("Pine", CFrame.new(x, 0, z), rng:NextNumber(14, 20)) then
+		return
+	end
 	local model = Instance.new("Model")
 	model.Name = "Pine"
 	local scale = rng:NextNumber(0.9, 1.4)
@@ -285,6 +324,9 @@ local function pineTree(x: number, z: number)
 end
 
 local function bush(x: number, z: number)
+	if sceneryCustom("Bush", CFrame.new(x, 0, z), rng:NextNumber(3, 4.5)) then
+		return
+	end
 	local leaf = LEAF_COLORS[rng:NextInteger(1, #LEAF_COLORS)]
 	local base = CFrame.new(x, 0, z)
 	for i = 1, 3 do
@@ -304,6 +346,9 @@ local FLOWER_COLORS = {
 }
 
 local function flower(x: number, z: number, color: Color3?)
+	if sceneryCustom("Flower", CFrame.new(x, 0, z), rng:NextNumber(1.2, 1.8)) then
+		return
+	end
 	local h = rng:NextNumber(0.8, 1.5)
 	ArtKit.Block(folder, "Stem", Vector3.new(0.15, h, 0.15), CFrame.new(x, h / 2, z), Color3.fromRGB(70, 150, 60), nil, { CastShadow = false })
 	ArtKit.Ball(folder, "Petals", rng:NextNumber(0.6, 0.9), CFrame.new(x, h, z), color or FLOWER_COLORS[rng:NextInteger(1, #FLOWER_COLORS)], nil, { CastShadow = false })
@@ -318,6 +363,9 @@ local function flowerPatch(cx: number, cz: number, count: number, radius: number
 end
 
 local function rock(x: number, z: number)
+	if sceneryCustom("Rock", CFrame.new(x, 0, z), rng:NextNumber(3, 6)) then
+		return
+	end
 	local s = rng:NextNumber(2, 5)
 	ArtKit.Ellipsoid(folder, "Rock", Vector3.new(s * rng:NextNumber(1, 1.5), s * 0.7, s), CFrame.new(x, s * 0.2, z) * CFrame.Angles(0, rng:NextNumber(0, 6.28), 0), Color3.fromRGB(140, 140, 150), Enum.Material.Slate, { CanCollide = true })
 end

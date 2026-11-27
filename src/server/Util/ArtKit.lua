@@ -14,6 +14,11 @@
 	        ├ Buildings (Folder) : Model nommé comme le bâtiment (ex. "Bakery", "Dairy")
 	        ├ Stands    (Folder) : "SeedShop", "SellStand", "AnimalShop"
 	        ├ Crops     (Folder) : Model nommé comme la culture (ex. "Carrot") : utilisé pour les 3 stades
+	        ├ Helpers   (Folder) : "Farmer", "Caretaker", "Artisan"
+	        ├ Merchants (Folder) : "SeedShop", "SellStand", "AnimalShop" (ou "Merchant" pour tous)
+	        ├ Props     (Folder) : "Pedestal", "ShowcaseBase", "ExpeditionPortal", "ReturnPortal",
+	        │                      "DungeonPortal", "Trough", "Crate"
+	        ├ Scenery   (Folder) : "Tree", "Pine", "Bush", "Rock", "Flower", "Bridge", "Lantern"
 	        ├ Enemies   → dans ReplicatedStorage.CustomModels.Enemies (dessinés par le client)
 	        └ Mascot    (Folder) : "Biscotte"
 	  Le jeu s'occupe de tout : il SUPPRIME les scripts (sécurité), ancre les pièces, enlève les
@@ -214,7 +219,7 @@ end
 -- ni Humanoid (barre de vie / nom au-dessus du modèle)
 function ArtKit.Sanitize(model: Instance)
 	for _, d in model:GetDescendants() do
-		if d:IsA("LuaSourceContainer") or d:IsA("Humanoid") then
+		if d:IsA("LuaSourceContainer") or d:IsA("Humanoid") or d:IsA("ProximityPrompt") or d:IsA("ClickDetector") then
 			d:Destroy()
 		end
 	end
@@ -265,4 +270,38 @@ function ArtKit.PlaceCustom(model: Model, groundCFrame: CFrame, anchored: boolea
 	model:PivotTo(model:GetPivot() - groundCFrame:VectorToWorldSpace(Vector3.new(offset.X, 0, offset.Z)))
 	ArtKit.SnapToGround(model, groundCFrame)
 end
+-- Remplace un élément généré par un modèle importé, SANS casser le gameplay :
+-- les pièces générées (generated : liste d'Instances) deviennent invisibles mais gardent
+-- leurs collisions, prompts, panneaux, lumières et particules ; le modèle importé est ajouté
+-- par-dessus, préparé par PlaceCustom. Renvoie le modèle importé, ou nil s'il n'y en a pas.
+function ArtKit.Swap(category: string, id: string, generated: { Instance }, parent: Instance, groundCFrame: CFrame, targetSize: number): Model?
+	local custom = ArtKit.Custom(category, id)
+	if not custom then
+		return nil
+	end
+	for _, root in generated do
+		local list = root:GetDescendants()
+		table.insert(list, root)
+		for _, d in list do
+			if d:IsA("BasePart") then
+				d.Transparency = 1
+				d.CastShadow = false
+			elseif d:IsA("Decal") or d:IsA("Texture") then
+				d.Transparency = 1
+			elseif d:IsA("SurfaceGui") then
+				d.Enabled = false
+			end
+		end
+	end
+	ArtKit.PlaceCustom(custom, groundCFrame, true, targetSize)
+	custom.Parent = parent
+	return custom
+end
+
+-- Haut d'un modèle (repère au sommet de sa boîte englobante), pour y accrocher de la fumée
+function ArtKit.TopOf(model: Model): CFrame
+	local cf, size = model:GetBoundingBox()
+	return cf * CFrame.new(0, size.Y / 2, 0)
+end
+
 return ArtKit

@@ -77,6 +77,7 @@ local function rebuildHelpers()
 		local info = def.Levels[math.max(current, 1)]
 		local effect = if helperId == "Farmer"
 			then ("%d cases toutes les %d s"):format(info.Actions, info.Interval)
+			elseif info.Buildings then ("%d bâtiment(s) toutes les %d s"):format(info.Buildings, info.Interval)
 			else ("%d enclos toutes les %d s"):format(info.Pens, info.Interval)
 
 		local row = Instance.new("Frame")
@@ -176,7 +177,7 @@ function ProgressionUI.Init(screen: ScreenGui, HUD, stateController, notifyFn: (
 
 	-- Fenêtre des aides
 	local content
-	helpersWindow, content = Theme.Window(screen, "Helpers", "🧑‍🌾 Aides automatiques", Vector2.new(560, 320))
+	helpersWindow, content = Theme.Window(screen, "Helpers", "🧑‍🌾 Aides automatiques", Vector2.new(560, 420))
 	helpersList = Instance.new("ScrollingFrame")
 	helpersList.Size = UDim2.fromScale(1, 1)
 	helpersList.BackgroundTransparency = 1

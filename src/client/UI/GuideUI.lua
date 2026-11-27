@@ -43,8 +43,12 @@ local PAGES = {
 		Text = "Quand tu es riche (dès le niveau 15), le bouton ⭐ Rebirth te propose de recommencer ta ferme contre un MULTIPLICATEUR de Coins permanent (x1,5, puis x2...).\n\nTu perds : Coins, champs, enclos, animaux, bâtiments, inventaire.\nTu gardes : créatures, Index, zones débloquées, socles, niveau, aides PNJ.\n\nC'est la meilleure façon d'aller toujours plus loin.",
 	},
 	{
+		Title = "🧑‍🌾 Aides automatiques",
+		Text = "Bouton 🧑‍🌾 Aides : embauche des PNJ avec tes Coins, puis améliore-les (5 niveaux). Ils travaillent pour toi sur ta parcelle :\n\n• 🧑‍🌾 Fermier (niveau 5) : récolte les plantes mûres et replante.\n• 🧺 Soigneur (niveau 8) : remplit les mangeoires et ramasse la production des enclos.\n• 🧰 Artisan (niveau 12) : récupère les produits finis des bâtiments et relance la DERNIÈRE recette que tu as lancée, si les ingrédients sont dans ton sac. Il ne lance jamais les recettes rares : celles-là, c'est toi qui décides.\n\nDans la fenêtre d'un bâtiment, le bouton « 🧰 Artisan : oui / non » l'active ou le désactive pour ce bâtiment. Le Game Pass « Aides premium » rend les trois aides 2x plus rapides.",
+	},
+	{
 		Title = "🎁 Récompenses",
-		Text = "• 🎡 Roue : 1 tour gratuit par jour (les chances sont affichées).\n• Temps de jeu : un cadeau à 15 min, 30 min, 1 h et 2 h de jeu (panneau en haut à gauche).\n• Quêtes du tutoriel : chacune donne une petite récompense.\n• 🧑‍🌾 Aides : un fermier et un soigneur PNJ travaillent pour toi (niveaux 5 et 8).",
+		Text = "• 🎡 Roue : 1 tour gratuit par jour (les chances sont affichées).\n• Temps de jeu : un cadeau à 15 min, 30 min, 1 h et 2 h de jeu (panneau en haut à gauche).\n• Quêtes du tutoriel : chacune donne une petite récompense.",
 	},
 }
 

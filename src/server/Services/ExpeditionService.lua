@@ -46,6 +46,7 @@ local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local CreatureBuilder = require(script.Parent.Parent.Util.CreatureBuilder)
 local ZoneScenery = require(script.Parent.Parent.Util.ZoneScenery)
+local ArtKit = require(script.Parent.Parent.Util.ArtKit)
 local DataService = require(script.Parent.DataService)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
@@ -144,7 +145,11 @@ local function makeBillboard(parent: Instance, size: Vector2, offset: Vector3, m
 end
 
 -- Portail : anneau vertical de segments néon + disque lumineux. Renvoie le point d'ancrage du prompt.
-local function buildPortal(cframe: CFrame, color: Color3, parent: Instance, title: string): Part
+local function buildPortal(cframe: CFrame, color: Color3, outerParent: Instance, title: string, customId: string): Part
+	-- Toutes les pièces du portail dans un Model (remplaçable par un modèle à toi : Props.<customId>)
+	local parent = Instance.new("Model")
+	parent.Name = customId
+	parent.Parent = outerParent
 	local radius = 6
 	local center = cframe * CFrame.new(0, radius + 1.5, 0)
 
@@ -252,6 +257,7 @@ local function buildPortal(cframe: CFrame, color: Color3, parent: Instance, titl
 	})
 	local _, label = makeBillboard(disc, Vector2.new(14, 2.5), Vector3.new(0, radius + 2.5, 0), 200)
 	label.Text = title
+	ArtKit.Swap("Props", customId, parent:GetChildren(), parent, cframe, 16)
 	return anchor
 end
 
@@ -285,7 +291,7 @@ local function buildZone(zoneId: string, def: any, parent: Folder)
 	local info: ZoneInfo = { Id = zoneId, Def = def, ArrivalCFrame = arrivalCFrame, Folder = folder, Wilds = {} }
 	zones[zoneId] = info
 
-	local anchor = buildPortal(portalCFrame, Color3.fromRGB(120, 255, 160), folder, ("%s %s\n🏠 Retour à la ferme"):format(def.Icon, def.DisplayName))
+	local anchor = buildPortal(portalCFrame, Color3.fromRGB(120, 255, 160), folder, ("%s %s\n🏠 Retour à la ferme"):format(def.Icon, def.DisplayName), "ReturnPortal")
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Rentrer à la ferme"
 	prompt.ObjectText = "Portail"
@@ -981,7 +987,7 @@ function ExpeditionService:Init()
 	-- Portail principal, devant le spawn, tourné vers lui (-Z)
 	portalPosition = Exp.PortalPosition
 	local portalCFrame = CFrame.lookAt(portalPosition, portalPosition + Vector3.new(0, 0, -1))
-	local anchor = buildPortal(portalCFrame, Color3.fromRGB(150, 90, 255), Workspace, "🧭 EXPÉDITIONS")
+	local anchor = buildPortal(portalCFrame, Color3.fromRGB(150, 90, 255), Workspace, "🧭 EXPÉDITIONS", "ExpeditionPortal")
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Partir en expédition"
 	prompt.ObjectText = "Portail"

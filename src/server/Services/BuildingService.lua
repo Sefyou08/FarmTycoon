@@ -410,6 +410,7 @@ local function actionQueue(state: State, buildingId: string, recipeId: any, coun
 		end
 		return false, "Il te manque des ingrédients."
 	end
+	building.LastRecipe = recipe.Id -- l'Artisan relancera cette recette (sauf recette rare)
 	updateVisual(state, buildingId)
 	sync(state)
 	GameEvents.Fire(state.Player, "QueueRecipe", buildingId)
@@ -470,6 +471,56 @@ local function actionUpgrade(state: State, buildingId: string): (boolean, string
 	return true, ("%s %s passe au niveau %d !"):format(def.Icon, def.DisplayName, building.Level)
 end
 
+-- Tournée de l'ARTISAN (aide PNJ) sur au plus maxBuildings bâtiments :
+--   1. récupère les produits finis dans le sac ;
+--   2. si la file a de la place, relance la DERNIÈRE recette choisie par le joueur, si les
+--      ingrédients sont dans le sac. Une recette rare (MinVariant) n'est JAMAIS relancée.
+--   Le joueur peut désactiver l'Artisan par bâtiment (building.ArtisanOff).
+-- Renvoie (produits récupérés, recettes relancées).
+function BuildingService:AutoCraft(player: Player, maxBuildings: number): (number, number)
+	local state = states[player]
+	if not state then
+		return 0, 0
+	end
+	local collected, queued, handled = 0, 0, 0
+	for buildingId, building in state.Data.Buildings do
+		if handled >= maxBuildings then
+			break
+		end
+		if building.Placed and not building.ArtisanOff and state.Visuals[buildingId] then
+			handled += 1
+			local before = InventoryService:GetItemCount(player)
+			if outputTotal(building) > 0 then
+				actionCollect(state, buildingId)
+				collected += math.max(0, InventoryService:GetItemCount(player) - before)
+			end
+			local def = Config.Buildings[buildingId]
+			local recipe = building.LastRecipe and getRecipe(def, building.LastRecipe)
+			if recipe and not recipe.MinVariant and (recipe.RequiredBuildingLevel or 1) <= building.Level then
+				simulate(buildingId, building, os.time(), BuildingService:GetSpeedMultiplier(player))
+				local room = levelInfo(building.Level).QueueSize - #building.Queue
+				local added = 0
+				while added < room do
+					local variant = takeIngredients(player, recipe)
+					if not variant then
+						break
+					end
+					table.insert(building.Queue, { Recipe = recipe.Id, Variant = variant, Remaining = recipe.Time })
+					added += 1
+				end
+				if added > 0 then
+					queued += added
+					updateVisual(state, buildingId)
+				end
+			end
+		end
+	end
+	if collected + queued > 0 then
+		sync(state)
+	end
+	return collected, queued
+end
+
 local function onBuildingAction(player: Player, action: any, buildingId: any, arg1: any, arg2: any): (boolean, string)
 	-- 1. Arguments
 	if type(action) ~= "string" or type(buildingId) ~= "string" or not Config.Buildings[buildingId] then
@@ -499,6 +550,11 @@ local function onBuildingAction(player: Player, action: any, buildingId: any, ar
 		return actionCollect(state, buildingId)
 	elseif action == "Upgrade" then
 		return actionUpgrade(state, buildingId)
+	elseif action == "ToggleArtisan" then
+		local building = state.Data.Buildings[buildingId]
+		building.ArtisanOff = not building.ArtisanOff or nil
+		sync(state)
+		return true, if building.ArtisanOff then "🧰 L'Artisan ne s'occupe plus de ce bâtiment." else "🧰 L'Artisan s'occupe de ce bâtiment."
 	end
 	return false, "Action inconnue."
 end

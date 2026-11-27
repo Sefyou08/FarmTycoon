@@ -40,6 +40,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
 local PatternBuilder = require(script.Parent.Parent.Util.PatternBuilder)
 local AnimalBuilder = require(script.Parent.Parent.Util.AnimalBuilder)
+local ArtKit = require(script.Parent.Parent.Util.ArtKit)
 local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local DataService = require(script.Parent.DataService)
 local SyncService = require(script.Parent.SyncService)
@@ -493,6 +494,11 @@ local function buildPenVisual(state: State, key: string)
 		Material = Enum.Material.WoodPlanks,
 		Parent = folder,
 	})
+	-- Mangeoire et caisse remplaçables : CustomModels.Props.Trough / Props.Crate
+	local hayPart = folder:FindFirstChild("Hay")
+	ArtKit.Swap("Props", "Trough", if hayPart then { trough, hayPart } else { trough }, folder, origin * CFrame.new(-4, 0, -10.5), 5)
+	ArtKit.Swap("Props", "Crate", { crate }, folder, origin * CFrame.new(4, 0, -10.5), 2.4)
+
 	-- Repères lumineux au sol : mangeoire (jaune) et caisse (verte)
 	for _, info in { { trough, Color3.fromRGB(255, 210, 70) }, { crate, Color3.fromRGB(110, 230, 120) } } do
 		local spot = info[1].CFrame

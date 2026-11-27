@@ -182,6 +182,17 @@ function StandBuilder.Build(options: StandOptions): (Model, Part, ProximityPromp
 		end
 
 		merchant(model, base, ArtKit.Lighter(color, 0.15))
+		-- Marchand remplaçable : CustomModels.Merchants.<nom du stand> (ou "Merchant" pour tous)
+		local npcParts = {}
+		for _, child in model:GetChildren() do
+			if string.sub(child.Name, 1, 3) == "NPC" then
+				table.insert(npcParts, child)
+			end
+		end
+		local npcGround = base * CFrame.new(0, 0, 1)
+		if not ArtKit.Swap("Merchants", options.Name, npcParts, model, npcGround, 6) then
+			ArtKit.Swap("Merchants", "Merchant", npcParts, model, npcGround, 6)
+		end
 		local theme = options.Theme and THEMES[options.Theme]
 		if theme then
 			theme(model, base, color)

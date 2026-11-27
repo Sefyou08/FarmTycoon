@@ -1,7 +1,7 @@
 # Modèles de remplacement (Toolbox) : noms exacts et dossiers
 
 Crée les dossiers dans Studio (ils ne sont jamais effacés par Rojo). Mets un **Model** nommé EXACTEMENT comme la clé.
-Le jeu supprime les scripts et les Humanoid, ancre les pièces, enlève les collisions, ajuste la taille, centre le modèle et le pose sur le sol.
+Le jeu supprime les scripts, les Humanoid, les ProximityPrompt et ClickDetector, ancre les pièces, enlève les collisions, ajuste la taille, centre le modèle et le pose sur le sol.
 L'avant du modèle doit regarder vers -Z (bouton « Front » de Studio) ; sinon ajoute au Model un attribut nombre `YawOffset` (ex. 90, 180, -90).
 
 ## Cultures : `ServerStorage > CustomModels > Crops` (11)
@@ -123,3 +123,53 @@ Un seul modèle par culture, utilisé pour les 3 stades (petit, moyen, mûr). Ta
 | `ReineGivre` | Reine du Givre (boss) |
 | `GardienDunes` | Gardien des Dunes (boss) |
 | `TitanLave` | Titan de Lave (boss) |
+
+## Aides (PNJ) : `ServerStorage > CustomModels > Helpers`
+
+| Nom du Model | Aide |
+|---|---|
+| `Farmer` | 🧑‍🌾 Fermier |
+| `Caretaker` | 🧺 Soigneur |
+| `Artisan` | 🧰 Artisan |
+
+## Marchands des stands : `ServerStorage > CustomModels > Merchants`
+
+Un modèle par stand, ou un seul `Merchant` utilisé pour tous les stands qui n'ont pas le leur.
+
+| Nom du Model | Stand |
+|---|---|
+| `SeedShop` | marchand du stand 🌱 Graines |
+| `SellStand` | marchand du stand 💰 Vente |
+| `AnimalShop` | marchand du stand 🐄 Animaux |
+| `Merchant` | marchand par défaut (tous les stands) |
+
+## Objets interactifs : `ServerStorage > CustomModels > Props`
+
+Le prompt, le panneau, les collisions et les effets lumineux restent ceux du jeu ; seul le visuel change.
+
+| Nom du Model | Objet |
+|---|---|
+| `Pedestal` | socle d'exposition (la créature se pose sur son sommet) |
+| `ShowcaseBase` | socle de la vitrine de prestige |
+| `ExpeditionPortal` | portail 🧭 Expéditions (ferme) |
+| `ReturnPortal` | portail de retour dans chaque zone |
+| `DungeonPortal` | portail ⚔️ Donjons |
+| `Trough` | mangeoire des enclos |
+| `Crate` | caisse de production des enclos |
+
+## Décor : `ServerStorage > CustomModels > Scenery`
+
+Un modèle par type, réutilisé partout où le décor en place un (taille ajustée à chaque fois).
+
+| Nom du Model | Décor | Où |
+|---|---|---|
+| `Tree` | arbre | ferme + grands arbres de la Forêt |
+| `Pine` | sapin | ferme + sapins de la Montagne |
+| `Bush` | buisson | ferme |
+| `Rock` | rocher | ferme |
+| `Flower` | fleur | ferme (massifs, jardinières) |
+| `Bridge` | pont du ruisseau (on marche toujours dessus) | ferme |
+| `Lantern` | lanterne | pont + portail d'entrée des parcelles |
+
+## Bâtiments importés : effet de production
+Un bâtiment importé garde un effet quand il produit : fumée et étincelles au sommet du modèle.

@@ -36,6 +36,7 @@ local window: Frame
 local titleLabel: TextLabel
 local levelLabel: TextLabel
 local upgradeButton: TextButton
+local artisanButton: TextButton -- active / désactive l'Artisan pour CE bâtiment
 local recipeList: ScrollingFrame
 local queueList: ScrollingFrame
 local outputLabel: TextLabel
@@ -282,6 +283,11 @@ local function refresh()
 	local inventory = StateController.Get("Inventory")
 
 	titleLabel.Text = ("%s %s"):format(def.Icon, def.DisplayName)
+	-- Bouton de l'Artisan (seulement si l'Artisan est embauché)
+	local helpers = StateController.Get("Helpers") or {}
+	artisanButton.Visible = helpers.Artisan ~= nil
+	artisanButton.Text = if building.ArtisanOff then "🧰 Artisan : non" else "🧰 Artisan : oui"
+	artisanButton.BackgroundColor3 = if building.ArtisanOff then Color3.fromRGB(110, 110, 125) else Color3.fromRGB(120, 90, 200)
 	levelLabel.Text = ("Niveau %d/%d  •  vitesse x%s  •  %d en même temps  •  file %d/%d"):format(
 		building.Level,
 		#LEVELS,
@@ -342,7 +348,7 @@ function BuildingUI.Init(screen: ScreenGui, stateController, notifyFn: (string, 
 	titleLabel = window:FindFirstChild("Title") :: TextLabel
 
 	levelLabel = Theme.Label({
-		Size = UDim2.new(1, -190, 0, 24),
+		Size = UDim2.new(1, -370, 0, 24),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = Color3.fromRGB(210, 210, 220),
 		Text = "",
@@ -358,6 +364,18 @@ function BuildingUI.Init(screen: ScreenGui, stateController, notifyFn: (string, 
 	})
 	upgradeButton.Activated:Connect(function()
 		send("Upgrade")
+	end)
+	artisanButton = Theme.Button({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -186, 0, -2),
+		Size = UDim2.fromOffset(170, 30),
+		BackgroundColor3 = Color3.fromRGB(90, 90, 100),
+		Text = "🧰 Artisan",
+		Visible = false,
+		Parent = content,
+	})
+	artisanButton.Activated:Connect(function()
+		send("ToggleArtisan")
 	end)
 
 	-- Colonne gauche : recettes

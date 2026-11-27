@@ -517,7 +517,14 @@ local function buildCustom(custom: Model, origin: CFrame, def: any, refs: Refs):
 	local door = ArtKit.Block(custom, "Door", Vector3.new(3, 5, 0.3), origin * CFrame.new(0, 2.5, -def.Depth / 2 - 0.3), WHITE, nil, { Transparency = 1, CanQuery = true })
 	custom.PrimaryPart = walls
 	refs.Walls, refs.Door = walls, door
-	smokeEmitter(walls, refs)
+	-- Effet de production gardé : fumée + étincelles au SOMMET du modèle importé
+	local top = walls.CFrame:ToObjectSpace(ArtKit.TopOf(custom))
+	local attachment = Instance.new("Attachment")
+	attachment.Name = "WorkFXTop"
+	attachment.Position = top.Position
+	attachment.Parent = walls
+	smokeEmitter(attachment, refs)
+	table.insert(refs.WorkFX, ArtKit.Particles(attachment, { Name = "WorkSparkles", Color = ColorSequence.new(Color3.fromRGB(255, 230, 150)), LightEmission = 1, Rate = 6, Lifetime = NumberRange.new(0.6, 1.2), Speed = NumberRange.new(1, 2), Size = NumberSequence.new(0.35, 0), Enabled = false }))
 	return custom
 end
 

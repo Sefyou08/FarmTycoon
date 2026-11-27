@@ -8,6 +8,9 @@
 	               (FarmService:AutoFarm), dans la limite de "Actions" cases.
 	  • Soigneur : à chaque tournée, ramasse la production et remplit les
 	               mangeoires de "Pens" enclos (AnimalService:AutoCare).
+	  • Artisan  : à chaque tournée, récupère les produits finis de "Buildings" bâtiments
+	               et relance la dernière recette choisie (BuildingService:AutoCraft) ;
+	               jamais les recettes rares ; désactivable par bâtiment.
 	  • Un petit personnage se tient à l'entrée de la parcelle, avec son niveau.
 	  • data.Helpers = { Farmer = niveau, Caretaker = niveau } (absent = pas acheté).
 	  • RemoteFunction "HelperAction"(helperId) : achète le niveau 1 ou le niveau suivant.
@@ -20,12 +23,14 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local ArtKit = require(script.Parent.Parent.Util.ArtKit)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
 local PlotService = require(script.Parent.PlotService)
 local XPService = require(script.Parent.XPService)
 local FarmService = require(script.Parent.FarmService)
 local AnimalService = require(script.Parent.AnimalService)
+local BuildingService = require(script.Parent.BuildingService)
 
 local HelperService = {}
 
@@ -77,6 +82,9 @@ local function buildHelperModel(state: State, helperId: string)
 	makePart({ Name = "Body", Size = Vector3.new(2, 2, 1.1), CFrame = base * CFrame.new(0, 3, 0), Color = def.Color, Parent = model })
 	makePart({ Name = "Head", Shape = Enum.PartType.Ball, Size = Vector3.new(1.5, 1.5, 1.5), CFrame = base * CFrame.new(0, 4.8, 0), Color = Color3.fromRGB(255, 205, 160), Parent = model })
 	makePart({ Name = "Hat", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 2.4, 2.4), CFrame = base * CFrame.new(0, 5.5, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(220, 190, 110), Parent = model })
+
+	-- Modèle à toi : ServerStorage.CustomModels.Helpers.<Farmer | Caretaker | Artisan>
+	ArtKit.Swap("Helpers", helperId, model:GetChildren(), model, base, 6)
 
 	local gui = Instance.new("BillboardGui")
 	gui.Size = UDim2.fromScale(7, 1.6)
@@ -144,6 +152,11 @@ local function runHelper(state: State, helperId: string, levelInfo: any)
 		local fed, collected = AnimalService:AutoCare(player, levelInfo.Pens)
 		if fed + collected > 0 then
 			player:SetAttribute("CaretakerLastRun", ("🍽️ %d rations, 📦 %d ramassées"):format(fed, collected))
+		end
+	elseif helperId == "Artisan" then
+		local collected, queued = BuildingService:AutoCraft(player, levelInfo.Buildings)
+		if collected + queued > 0 then
+			player:SetAttribute("ArtisanLastRun", ("📦 %d récupérés, 🔨 %d relancées"):format(collected, queued))
 		end
 	end
 end

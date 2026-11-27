@@ -97,7 +97,9 @@ function FenceBuilder.Build(folder: Instance, plotCFrame: CFrame, width: number,
 		ArtKit.Block(folder, "GatePost", Vector3.new(1.4, HEIGHT + 2.4, 1.4), p * CFrame.new(0, (HEIGHT + 2.4) / 2, 0), style.Post, style.Material, solid())
 		local lamp = ArtKit.Block(folder, "GateLantern", Vector3.new(1, 1.2, 1), p * CFrame.new(0, HEIGHT + 3.1, 0), Color3.fromRGB(255, 225, 150), Enum.Material.Neon)
 		ArtKit.Light(lamp, Color3.fromRGB(255, 210, 140), 14, 1)
-		ArtKit.Block(folder, "GateRoof", Vector3.new(1.8, 0.3, 1.8), p * CFrame.new(0, HEIGHT + 3.85, 0), style.Cap, Enum.Material.SmoothPlastic)
+		local roof = ArtKit.Block(folder, "GateRoof", Vector3.new(1.8, 0.3, 1.8), p * CFrame.new(0, HEIGHT + 3.85, 0), style.Cap, Enum.Material.SmoothPlastic)
+		-- Lanterne remplaçable : Scenery.Lantern (posée en haut du poteau)
+		ArtKit.Swap("Scenery", "Lantern", { lamp, roof }, folder, p * CFrame.new(0, HEIGHT + 2.4, 0), 2)
 	end
 end
 

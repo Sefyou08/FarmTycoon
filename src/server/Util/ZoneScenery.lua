@@ -90,6 +90,13 @@ local function ground(env: Env, floor: Enum.Material, cliff: Enum.Material, cap:
 end
 
 local function tree(env: Env, pos: Vector3, height: number, trunk: Color3, leaves: { Color3 }, tiers: number)
+	-- Arbre remplaçable : CustomModels.Scenery.Tree (le même que celui de la ferme, plus grand)
+	local custom = ArtKit.Custom("Scenery", "Tree")
+	if custom then
+		ArtKit.PlaceCustom(custom, CFrame.new(pos) * CFrame.Angles(0, env.Rng:NextNumber(0, 6.28), 0), true, height * 1.3)
+		custom.Parent = env.Folder
+		return
+	end
 	local model = Instance.new("Model")
 	model.Name = "BigTree"
 	local base = CFrame.new(pos) * CFrame.Angles(0, env.Rng:NextNumber(0, 6.28), 0)
@@ -173,6 +180,12 @@ end
 --------------------------------------------------------------------------
 
 local function snowyPine(env: Env, pos: Vector3, scale: number)
+	local custom = ArtKit.Custom("Scenery", "Pine")
+	if custom then
+		ArtKit.PlaceCustom(custom, CFrame.new(pos) * CFrame.Angles(0, env.Rng:NextNumber(0, 6.28), 0), true, 15 * scale)
+		custom.Parent = env.Folder
+		return
+	end
 	local base = CFrame.new(pos)
 	ArtKit.Cylinder(env.Folder, "Trunk", 4 * scale, 1.2 * scale, base * CFrame.new(0, 2 * scale, 0), rgb(95, 65, 45), Enum.Material.Wood, { CanCollide = true })
 	for i, w in { 9, 7, 5 } do
