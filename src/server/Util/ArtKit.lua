@@ -13,11 +13,13 @@
 	        ├ Animals   (Folder) : Model nommé comme l'espèce (ex. "Cow", "Chicken", "Horse")
 	        ├ Buildings (Folder) : Model nommé comme le bâtiment (ex. "Bakery", "Dairy")
 	        ├ Stands    (Folder) : "SeedShop", "SellStand", "AnimalShop"
-	        ├ Enemies   (Folder) : Model nommé comme l'ennemi ou le boss (ex. "Ronceux") — dossier ReplicatedStorage.CustomModels.Enemies
+	        ├ Crops     (Folder) : Model nommé comme la culture (ex. "Carrot") : utilisé pour les 3 stades
+	        ├ Enemies   → dans ReplicatedStorage.CustomModels.Enemies (dessinés par le client)
 	        └ Mascot    (Folder) : "Biscotte"
-	  Règles : le modèle regarde vers -Z (son avant), ses pieds sont au niveau de son
-	  pivot (WorldPivot), et il a la bonne taille (≈ celle du modèle généré). Le jeu le
-	  clone à la place du modèle généré ; tout le gameplay reste identique.
+	  Le jeu s'occupe de tout : il SUPPRIME les scripts (sécurité), ancre les pièces, enlève les
+	  collisions, met le modèle à la bonne taille, le centre et le pose sur le sol. Le modèle doit
+	  regarder vers -Z (son avant) ; sinon, ajoute-lui un attribut nombre "YawOffset" (degrés,
+	  ex. 90 ou 180) pour le tourner. Tout le gameplay reste identique.
 ]]
 
 local ServerStorage = game:GetService("ServerStorage")
@@ -208,6 +210,17 @@ end
 --------------------------------------------------------------------------
 
 -- Renvoie un CLONE de ServerStorage.CustomModels.<category>.<id>, ou nil
+-- Sécurité : un modèle importé ne doit contenir AUCUN code (Script, LocalScript, ModuleScript),
+-- ni Humanoid (barre de vie / nom au-dessus du modèle)
+function ArtKit.Sanitize(model: Instance)
+	for _, d in model:GetDescendants() do
+		if d:IsA("LuaSourceContainer") or d:IsA("Humanoid") then
+			d:Destroy()
+		end
+	end
+end
+
+-- Renvoie un CLONE nettoyé de ServerStorage.CustomModels.<category>.<id>, ou nil
 function ArtKit.Custom(category: string, id: string): Model?
 	local root = ServerStorage:FindFirstChild("CustomModels")
 	local folder = root and root:FindFirstChild(category)
@@ -215,6 +228,7 @@ function ArtKit.Custom(category: string, id: string): Model?
 	if template and template:IsA("Model") then
 		local clone = template:Clone()
 		clone.Name = id
+		ArtKit.Sanitize(clone)
 		if not clone.PrimaryPart then
 			clone.PrimaryPart = clone:FindFirstChildWhichIsA("BasePart", true)
 		end
@@ -223,9 +237,10 @@ function ArtKit.Custom(category: string, id: string): Model?
 	return nil
 end
 
--- Prépare un modèle importé : ancré, sans collision, posé sur groundCFrame.
--- keepQuery = nom de la Part qui reste "cliquable" (prompt), sinon la PrimaryPart.
-function ArtKit.PlaceCustom(model: Model, groundCFrame: CFrame, anchored: boolean?)
+-- Prépare un modèle importé : ancré, sans collision, tourné (-Z = avant ; attribut facultatif
+-- "YawOffset" en degrés sur le modèle pour le corriger), mis à la taille voulue (targetSize =
+-- plus grande dimension, en studs), centré sur groundCFrame et posé sur le sol.
+function ArtKit.PlaceCustom(model: Model, groundCFrame: CFrame, anchored: boolean?, targetSize: number?)
 	local primary = model.PrimaryPart
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
@@ -235,7 +250,19 @@ function ArtKit.PlaceCustom(model: Model, groundCFrame: CFrame, anchored: boolea
 			d.CanQuery = d == primary
 		end
 	end
-	model:PivotTo(groundCFrame)
+	local yaw = tonumber(model:GetAttribute("YawOffset")) or 0
+	model:PivotTo(groundCFrame * CFrame.Angles(0, math.rad(yaw), 0))
+	if targetSize and targetSize > 0 then
+		local extents = model:GetExtentsSize()
+		local biggest = math.max(extents.X, extents.Y, extents.Z)
+		if biggest > 0.01 then
+			model:ScaleTo(model:GetScale() * targetSize / biggest)
+		end
+	end
+	-- Centre horizontal sur le point voulu, puis pieds au sol
+	local cf = model:GetBoundingBox()
+	local offset = groundCFrame:PointToObjectSpace(cf.Position)
+	model:PivotTo(model:GetPivot() - groundCFrame:VectorToWorldSpace(Vector3.new(offset.X, 0, offset.Z)))
+	ArtKit.SnapToGround(model, groundCFrame)
 end
-
 return ArtKit

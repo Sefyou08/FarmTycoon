@@ -157,7 +157,7 @@ function StandBuilder.Build(options: StandOptions): (Model, Part, ProximityPromp
 	local counter: BasePart
 
 	if model then
-		ArtKit.PlaceCustom(model, base)
+		ArtKit.PlaceCustom(model, base, true, 13) -- largeur d'un stand
 		counter = ArtKit.Block(model, "Counter", Vector3.new(12, 3.5, 3), base * CFrame.new(0, 1.75, -2), WHITE, nil, { Transparency = 1, CanCollide = true, CanQuery = true })
 	else
 		model = Instance.new("Model")

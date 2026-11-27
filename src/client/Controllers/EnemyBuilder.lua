@@ -398,6 +398,12 @@ function EnemyBuilder.Build(enemyId: string, cframe: CFrame): (Model, BasePart, 
 	local template = customFolder and customFolder:FindFirstChild(enemyId)
 	if template and template:IsA("Model") then
 		model = template:Clone()
+		-- Sécurité : aucun code ni Humanoid dans un modèle importé
+		for _, d in model:GetDescendants() do
+			if d:IsA("LuaSourceContainer") or d:IsA("Humanoid") then
+				d:Destroy()
+			end
+		end
 		for _, p in model:GetDescendants() do
 			if p:IsA("BasePart") then
 				p.Anchored = true
@@ -406,7 +412,16 @@ function EnemyBuilder.Build(enemyId: string, cframe: CFrame): (Model, BasePart, 
 				table.insert(ctx.Flash, p)
 			end
 		end
-		model:PivotTo(cframe)
+		-- Orientation (-Z = avant, attribut "YawOffset" en degrés pour corriger) et taille
+		model:PivotTo(cframe * CFrame.Angles(0, math.rad(tonumber(model:GetAttribute("YawOffset")) or 0), 0))
+		local extents = model:GetExtentsSize()
+		local biggest = math.max(extents.X, extents.Y, extents.Z)
+		if biggest > 0.01 then
+			model:ScaleTo(model:GetScale() * def.Size * 1.3 / biggest)
+		end
+		local boxCf = model:GetBoundingBox()
+		local offset = cframe:PointToObjectSpace(boxCf.Position)
+		model:PivotTo(model:GetPivot() - cframe:VectorToWorldSpace(Vector3.new(offset.X, 0, offset.Z)))
 	else
 		model = Instance.new("Model")
 		ctx.Model = model

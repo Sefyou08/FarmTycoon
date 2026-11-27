@@ -1,0 +1,125 @@
+# Modèles de remplacement (Toolbox) : noms exacts et dossiers
+
+Crée les dossiers dans Studio (ils ne sont jamais effacés par Rojo). Mets un **Model** nommé EXACTEMENT comme la clé.
+Le jeu supprime les scripts et les Humanoid, ancre les pièces, enlève les collisions, ajuste la taille, centre le modèle et le pose sur le sol.
+L'avant du modèle doit regarder vers -Z (bouton « Front » de Studio) ; sinon ajoute au Model un attribut nombre `YawOffset` (ex. 90, 180, -90).
+
+## Cultures : `ServerStorage > CustomModels > Crops` (11)
+
+Un seul modèle par culture, utilisé pour les 3 stades (petit, moyen, mûr). Taille mûre : `Config.Farm.CustomCropSize` (ou `ModelSize` dans la culture).
+
+| Nom du Model | Culture |
+|---|---|
+| `Wheat` | Blé |
+| `Carrot` | Carotte |
+| `Tomato` | Tomate |
+| `Corn` | Maïs |
+| `Pumpkin` | Citrouille |
+| `Strawberry` | Fraise |
+| `Blueberry` | Myrtille |
+| `Watermelon` | Pastèque |
+| `Dragonfruit` | Fruit du dragon |
+| `StarFlower` | Fleur étoilée |
+| `MoonPumpkin` | Citrouille lunaire |
+
+## Animaux de la ferme : `ServerStorage > CustomModels > Animals` (13)
+
+| Nom du Model | Animal |
+|---|---|
+| `Chicken` | Poule |
+| `Rabbit` | Lapin |
+| `Duck` | Canard |
+| `Sheep` | Brebis |
+| `Goat` | Chèvre |
+| `Cow` | Vache |
+| `Horse` | Cheval |
+| `Pig` | Cochon |
+| `ForestHorse` | Mousseval |
+| `SnowHorse` | Givrecrin |
+| `SandHorse` | Sablecrin |
+| `LavaHorse` | Brasecrin |
+| `Astrelune` | Astrelune |
+
+## Créatures : `ServerStorage > CustomModels > Creatures` (36)
+
+| Nom du Model | Créature | Zone | Rareté |
+|---|---|---|---|
+| `Mousselin` | Mousselin | Forest | Common |
+| `Glandinet` | Glandinet | Forest | Common |
+| `Champiloup` | Champiloup | Forest | Rare |
+| `Lucifeuille` | Lucifeuille | Forest | Epic |
+| `Cerfeuillu` | Cerfeuillu | Forest | Legendary |
+| `Racinor` | Racinor | Forest | Mythic |
+| `MurmureDesBois` | Murmure-des-Bois | Forest | Secret |
+| `Caillouteux` | Caillouteux | Mountain | Common |
+| `Flocon` | Flocon | Mountain | Common |
+| `Bouquetonnerre` | Bouquetonnerre | Mountain | Rare |
+| `Givrelle` | Givrelle | Mountain | Epic |
+| `Grizzlune` | Grizzlune | Mountain | Legendary |
+| `Aquilorage` | Aquilorage | Mountain | Mythic |
+| `Yetinou` | Yétinou | Mountain | Secret |
+| `Dunelle` | Dunelle | Desert | Common |
+| `Scorpinou` | Scorpinou | Desert | Common |
+| `Cactouille` | Cactouille | Desert | Rare |
+| `Mirageon` | Mirageon | Desert | Epic |
+| `Sphinxou` | Sphinxou | Desert | Legendary |
+| `Pharaonix` | Pharaonix | Desert | Mythic |
+| `Oasien` | Oasien | Desert | Secret |
+| `Braisou` | Braisou | Volcano | Common |
+| `Cendrou` | Cendrou | Volcano | Common |
+| `Magmoche` | Magmoche | Volcano | Rare |
+| `Salamandrix` | Salamandrix | Volcano | Epic |
+| `Pyrodrake` | Pyrodrake | Volcano | Legendary |
+| `Volcanosaure` | Volcanosaure | Volcano | Mythic |
+| `CoeurDeLave` | Cœur-de-Lave | Volcano | Secret |
+| `Mousseval` | Mousseval | Forest | Rare |
+| `Givrecrin` | Givrecrin | Mountain | Epic |
+| `Sablecrin` | Sablecrin | Desert | Epic |
+| `Brasecrin` | Brasecrin | Volcano | Legendary |
+| `Sylvanthe` | Sylvanthe | Forest | Divine |
+| `Aurorea` | Auroréal | Mountain | Divine |
+| `Solarion` | Solarion | Desert | Divine |
+| `Ignaros` | Ignaros | Volcano | Divine |
+
+## Bâtiments : `ServerStorage > CustomModels > Buildings` (5)
+
+| Nom du Model | Bâtiment |
+|---|---|
+| `Bakery` | Boulangerie |
+| `Spinning` | Filature |
+| `Dairy` | Laiterie |
+| `Cheese` | Fromagerie |
+| `Tailor` | Atelier de couture |
+
+## Stands : `ServerStorage > CustomModels > Stands`
+
+| Nom du Model | Stand |
+|---|---|
+| `SeedShop` | 🌱 Graines |
+| `SellStand` | 💰 Vente |
+| `AnimalShop` | 🐄 Animaux |
+
+## Mascotte : `ServerStorage > CustomModels > Mascot`
+
+| Nom du Model | |
+|---|---|
+| `Biscotte` | statue du spawn |
+
+## Ennemis et boss de donjon : `ReplicatedStorage > CustomModels > Enemies` (12)
+
+(dans ReplicatedStorage car c'est le client qui les dessine)
+
+| Nom du Model | Ennemi |
+|---|---|
+| `Ronceux` | Ronceux |
+| `Champitox` | Champitox |
+| `Givrelin` | Givrelin |
+| `Cognebloc` | Cognebloc |
+| `Scarabix` | Scarabix |
+| `Ventsableux` | Ventsableux |
+| `Braisard` | Braisard |
+| `Magmolosse` | Magmolosse |
+| `VieuxChene` | Vieux Chêne Grognon (boss) |
+| `ReineGivre` | Reine du Givre (boss) |
+| `GardienDunes` | Gardien des Dunes (boss) |
+| `TitanLave` | Titan de Lave (boss) |

@@ -103,10 +103,10 @@ function PlacementUtil.Check(level: number, placed: { { [string]: any } }, candi
 	local minX, maxX, minZ, maxZ = PlacementUtil.Rect(candidate.Type, candidate.Kind, candidate.X, candidate.Z, candidate.Rot)
 	local bMinX, bMaxX, bMinZ, bMaxZ = PlacementUtil.Bounds(level)
 	if minX < bMinX or maxX > bMaxX or maxZ > bMaxZ then
-		return false, "En dehors de ta parcelle (agrandis-la pour avoir plus de place)."
+		return false, "Dépasse de ta parcelle : rapproche-le du centre (ou agrandis ta parcelle)."
 	end
 	if minZ < bMinZ then
-		return false, "Trop près de l'entrée."
+		return false, "Trop près de l'entrée (la bande des boutons au sol doit rester libre) : recule-le."
 	end
 
 	for _, other in placed do
@@ -115,7 +115,7 @@ function PlacementUtil.Check(level: number, placed: { { [string]: any } }, candi
 			local oMinX, oMaxX, oMinZ, oMaxZ = PlacementUtil.Rect(other.Type, other.Kind, other.X, other.Z, other.Rot)
 			-- Chevauchement strict (des bords qui se touchent sont autorisés)
 			if minX < oMaxX and maxX > oMinX and minZ < oMaxZ and maxZ > oMinZ then
-				return false, "Ça chevauche un autre élément."
+				return false, ("Ça chevauche : %s. Décale-le un peu."):format(PlacementUtil.Label(other.Type, other.Kind))
 			end
 		end
 	end

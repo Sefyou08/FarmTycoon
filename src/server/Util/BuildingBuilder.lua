@@ -512,7 +512,7 @@ end
 
 -- Bâtiment fourni à la main (ServerStorage.CustomModels.Buildings.<id>)
 local function buildCustom(custom: Model, origin: CFrame, def: any, refs: Refs): Model
-	ArtKit.PlaceCustom(custom, origin)
+	ArtKit.PlaceCustom(custom, origin, true, math.max(def.Width, def.Depth)) -- remplit l'emprise du bâtiment
 	local walls = ArtKit.Block(custom, "Walls", Vector3.new(def.Width, WALL_H, def.Depth), origin * CFrame.new(0, WALL_H / 2, 0), WHITE, nil, { Transparency = 1, CanQuery = true })
 	local door = ArtKit.Block(custom, "Door", Vector3.new(3, 5, 0.3), origin * CFrame.new(0, 2.5, -def.Depth / 2 - 0.3), WHITE, nil, { Transparency = 1, CanQuery = true })
 	custom.PrimaryPart = walls

@@ -5,9 +5,12 @@
 
 	  • Menu à droite : acheter un champ, un enclos ou un bâtiment, et liste des
 	    éléments RANGÉS à replacer.
-	  • Après un choix : un APERÇU transparent suit la souris (ou se place là où on
-	    touche l'écran sur mobile). Vert = valide, rouge = invalide (raison affichée).
-	    R ou ↻ pour tourner, clic gauche ou ✔ pour valider, ✖ pour annuler.
+	  • Après un choix : un APERÇU transparent suit la souris (PC). Sur mobile / tablette,
+	    il se place au CENTRE de l'écran sous un viseur (on bouge la caméra ou on glisse le
+	    doigt pour viser), ou là où on touche le sol ; des flèches le décalent d'une case.
+	    Une cible lumineuse au sol montre le centre. Grille de Config.Build.Grid studs.
+	    Vert = valide, rouge = invalide (la raison est affichée).
+	    R ou ↻ pour tourner, clic gauche ou ✔ Poser pour valider, ✖ pour annuler.
 	  • Sans rien en main : survoler un élément de SA parcelle le surligne ;
 	    cliquer dessus le prend pour le DÉPLACER, avec un bouton 📦 Ranger.
 	  • La couleur de l'aperçu est calculée localement (PlacementUtil), mais c'est
@@ -43,6 +46,16 @@ local holding: { [string]: any }? = nil
 
 local ghost: Part
 local frontMarker: Part
+local groundTarget: Part -- cible lumineuse au sol, sous l'aperçu
+local reticle: Frame -- viseur au centre de l'écran (mobile / tablette)
+local arrowPad: Frame -- flèches pour décaler d'une case (mobile / tablette)
+local aimButton: TextButton
+local followCenter = true -- mobile : l'aperçu suit le centre de l'écran (viseur)
+
+-- Mobile / tablette : écran tactile sans souris
+local function isTouchMode(): boolean
+	return UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+end
 local hoverBox: SelectionBox
 local panel: Frame
 local list: ScrollingFrame
@@ -120,6 +133,9 @@ local function updateGhost()
 	if not holding or not origin or holding.X == nil then
 		ghost.Parent = nil
 		frontMarker.Parent = nil
+		if groundTarget then
+			groundTarget.Parent = nil
+		end
 		return
 	end
 	local w, d = PlacementUtil.Footprint(holding.Type, holding.Kind)
@@ -139,6 +155,11 @@ local function updateGhost()
 
 	ghost.Parent = Workspace
 	frontMarker.Parent = Workspace
+	-- Cible au sol : anneau lumineux sous le centre de l'aperçu
+	groundTarget.Size = Vector3.new(0.2, math.min(w, d) * 0.6, math.min(w, d) * 0.6)
+	groundTarget.CFrame = cf * CFrame.new(0, -0.65, 0) * CFrame.Angles(0, 0, math.rad(90))
+	groundTarget.Color = ghost.Color
+	groundTarget.Parent = Workspace
 end
 
 -- Rayon depuis un point de l'écran (souris : coordonnées viewport ; tactile : coordonnées écran)
@@ -199,6 +220,7 @@ local function stopHolding()
 end
 
 local function startHolding(info: { [string]: any })
+	followCenter = true
 	holding = info
 	holding.Rot = holding.Rot or 0
 	actionBar.Visible = true
@@ -223,6 +245,29 @@ local function rotate()
 		holding.Rot = (holding.Rot + 1) % 4
 		updateGhost()
 	end
+end
+
+-- Décale l'aperçu d'une case, dans la direction vue par la caméra (▲ = s'éloigner de la caméra)
+local function nudge(forward: number, right: number)
+	local origin = getOrigin()
+	local camera = Workspace.CurrentCamera
+	if not holding or not origin or not camera or holding.X == nil then
+		return
+	end
+	followCenter = false -- les flèches prennent la main sur le viseur
+	local function dominant(v: Vector3): Vector3
+		local localV = origin:VectorToObjectSpace(v)
+		if math.abs(localV.X) > math.abs(localV.Z) then
+			return Vector3.new(math.sign(localV.X), 0, 0)
+		end
+		return Vector3.new(0, 0, math.sign(localV.Z))
+	end
+	local f = dominant(camera.CFrame.LookVector)
+	local r = dominant(camera.CFrame.RightVector)
+	local step = Config.Build.NudgeStep
+	holding.X += (f.X * forward + r.X * right) * step
+	holding.Z += (f.Z * forward + r.Z * right) * step
+	updateGhost()
 end
 
 local function invoke(action: string, payload: { [string]: any }): boolean
@@ -528,15 +573,72 @@ function BuildMode.Init(screen: ScreenGui, HUD, stateController, notifyFn: (stri
 	buttonLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	buttonLayout.Parent = buttons
 
+	-- Gros boutons faciles à toucher (encore plus gros sur mobile / tablette)
+	local touch = isTouchMode()
+	local bw, bh = if touch then 128 else 108, if touch then 64 else 48
+	actionBar.Size = UDim2.fromOffset(if touch then 680 else 580, if touch then 104 else 84)
+	buttons.Size = UDim2.new(1, 0, 0, bh + 2)
 	local function actionButton(order: number, text: string, color: Color3, callback: () -> ()): TextButton
-		local button = Theme.Button({ Size = UDim2.fromOffset(108, 48), LayoutOrder = order, BackgroundColor3 = color, Text = text, Parent = buttons })
+		local button = Theme.Button({ Size = UDim2.fromOffset(bw, bh), LayoutOrder = order, BackgroundColor3 = color, Text = text, Parent = buttons })
 		button.Activated:Connect(callback)
 		return button
 	end
-	actionButton(1, "↻ Tourner (R)", Color3.fromRGB(70, 120, 200), rotate)
-	actionButton(2, "✔ Valider", Color3.fromRGB(60, 170, 80), confirm)
+	actionButton(1, if touch then "↻ Tourner" else "↻ Tourner (R)", Color3.fromRGB(70, 120, 200), rotate)
+	actionButton(2, "✔ Poser", Color3.fromRGB(60, 170, 80), confirm)
 	storeButton = actionButton(3, "📦 Ranger", Color3.fromRGB(150, 110, 70), storeHeld)
-	actionButton(4, "✖ Annuler", Color3.fromRGB(200, 60, 60), stopHolding)
+	aimButton = actionButton(4, "🎯 Viseur", Color3.fromRGB(230, 170, 40), function()
+		followCenter = true
+	end)
+	actionButton(5, "✖ Annuler", Color3.fromRGB(200, 60, 60), stopHolding)
+	-- Message d'emplacement : bien lisible, sur un fond
+	hintLabel.BackgroundTransparency = 0.25
+	hintLabel.BackgroundColor3 = Color3.fromRGB(25, 28, 40)
+	Theme.Corner(hintLabel, 8)
+
+	-- Flèches pour décaler d'une case (mobile / tablette), à gauche de la barre
+	arrowPad = Instance.new("Frame")
+	arrowPad.Name = "BuildArrows"
+	arrowPad.AnchorPoint = Vector2.new(0, 1)
+	arrowPad.Position = UDim2.new(0, 290, 1, -100)
+	arrowPad.Size = UDim2.fromOffset(186, 186)
+	arrowPad.BackgroundTransparency = 1
+	arrowPad.Visible = false
+	arrowPad.Parent = screen
+	for _, info in { { "▲", 62, 0, 1, 0 }, { "▼", 62, 124, -1, 0 }, { "◀", 0, 62, 0, -1 }, { "▶", 124, 62, 0, 1 } } do
+		local arrow = Theme.Button({ Size = UDim2.fromOffset(62, 62), Position = UDim2.fromOffset(info[2], info[3]), BackgroundColor3 = Color3.fromRGB(80, 90, 130), Text = info[1], Parent = arrowPad })
+		arrow.Activated:Connect(function()
+			nudge(info[4], info[5])
+		end)
+	end
+
+	-- Viseur au centre de l'écran (mobile) : cercle + point
+	reticle = Instance.new("Frame")
+	reticle.Name = "BuildReticle"
+	reticle.AnchorPoint = Vector2.new(0.5, 0.5)
+	reticle.Position = UDim2.fromScale(0.5, 0.5)
+	reticle.Size = UDim2.fromOffset(56, 56)
+	reticle.BackgroundTransparency = 1
+	reticle.Visible = false
+	reticle.Parent = screen
+	Theme.Corner(reticle, 28)
+	Theme.Stroke(reticle, 4, Color3.fromRGB(255, 235, 90))
+	local dot = Instance.new("Frame")
+	dot.AnchorPoint = Vector2.new(0.5, 0.5)
+	dot.Position = UDim2.fromScale(0.5, 0.5)
+	dot.Size = UDim2.fromOffset(10, 10)
+	dot.BackgroundColor3 = Color3.fromRGB(255, 235, 90)
+	dot.Parent = reticle
+	Theme.Corner(dot, 5)
+
+	groundTarget = Instance.new("Part")
+	groundTarget.Name = "BuildTarget"
+	groundTarget.Shape = Enum.PartType.Cylinder
+	groundTarget.Anchored = true
+	groundTarget.CanCollide = false
+	groundTarget.CanQuery = false
+	groundTarget.CanTouch = false
+	groundTarget.Material = Enum.Material.Neon
+	groundTarget.Transparency = 0.2
 
 	-- Clavier / souris (PC)
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -565,6 +667,7 @@ function BuildMode.Init(screen: ScreenGui, HUD, stateController, notifyFn: (stri
 			return
 		end
 		if holding then
+			followCenter = false -- toucher le sol place l'aperçu à cet endroit
 			setTargetFromScreen(position, true)
 		else
 			local placeType, id = placeableAt(position, true)
@@ -576,7 +679,16 @@ function BuildMode.Init(screen: ScreenGui, HUD, stateController, notifyFn: (stri
 
 	-- Souris : l'aperçu suit le pointeur ; sans rien en main, on surligne l'élément survolé
 	RunService.RenderStepped:Connect(function()
-		if not active or UserInputService.TouchEnabled and not UserInputService.MouseEnabled then
+		local touch = isTouchMode()
+		reticle.Visible = active and touch and holding ~= nil and followCenter
+		arrowPad.Visible = active and touch and holding ~= nil
+		aimButton.Visible = touch and not followCenter
+		if active and touch and holding and followCenter then
+			-- Mobile : l'aperçu se place au centre de l'écran (on bouge la caméra pour viser)
+			local camera = Workspace.CurrentCamera
+			setTargetFromScreen(camera.ViewportSize / 2, false)
+		end
+		if not active or touch then
 			return
 		end
 		local mouse = UserInputService:GetMouseLocation()

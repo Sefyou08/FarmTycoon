@@ -153,6 +153,8 @@ Config.Farm = {
 	FieldColumns = 3,
 	FieldRows = 2,
 	TileSize = 6, -- taille d'une case (studs)
+	CustomCropSize = 4.5, -- modèle de culture importé : plus grande dimension quand c'est mûr
+	                      -- (réglable par culture avec ModelSize dans Config.Crops)
 	TileGap = 2, -- espace entre deux cases
 	FieldFootprint = Vector2.new(24, 16), -- emprise d'un champ (largeur X, profondeur Z)
 	SoilColor = Color3.fromRGB(105, 70, 40),
@@ -1177,7 +1179,8 @@ Config.EggSettings = {
 -- MODE CONSTRUCTION (placer / déplacer / ranger champs, enclos, bâtiments)
 --------------------------------------------------------------------------
 Config.Build = {
-	Grid = 1, -- les positions sont arrondies à ce pas (studs)
+	Grid = 2, -- grille de placement : les positions sont arrondies à ce pas (studs)
+	NudgeStep = 2, -- décalage d'une case avec les flèches (mobile / tablette)
 	EntranceDepth = 10, -- bande d'entrée interdite (spawn + boutons), en studs de profondeur
 	EdgeMargin = 1, -- marge avec le bord de la parcelle
 	ActionCooldown = 0.3,
@@ -1209,7 +1212,7 @@ Config.Monetization = {
 	--   Kind : "Coins" (Amount + PerLevel x niveau) | "Boost" (Boost, Power, Duration) |
 	--          "PlotExpansion" | "HatchNow" (tous les œufs éclosent) | "WheelSpins" (Amount)
 	Products = {
-		PlotExpansion = { Id = 0, Price = 99, Icon = "🗺️", Name = "Agrandissement", Description = "Agrandis ta parcelle d'un niveau tout de suite.", Kind = "PlotExpansion" },
+		PlotExpansion = { Id = 3736959997, Price = 99, Icon = "🗺️", Name = "Agrandissement", Description = "Agrandis ta parcelle d'un niveau tout de suite.", Kind = "PlotExpansion" },
 		CoinsSmall = { Id = 3736685434, Price = 25, Icon = "💰", Name = "Petit sac de Coins", Description = "Des Coins (plus si ton niveau est haut).", Kind = "Coins", Amount = 25000, PerLevel = 2500 },
 		CoinsMedium = { Id = 3736685631, Price = 99, Icon = "💰", Name = "Coffre de Coins", Description = "Beaucoup de Coins.", Kind = "Coins", Amount = 150000, PerLevel = 15000 },
 		CoinsLarge = { Id = 3736685812, Price = 299, Icon = "💰", Name = "Trésor de Coins", Description = "Énormément de Coins.", Kind = "Coins", Amount = 600000, PerLevel = 60000 },
@@ -1521,21 +1524,23 @@ Config.Art = {
 local stands = Config.Stands
 Config.Tutorial = {
 	Quests = {
-		{ Id = "BuySeed", Event = "BuySeed", Text = "Achète des graines au stand 🌱 GRAINES", Target = { Kind = "World", Position = stands.SeedShopPosition }, Reward = { Coins = 100 } },
-		{ Id = "Plant", Event = "Plant", Text = "Plante une graine : choisis-la en bas de l'écran, puis E sur une case de terre", Target = { Kind = "Plot", Prefix = "Field_" }, Reward = { Coins = 100, XP = 20 } },
-		{ Id = "Harvest", Event = "Harvest", Text = "Attends qu'elle pousse, puis récolte-la (E quand c'est « Prêt ! »)", Target = { Kind = "Plot", Prefix = "Field_" }, Reward = { Coins = 150, XP = 20 } },
-		{ Id = "Sell", Event = "Sell", Text = "Vends ta récolte au stand 💰 VENTE", Target = { Kind = "World", Position = stands.SellStandPosition }, Reward = { Coins = 200 } },
-		{ Id = "BuildPen", Event = "BuildPen", Check = "HasPen", Text = "Construis un enclos : 🔨 Construire > Enclos, puis pose-le sur ta parcelle", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 300 } },
+		-- Un nouveau joueur n'a PAS d'argent : il commence avec le pack de départ (5 carottes, 5 blés)
+		{ Id = "Plant", Event = "Plant", Text = "Plante une graine de ton pack de départ : choisis-la en bas de l'écran, puis E sur une case de terre", Target = { Kind = "Plot", Prefix = "Field_" }, Reward = { Coins = 50, XP = 20 } },
+		{ Id = "Harvest", Event = "Harvest", Text = "Attends qu'elle pousse (15 s pour le blé), puis récolte-la : E quand c'est « Prêt ! »", Target = { Kind = "Plot", Prefix = "Field_" }, Reward = { Coins = 100, XP = 20 } },
+		{ Id = "Sell", Event = "Sell", Text = "Vends ta récolte au stand 💰 VENTE pour gagner tes premiers Coins", Target = { Kind = "World", Position = stands.SellStandPosition }, Reward = { Coins = 150 } },
+		{ Id = "BuySeed", Event = "BuySeed", Text = "Avec tes Coins, achète de nouvelles graines au stand 🌱 GRAINES", Target = { Kind = "World", Position = stands.SeedShopPosition }, Reward = { Coins = 100 } },
+		{ Id = "Replant", Event = "Plant", Text = "Replante tes nouvelles graines dans ton champ : c'est la boucle de base de la ferme !", Target = { Kind = "Plot", Prefix = "Field_" }, Reward = { Coins = 150, XP = 30 } },
+		{ Id = "BuildPen", Event = "BuildPen", Check = "HasPen", Text = "Construis ton 1er enclos (300 Coins) : 🔨 Construire > Enclos, puis pose-le sur ta parcelle", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 300 } },
 		{ Id = "BuyAnimal", Event = "BuyAnimal", Check = "HasAnimal", Text = "Achète un animal au stand 🐄 ANIMAUX (une poule pour commencer)", Target = { Kind = "World", Position = stands.AnimalShopPosition }, Reward = { Coins = 200 } },
 		{ Id = "PlaceAnimal", Event = "PlaceAnimal", Check = "HasAnimalInPen", Text = "Ouvre 🐾 Mes animaux et place ton animal dans l'enclos", Target = { Kind = "Button", Name = "AnimalsButton" }, Reward = { Coins = 200, XP = 30 } },
-		{ Id = "Feed", Event = "Feed", Text = "Remplis la mangeoire : E sur la mangeoire de l'enclos (avec des récoltes qu'il aime)", Target = { Kind = "Plot", Prefix = "Pen_", Part = "Trough" }, Reward = { Coins = 300, Seeds = { Id = "Wheat", Amount = 6 } } },
-		{ Id = "BuildBakery", Event = "BuildBuilding", Arg = "Bakery", Check = "HasBuilding", Text = "Construis la 🥖 Boulangerie : 🔨 Construire > Bâtiments", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 500 } },
+		{ Id = "Feed", Event = "Feed", Text = "Remplis la mangeoire : E sur la mangeoire, avec des récoltes que ton animal mange (la poule aime le blé)", Target = { Kind = "Plot", Prefix = "Pen_", Part = "Trough" }, Reward = { Coins = 300, Seeds = { Id = "Wheat", Amount = 6 } } },
+		{ Id = "BuildBakery", Event = "BuildBuilding", Arg = "Bakery", Check = "HasBuilding", Text = "Économise 1 500 Coins (récolte et vends), puis construis la 🥖 Boulangerie : 🔨 Construire > Bâtiments", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 500 } },
 		{ Id = "Recipe", Event = "QueueRecipe", Arg = "Bakery", Text = "Lance une recette : E sur la porte de la boulangerie, choisis Pain, puis « Lancer » (4 blés)", Target = { Kind = "Plot", Prefix = "Building_Bakery", Part = "Door" }, Reward = { Coins = 300, XP = 50 } },
 		{ Id = "Collect", Event = "CollectRecipe", Arg = "Bakery", Text = "Quand le pain est prêt, récupère-le : E sur la porte > Récupérer", Target = { Kind = "Plot", Prefix = "Building_Bakery", Part = "Door" }, Reward = { Coins = 300 } },
 		{ Id = "Consume", Event = "Consume", Text = "Mange un produit pour un boost : 🎒 Sac, bouton 🍴 à côté du pain", Target = { Kind = "Button", Name = "InventoryButton" }, Reward = { Boost = { Type = "Speed", Power = 0.2, Duration = 600 } } },
 		{ Id = "Travel", Event = "Travel", Text = "Pars en expédition : portail violet 🧭 EXPÉDITIONS, puis la Forêt", Target = { Kind = "World", Position = Config.Expeditions.PortalPosition }, Reward = { Coins = 500 } },
 		{ Id = "Capture", Event = "Capture", Text = "Capture une créature : approche-toi, E, puis clique quand le curseur est dans la zone verte", Target = nil, Reward = { Coins = 800, XP = 80 } },
-		{ Id = "Pedestal", Event = "BuildPedestal", Check = "HasPedestal", Text = "De retour à la ferme, construis un socle : 🔨 Construire > Socle", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 500 } },
+		{ Id = "Pedestal", Event = "BuildPedestal", Check = "HasPedestal", Text = "De retour à la ferme, construis un socle d'exposition (500 Coins) : 🔨 Construire > Socle", Target = { Kind = "Button", Name = "BuildButton" }, Reward = { Coins = 500 } },
 		{ Id = "Exhibit", Event = "Exhibit", Check = "HasExhibit", Text = "Expose ta créature : 📖 Créatures > 🏛️ Exposer (elle rapporte des Coins/s)", Target = { Kind = "Button", Name = "CollectionButton" }, Reward = { Coins = 1000 } },
 		{ Id = "Dungeon", Event = "DungeonWin", Text = "Termine un donjon au portail rouge ⚔️ DONJONS (dès le niveau 8)", Target = { Kind = "World", Position = stands.DungeonPortalPosition }, Reward = { Coins = 5000, WheelSpins = 1 } },
 	},

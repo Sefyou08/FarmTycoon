@@ -919,7 +919,7 @@ function CreatureBuilder.Build(creatureId: string, mutationId: string, groundCFr
 	local custom = ArtKit.Custom("Creatures", creatureId)
 	if custom then
 		custom.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
-		ArtKit.PlaceCustom(custom, groundCFrame)
+		ArtKit.PlaceCustom(custom, groundCFrame, true, def.Size * 1.5) -- taille de base de la créature
 		ArtKit.SnapToGround(custom, groundCFrame)
 		local body = custom.PrimaryPart :: BasePart
 		addRarityEffects(body, rarity, def.Accent)

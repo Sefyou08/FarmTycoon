@@ -42,6 +42,7 @@ local PlacementUtil = require(ReplicatedStorage.Shared.PlacementUtil)
 local CosmeticUtil = require(ReplicatedStorage.Shared.CosmeticUtil)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local RemoteGuard = require(script.Parent.Parent.Util.RemoteGuard)
+local ArtKit = require(script.Parent.Parent.Util.ArtKit)
 local GameEvents = require(script.Parent.Parent.Util.GameEvents)
 local CurrencyService = require(script.Parent.CurrencyService)
 local SyncService = require(script.Parent.SyncService)
@@ -161,48 +162,64 @@ local function buildPlantModel(tile: Tile, cropId: string, stage: number, readyA
 	local ground = tile.Part.CFrame * CFrame.new(0, tile.Part.Size.Y / 2, 0)
 	local stemHeight = 3 * scale
 
-	local stem = decoPart({
-		Name = "Stem",
-		Size = Vector3.new(0.35, stemHeight, 0.35),
-		CFrame = ground * CFrame.new(0, stemHeight / 2, 0),
-		Color = Color3.fromRGB(70, 160, 60),
-		Material = Enum.Material.Grass,
-		Parent = model,
-	})
-	model.PrimaryPart = stem
-
-	-- Deux feuilles en croix
-	for i = 0, 1 do
-		decoPart({
-			Name = "Leaf",
-			Size = Vector3.new(2.2 * scale, 0.15, 0.7 * scale),
-			CFrame = ground * CFrame.new(0, stemHeight * 0.6, 0) * CFrame.Angles(0, math.rad(45 + 90 * i), math.rad(15)),
-			Color = Color3.fromRGB(90, 190, 70),
+	-- Modèle de culture importé (ServerStorage.CustomModels.Crops.<culture>) : utilisé pour les
+	-- 3 stades, du plus petit au plus grand ; nettoyé, ancré, mis à la taille et posé sur la case
+	local custom = ArtKit.Custom("Crops", cropId)
+	if custom then
+		model:Destroy()
+		model = custom
+		model.Name = "Plant"
+		ArtKit.PlaceCustom(model, ground, true, (crop.ModelSize or FarmConfig.CustomCropSize) * scale)
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.CanQuery = false -- le prompt reste sur la case de terre
+			end
+		end
+		stemHeight = model:GetExtentsSize().Y
+	else
+		local stem = decoPart({
+			Name = "Stem",
+			Size = Vector3.new(0.35, stemHeight, 0.35),
+			CFrame = ground * CFrame.new(0, stemHeight / 2, 0),
+			Color = Color3.fromRGB(70, 160, 60),
 			Material = Enum.Material.Grass,
 			Parent = model,
 		})
-	end
+		model.PrimaryPart = stem
 
-	-- Fruit : petit et pâle au stade 2, taille et couleur réelles au stade 3
-	if stage >= 2 then
-		local fruitScale = if stage == 3 then 1 else 0.5
-		local size = crop.FruitSize * fruitScale
-		local color = if stage == 3 then crop.Color else crop.Color:Lerp(Color3.fromRGB(90, 190, 70), 0.5)
-		local shape = Enum.PartType[crop.FruitShape] or Enum.PartType.Ball
-		local fruitCFrame = ground * CFrame.new(0, stemHeight + size.Y / 2, 0)
-		if shape == Enum.PartType.Cylinder then
-			-- Le cylindre Roblox est orienté sur X : on le redresse
-			fruitCFrame = ground * CFrame.new(0, stemHeight + size.X / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
+		-- Deux feuilles en croix
+		for i = 0, 1 do
+			decoPart({
+				Name = "Leaf",
+				Size = Vector3.new(2.2 * scale, 0.15, 0.7 * scale),
+				CFrame = ground * CFrame.new(0, stemHeight * 0.6, 0) * CFrame.Angles(0, math.rad(45 + 90 * i), math.rad(15)),
+				Color = Color3.fromRGB(90, 190, 70),
+				Material = Enum.Material.Grass,
+				Parent = model,
+			})
 		end
-		decoPart({
-			Name = "Fruit",
-			Shape = shape,
-			Size = size,
-			CFrame = fruitCFrame,
-			Color = color,
-			Material = Enum.Material.SmoothPlastic,
-			Parent = model,
-		})
+
+		-- Fruit : petit et pâle au stade 2, taille et couleur réelles au stade 3
+		if stage >= 2 then
+			local fruitScale = if stage == 3 then 1 else 0.5
+			local size = crop.FruitSize * fruitScale
+			local color = if stage == 3 then crop.Color else crop.Color:Lerp(Color3.fromRGB(90, 190, 70), 0.5)
+			local shape = Enum.PartType[crop.FruitShape] or Enum.PartType.Ball
+			local fruitCFrame = ground * CFrame.new(0, stemHeight + size.Y / 2, 0)
+			if shape == Enum.PartType.Cylinder then
+				-- Le cylindre Roblox est orienté sur X : on le redresse
+				fruitCFrame = ground * CFrame.new(0, stemHeight + size.X / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
+			end
+			decoPart({
+				Name = "Fruit",
+				Shape = shape,
+				Size = size,
+				CFrame = fruitCFrame,
+				Color = color,
+				Material = Enum.Material.SmoothPlastic,
+				Parent = model,
+			})
+		end
 	end
 
 	-- Minuteur / état au-dessus de la plante (texte mis à jour par le client)

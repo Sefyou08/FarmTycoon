@@ -79,6 +79,9 @@ Le plan complet et l'équilibrage sont dans [DESIGN.md](DESIGN.md).
 - Un Id à `0` affiche « Bientôt disponible ». `GrantAllPassesInStudio = true` donne tous les passes dans Studio pour tester.
 
 ## Remplacer un modèle par un modèle de la Toolbox
+Liste EXACTE des noms et des dossiers : voir **MODELES.md**. Rojo ne touche jamais à
+`ServerStorage > CustomModels` ni à `ReplicatedStorage > CustomModels` (`$ignoreUnknownInstances`).
+
 Chaque modèle généré peut être remplacé, un par un, sans toucher au gameplay :
 1. Dans Studio, crée `ServerStorage > CustomModels` (Folder), puis dedans un Folder par catégorie :
    `Creatures`, `Animals`, `Buildings`, `Stands`, `Mascot`.

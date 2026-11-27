@@ -28,9 +28,9 @@ local PINK = Color3.fromRGB(255, 160, 175)
 function MascotBuilder.Build(groundCFrame: CFrame, scale: number?): Model
 	local custom = ArtKit.Custom("Mascot", "Biscotte")
 	if custom then
-		ArtKit.PlaceCustom(custom, groundCFrame)
+		ArtKit.PlaceCustom(custom, groundCFrame, true, 4.6) -- taille de la mascotte générée
 		if scale and scale ~= 1 then
-			custom:ScaleTo(scale)
+			custom:ScaleTo(custom:GetScale() * scale)
 		end
 		return custom
 	end

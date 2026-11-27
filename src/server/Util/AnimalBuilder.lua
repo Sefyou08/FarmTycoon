@@ -460,7 +460,7 @@ function AnimalBuilder.Build(speciesId: string, variantId: string, groundCFrame:
 
 	local custom = ArtKit.Custom("Animals", speciesId)
 	if custom then
-		ArtKit.PlaceCustom(custom, groundCFrame)
+		ArtKit.PlaceCustom(custom, groundCFrame, true, math.max(species.BodySize.Z + species.HeadSize.Z, species.LegHeight + species.BodySize.Y + species.HeadSize.Y))
 		custom.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 		local body = custom.PrimaryPart :: BasePart
 		if body then
