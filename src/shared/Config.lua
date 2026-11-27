@@ -1198,11 +1198,11 @@ Config.Monetization = {
 
 	-- GAME PASSES : achetés une fois, effet permanent
 	GamePasses = {
-		DoubleCoins = { Id = 0, Price = 199, Icon = "💰", Name = "x2 Coins", Description = "Tous tes gains de Coins (vente, socles) x2, pour toujours." },
-		PremiumHelpers = { Id = 0, Price = 249, Icon = "🧑‍🌾", Name = "Aides premium", Description = "Le fermier et le soigneur font leurs tournées 2x plus vite." },
-		BigBackpack = { Id = 0, Price = 99, Icon = "🎒", Name = "Grand sac", Description = "+300 places dans ton sac.", Bonus = 300 },
-		ExtraIncubators = { Id = 0, Price = 149, Icon = "🐣", Name = "Couveuses en plus", Description = "+2 œufs qui couvent en même temps.", Bonus = 2 },
-		BigCollection = { Id = 0, Price = 149, Icon = "📖", Name = "Grande collection", Description = "+100 places pour tes créatures.", Bonus = 100 },
+		DoubleCoins = { Id = 2102261881, Price = 199, Icon = "💰", Name = "x2 Coins", Description = "Tous tes gains de Coins (vente, socles) x2, pour toujours." },
+		PremiumHelpers = { Id = 2099580757, Price = 249, Icon = "🧑‍🌾", Name = "Aides premium", Description = "Le fermier et le soigneur font leurs tournées 2x plus vite." },
+		BigBackpack = { Id = 2098854697, Price = 99, Icon = "🎒", Name = "Grand sac", Description = "+300 places dans ton sac.", Bonus = 300 },
+		ExtraIncubators = { Id = 2100228748, Price = 149, Icon = "🐣", Name = "Couveuses en plus", Description = "+2 œufs qui couvent en même temps.", Bonus = 2 },
+		BigCollection = { Id = 2098554806, Price = 149, Icon = "📖", Name = "Grande collection", Description = "+100 places pour tes créatures.", Bonus = 100 },
 	},
 
 	-- DEVELOPER PRODUCTS : achetables plusieurs fois
@@ -1210,9 +1210,9 @@ Config.Monetization = {
 	--          "PlotExpansion" | "HatchNow" (tous les œufs éclosent) | "WheelSpins" (Amount)
 	Products = {
 		PlotExpansion = { Id = 0, Price = 99, Icon = "🗺️", Name = "Agrandissement", Description = "Agrandis ta parcelle d'un niveau tout de suite.", Kind = "PlotExpansion" },
-		CoinsSmall = { Id = 0, Price = 25, Icon = "💰", Name = "Petit sac de Coins", Description = "Des Coins (plus si ton niveau est haut).", Kind = "Coins", Amount = 25000, PerLevel = 2500 },
-		CoinsMedium = { Id = 0, Price = 99, Icon = "💰", Name = "Coffre de Coins", Description = "Beaucoup de Coins.", Kind = "Coins", Amount = 150000, PerLevel = 15000 },
-		CoinsLarge = { Id = 0, Price = 299, Icon = "💰", Name = "Trésor de Coins", Description = "Énormément de Coins.", Kind = "Coins", Amount = 600000, PerLevel = 60000 },
+		CoinsSmall = { Id = 3736685434, Price = 25, Icon = "💰", Name = "Petit sac de Coins", Description = "Des Coins (plus si ton niveau est haut).", Kind = "Coins", Amount = 25000, PerLevel = 2500 },
+		CoinsMedium = { Id = 3736685631, Price = 99, Icon = "💰", Name = "Coffre de Coins", Description = "Beaucoup de Coins.", Kind = "Coins", Amount = 150000, PerLevel = 15000 },
+		CoinsLarge = { Id = 3736685812, Price = 299, Icon = "💰", Name = "Trésor de Coins", Description = "Énormément de Coins.", Kind = "Coins", Amount = 600000, PerLevel = 60000 },
 		GrowthBoost = { Id = 0, Price = 39, Icon = "🌱", Name = "Pousse x2 (30 min)", Description = "Les plantes semées poussent 2x plus vite.", Kind = "Boost", Boost = "Growth", Power = 1, Duration = 1800 },
 		ProductionBoost = { Id = 0, Price = 49, Icon = "🏭", Name = "Production x2 (30 min)", Description = "Animaux et bâtiments produisent 2x plus vite.", Kind = "Boost", Boost = "Production", Power = 1, Duration = 1800 },
 		CoinsBoost = { Id = 0, Price = 49, Icon = "💰", Name = "Coins x2 (30 min)", Description = "Gains de Coins x2 pendant 30 min.", Kind = "Boost", Boost = "Coins", Power = 1, Duration = 1800 },
@@ -1220,14 +1220,14 @@ Config.Monetization = {
 		SpeedBoost = { Id = 0, Price = 15, Icon = "🏃", Name = "Vitesse +30 % (30 min)", Description = "Tu cours plus vite.", Kind = "Boost", Boost = "Speed", Power = 0.3, Duration = 1800 },
 		CaptureBoost = { Id = 0, Price = 39, Icon = "🪢", Name = "Capture +25 % (30 min)", Description = "Zone verte plus large et meilleure chance finale.", Kind = "Boost", Boost = "Capture", Power = 0.25, Duration = 1800 },
 		CombatBoost = { Id = 0, Price = 39, Icon = "⚔️", Name = "Force +50 % (30 min)", Description = "Plus de PV et de dégâts au donjon.", Kind = "Boost", Boost = "Combat", Power = 0.5, Duration = 1800 },
-		HatchNow = { Id = 0, Price = 25, Icon = "🐣", Name = "Éclosion immédiate", Description = "Tous tes œufs en couveuse éclosent tout de suite.", Kind = "HatchNow" },
+		HatchNow = { Id = 3736685722, Price = 25, Icon = "🐣", Name = "Éclosion immédiate", Description = "Tous tes œufs en couveuse éclosent tout de suite.", Kind = "HatchNow" },
 		-- Boosts longs (2 h) : vendus aussi sur les boutons au sol autour de la base
-		XPBoost2h = { Id = 0, Price = 79, Icon = "⚡", Name = "XP x2 (2 h)", Description = "XP x2 pendant 2 heures.", Kind = "Boost", Boost = "XP", Power = 1, Duration = 7200 },
-		CoinsBoost2h = { Id = 0, Price = 129, Icon = "💰", Name = "Coins x2 (2 h)", Description = "Gains de Coins x2 pendant 2 heures.", Kind = "Boost", Boost = "Coins", Power = 1, Duration = 7200 },
-		ProductionBoost2h = { Id = 0, Price = 129, Icon = "🏭", Name = "Production x2 (2 h)", Description = "Animaux et bâtiments 2x plus rapides pendant 2 heures.", Kind = "Boost", Boost = "Production", Power = 1, Duration = 7200 },
-		GrowthBoost2h = { Id = 0, Price = 99, Icon = "🌱", Name = "Pousse x2 (2 h)", Description = "Plantes 2x plus rapides pendant 2 heures.", Kind = "Boost", Boost = "Growth", Power = 1, Duration = 7200 },
-		WheelSpin = { Id = 0, Price = 19, Icon = "🎡", Name = "1 tour de roue", Description = "Un tour de roue en plus.", Kind = "WheelSpins", Amount = 1 },
-		WheelSpins5 = { Id = 0, Price = 79, Icon = "🎡", Name = "5 tours de roue", Description = "Cinq tours de roue en plus.", Kind = "WheelSpins", Amount = 5 },
+		XPBoost2h = { Id = 3736686051, Price = 79, Icon = "⚡", Name = "XP x2 (2 h)", Description = "XP x2 pendant 2 heures.", Kind = "Boost", Boost = "XP", Power = 1, Duration = 7200 },
+		CoinsBoost2h = { Id = 3736686129, Price = 129, Icon = "💰", Name = "Coins x2 (2 h)", Description = "Gains de Coins x2 pendant 2 heures.", Kind = "Boost", Boost = "Coins", Power = 1, Duration = 7200 },
+		ProductionBoost2h = { Id = 3736686433, Price = 129, Icon = "🏭", Name = "Production x2 (2 h)", Description = "Animaux et bâtiments 2x plus rapides pendant 2 heures.", Kind = "Boost", Boost = "Production", Power = 1, Duration = 7200 },
+		GrowthBoost2h = { Id = 3736686830, Price = 99, Icon = "🌱", Name = "Pousse x2 (2 h)", Description = "Plantes 2x plus rapides pendant 2 heures.", Kind = "Boost", Boost = "Growth", Power = 1, Duration = 7200 },
+		WheelSpin = { Id = 3736685897, Price = 19, Icon = "🎡", Name = "1 tour de roue", Description = "Un tour de roue en plus.", Kind = "WheelSpins", Amount = 1 },
+		WheelSpins5 = { Id = 3736685974, Price = 79, Icon = "🎡", Name = "5 tours de roue", Description = "Cinq tours de roue en plus.", Kind = "WheelSpins", Amount = 5 },
 	},
 	MaxReceiptHistory = 300, -- reçus mémorisés par joueur (anti double-crédit)
 }
